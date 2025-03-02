@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+    <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+        <h2 class="text-2xl font-bold text-center mb-4">Register</h2>
+
+        <form id="registerForm">
+            <label class="block mb-2 text-sm font-medium">ID Number</label>
+            <input type="text" id="idNumber" class="w-full p-2 border rounded mb-4" required>
+
+            <label class="block mb-2 text-sm font-medium">First Name</label>
+            <input type="text" id="firstName" class="w-full p-2 border rounded mb-4" required>
+
+            <label class="block mb-2 text-sm font-medium">Middle Name</label>
+            <input type="text" id="middleName" class="w-full p-2 border rounded mb-4">
+
+            <label class="block mb-2 text-sm font-medium">Last Name</label>
+            <input type="text" id="lastName" class="w-full p-2 border rounded mb-4" required>
+
+            <label class="block mb-2 text-sm font-medium">Email</label>
+            <input type="email" id="email" class="w-full p-2 border rounded mb-4" required>
+
+            <label class="block mb-2 text-sm font-medium">Year Level</label>
+            <select id="year" class="w-full p-2 border rounded mb-4" required>
+                <option value="">Select Year Level</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+            </select>
+
+            <label class="block mb-2 text-sm font-medium">Course</label>
+            <select id="course" class="w-full p-2 border rounded mb-4" required>
+                <option value="">Select Course</option>
+                <option value="BS Computer Science">BS Computer Science</option>
+                <option value="BS Information Technology">BS Information Technology</option>
+                <option value="BS Information Systems">BS Information Systems</option>
+                <option value="BS Software Engineering">BS Software Engineering</option>
+                <option value="BS Computer Engineering">BS Computer Engineering</option>
+                <option value="BS Electronics Engineering">BS Electronics Engineering</option>
+                <option value="BS Electrical Engineering">BS Electrical Engineering</option>
+                <option value="BS Mechanical Engineering">BS Mechanical Engineering</option>
+                <option value="BS Civil Engineering">BS Civil Engineering</option>
+                <option value="BS Business Administration">BS Business Administration</option>
+            </select>
+
+            <label class="block mb-2 text-sm font-medium">Password</label>
+            <input type="password" id="password" class="w-full p-2 border rounded mb-4" required>
+
+            <label class="block mb-2 text-sm font-medium">Confirm Password</label>
+            <input type="password" id="confirmPassword" class="w-full p-2 border rounded mb-4" required>
+
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                Register
+            </button>
+        </form>
+
+        <p class="text-sm text-center mt-4">
+            Already have an account? <a href="../login.html" class="text-blue-600 hover:underline">Login</a>
+        </p>
+
+        <!-- Success message (Initially Hidden) -->
+        <p id="success-message" class="text-green-500 text-sm text-center mt-2 hidden"></p>
+
+        <!-- Error message (Initially Hidden) -->
+        <p id="error-message" class="text-red-500 text-sm text-center mt-2 hidden"></p>
+    </div>
+
+    <script>
+        document.getElementById("registerForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const idNumber = document.getElementById("idNumber").value.trim();
+            const firstName = document.getElementById("firstName").value.trim();
+            const middleName = document.getElementById("middleName").value.trim();
+            const lastName = document.getElementById("lastName").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const year = document.getElementById("year").value.trim();
+            const course = document.getElementById("course").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+            const successMessage = document.getElementById("success-message");
+            const errorMessage = document.getElementById("error-message");
+
+            // Clear previous messages
+            successMessage.classList.add("hidden");
+            errorMessage.classList.add("hidden");
+
+            if (password !== confirmPassword) {
+                errorMessage.textContent = "Passwords do not match!";
+                errorMessage.classList.remove("hidden");
+                return;
+            }
+
+            const response = await fetch("/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idNumber, firstName, middleName, lastName, email, year, course, password })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                successMessage.textContent = "Registration successful! Redirecting to login...";
+                successMessage.classList.remove("hidden");
+
+                // Redirect to login page after 3 seconds
+                setTimeout(() => {
+                    window.location.href = result.redirect;
+                }, 3000);
+            } else {
+                errorMessage.textContent = result.message;
+                errorMessage.classList.remove("hidden");
+            }
+        });
+    </script>
+</body>
+</html>

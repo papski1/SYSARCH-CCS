@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex">
+
+    <!-- ✅ Sidebar -->
+    <div id="sidebar" class="w-64 bg-white h-screen p-5 shadow-lg flex flex-col justify-between">
+        <div>
+            <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+            
+            <div class="flex items-center mb-4">
+                <img id="profileImageSidebar" src="/uploads/default.png" class="w-12 h-12 rounded-full border" alt="Profile">
+                <div class="ml-3">
+                    <p class="font-semibold" id="studentNameSidebar">Student Name</p>
+                    <p class="text-sm text-gray-500" id="studentCourseSidebar">Course</p>
+                </div>
+            </div>
+
+            <nav>
+                <a id="profileLink" class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded cursor-pointer">Profile</a>
+                <button onclick="showSection('announcementsSection')" class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Announcements</button>
+                <button onclick="showSection('labRulesSection')" class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Lab Rules</button>
+                <button onclick="showSection('sitInHistorySection')" class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Sit-in History</button>
+                <button onclick="showSection('reserveSessionSection')" class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Reserve Session</button>
+            </nav>
+        </div>
+
+        <!-- ✅ Logout Button (Fitted Size) -->
+        <button id="logoutBtn" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 self-start">
+            Logout
+        </button>
+    </div>
+
+    <!-- ✅ Main Dashboard Content -->
+    <div class="flex-1 p-6">
+        <button id="toggleSidebar" class="bg-blue-500 text-white px-3 py-2 rounded mb-4">Toggle Menu</button>
+        
+        <!-- ✅ Welcome Message -->
+        <h1 class="text-2xl font-bold mb-4" id="welcomeMessage">Welcome, User</h1>
+
+        <!-- ✅ Announcements Section -->
+        <div id="announcementsSection" class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold">Announcements</h2>
+            <p class="text-gray-600">No announcements at this time.</p>
+        </div>
+
+        <!-- ✅ Lab Rules Section -->
+        <div id="labRulesSection" class="hidden bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold">Lab Rules</h2>
+            <p class="text-gray-600">Follow the guidelines and maintain discipline.</p>
+        </div>
+
+        <!-- ✅ Sit-in History Section -->
+        <div id="sitInHistorySection" class="hidden bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold">Sit-in History</h2>
+            <p class="text-gray-600">Your sit-in records will appear here.</p>
+        </div>
+
+        <!-- ✅ Reserve Session Section -->
+        <div id="reserveSessionSection" class="hidden bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold">Reserve a Session</h2>
+            <p class="text-gray-600">Reserve a session for sit-in monitoring.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get("id");
+
+            if (!userId) {
+                alert("User not found!");
+                return;
+            }
+
+            // ✅ Fetch user data
+            const response = await fetch(`/get-profile?id=${userId}`);
+            const user = await response.json();
+
+            if (user.error) {
+                alert(user.error);
+            } else {
+                // ✅ Update Sidebar Info
+                document.getElementById("profileImageSidebar").src = user.profileImage || "/uploads/default.png";
+                document.getElementById("studentNameSidebar").textContent = `${user.firstName} ${user.lastName}`;
+                document.getElementById("studentCourseSidebar").textContent = user.course;
+
+                // ✅ Set Welcome Message
+                document.getElementById("welcomeMessage").textContent = `Welcome, ${user.firstName}`;
+
+                // ✅ Set Profile Link (Redirect to profile.html with ID)
+                document.getElementById("profileLink").addEventListener("click", () => {
+                    window.location.href = `/profile.html?id=${user.idNumber}`;
+                });
+            }
+        });
+
+        // ✅ Sidebar Toggle
+        document.getElementById("toggleSidebar").addEventListener("click", () => {
+            document.getElementById("sidebar").classList.toggle("-translate-x-64");
+        });
+
+        // ✅ Logout
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            window.location.href = "/login.html";
+        });
+
+        // ✅ Function to Show Sections
+        function showSection(sectionId) {
+            document.querySelectorAll(".bg-white.p-6.rounded-lg.shadow-md").forEach(section => {
+                section.classList.add("hidden");
+            });
+            document.getElementById(sectionId).classList.remove("hidden");
+        }
+    </script>
+
+</body>
+</html>
