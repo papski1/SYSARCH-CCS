@@ -1,458 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-100 text-gray-900">
 
-<body class="bg-gray-100 flex">
-
-    <!-- ✅ Sidebar -->
-    <div id="sidebar" class="w-64 bg-white h-screen p-5 shadow-lg flex flex-col justify-between">
-        <div>
-            <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
-
-            <div class="flex items-center mb-4">
-                <img id="profileImageSidebar" src="/uploads/default.png" class="w-12 h-12 rounded-full border"
-                    alt="Profile">
-                <div class="ml-3">
-                    <p class="font-semibold" id="studentNameSidebar">Student Name</p>
-                    <p class="text-sm text-gray-500" id="studentCourseSidebar">Course</p>
-                </div>
-            </div>
-
-            <nav>
-                <button onclick="showSection('profileSection')"
-                    class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Profile</button>
-                <button onclick="showSection('announcementsSection')"
-                    class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Announcements</button>
-                <button onclick="showSection('labRulesSection')"
-                    class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Lab Rules</button>
-                <button onclick="showSection('sitInHistorySection')"
-                    class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Sit-in
-                    History</button>
-                <button onclick="showSection('reserveSessionSection')"
-                    class="block py-2 text-gray-700 hover:bg-gray-200 px-3 rounded text-left w-full">Reserve
-                    Session</button>
-            </nav>
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-md p-4 fixed h-full">
+            <h3 class="text-xl font-bold mb-4">Dashboard</h3>
+            <ul class="space-y-2">
+                <li><a href="#dashboard" class="block py-2 px-4 rounded hover:bg-gray-200">Dashboard</a></li>
+                <li><a href="#profile" class="block py-2 px-4 rounded hover:bg-gray-200">Profile</a></li>
+                <li><a href="#announcements" class="block py-2 px-4 rounded hover:bg-gray-200">Announcements</a></li>
+                <li><a href="#lab-rules" class="block py-2 px-4 rounded hover:bg-gray-200">Lab Rules</a></li>
+                <li><a href="#reserve-session" class="block py-2 px-4 rounded hover:bg-gray-200">Reserve Session</a></li>
+                <li><a href="#" onclick="logout()" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Logout</a></li>
+            </ul>
         </div>
 
-        <!-- ✅ Logout Button -->
-        <button id="logoutBtn" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 self-start">
-            Logout
-        </button>
-    </div>
+        <!-- Main Content -->
+        <div class="flex-1 p-6 space-y-6 ml-64">
+            <header>
+                <h1 class="text-2xl font-bold">Student Dashboard</h1>
+            </header>
 
-    <!-- ✅ Main Dashboard Content -->
-    <div class="flex-1 p-6">
-        <button id="toggleSidebar" class="bg-blue-500 text-white px-3 py-2 rounded mb-4">Toggle Menu</button>
+             <!-- Profile Section -->
+             <section id="profile" class="hidden">
+                <div class="bg-white p-4 rounded shadow">
+                    <div class="flex items-center space-x-4">
+                        <img id="profilePic" src="default-profile.png" alt="Profile Picture" class="w-24 h-24 rounded-full border">
+                        <input type="file" id="uploadProfilePic" class="hidden" accept="image/*">
+                        <button onclick="document.getElementById('uploadProfilePic').click();" class="bg-blue-500 text-white py-2 px-4 rounded">Upload Photo</button>
+                    </div>
+            
+                    <div class="mt-4">
+                        <label>ID Number:</label>
+                        <input type="text" id="idNumber" class="w-full border p-2 rounded">
+            
+                        <label>First Name:</label>
+                        <input type="text" id="firstname" class="w-full border p-2 rounded">
+            
+                        <label>Middle Name:</label>
+                        <input type="text" id="middlename" class="w-full border p-2 rounded">
+            
+                        <label>Last Name:</label>
+                        <input type="text" id="lastname" class="w-full border p-2 rounded">
+            
+                        <label>Email:</label>
+                        <input type="email" id="email" class="w-full border p-2 rounded">
+            
+                        <label>Year:</label>
+                        <input type="text" id="year" class="w-full border p-2 rounded">
+            
+                        <label>Course:</label>
+                        <input type="text" id="course" class="w-full border p-2 rounded">
 
-        <!-- ✅ Welcome Message -->
-        <h1 class="text-2xl font-bold mb-4" id="welcomeMessage">Welcome, User</h1>
+                    <!-- Change Password Modal (Hidden by default) -->
+                    <div id="changePasswordModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+                        <div class="bg-white p-6 rounded shadow-lg w-96">
+                            <h2 class="text-xl font-semibold mb-4">Change Password</h2>
+                            <label>Current Password:</label>
+                            <input type="password" id="currentPassword" class="w-full border p-2 rounded mb-2">
 
-        <!-- Profile Section -->
-        <div id="profileSection" class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-3xl font-bold text-center mb-6">Profile</h2>
+                            <label>New Password:</label>
+                            <input type="password" id="newPassword" class="w-full border p-2 rounded mb-2">
 
-            <div class="flex flex-col items-center">
-                <img id="profileImage" src="/uploads/default.png" class="w-32 h-32 rounded-full border mb-4"
-                    alt="Profile Picture">
+                            <label>Confirm New Password:</label>
+                            <input type="password" id="confirmNewPassword" class="w-full border p-2 rounded mb-2">
 
-                <form id="uploadForm" enctype="multipart/form-data" class="w-full text-center">
-                    <input type="file" id="imageUpload" class="block w-full text-sm text-gray-600 mb-4 hidden">
-                    <button type="submit" id="uploadButton"
-                        class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition hidden">
-                        Upload
-                    </button>
-                </form>
-            </div>
+                            <div class="flex justify-end mt-4">
+                                <button onclick="changePassword()" class="bg-green-500 text-white py-2 px-4 rounded">Update</button>
+                                <button onclick="closeChangePasswordModal()" class="bg-red-500 text-white py-2 px-4 rounded ml-2">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="mt-6">
-                <p><strong>ID:</strong> <span id="userIdText"></span></p>
-                <input type="text" id="userIdInput" class="w-full border p-2 rounded hidden" />
-
-                <p class="mt-2"><strong>Full Name:</strong> <span id="fullNameText"></span></p>
-                <input type="text" id="fullNameInput" class="w-full border p-2 rounded hidden" />
-
-                <p class="mt-2"><strong>Email:</strong> <span id="emailText"></span></p>
-                <input type="email" id="emailInput" class="w-full border p-2 rounded hidden" />
-
-                <p class="mt-2"><strong>Year:</strong> <span id="yearText"></span></p>
-                <input type="text" id="yearInput" class="w-full border p-2 rounded hidden" />
-
-                <p class="mt-2"><strong>Course:</strong> <span id="courseText"></span></p>
-                <input type="text" id="courseInput" class="w-full border p-2 rounded hidden" />
-
-                <p><strong>Remaining Sessions:</strong> <span id="remainingSessionsText">Loading...</span></p>
-
-                <div class="flex gap-4 mt-4">
-                    <button id="editProfile"
-                        class="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 transition">
-                        Edit Profile
-                    </button>
-
-                    <button id="saveProfile"
-                        class="w-1/2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition hidden">
-                        Save Changes
-                    </button>
-
-                    <button id="changePassword"
-                        class="w-1/2 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition hidden">
+                        <p class="mt-4"><strong>Remaining Sessions:</strong> <span id="remainingSessions">10</span></p>
+                    </div>
+            
+                    <button onclick="saveProfile()" class="bg-green-500 text-white py-2 px-4 rounded mt-4">Save Changes</button>
+                    <button onclick="openChangePasswordModal()" class="bg-red-500 text-white py-2 px-4 rounded mt-4">
                         Change Password
                     </button>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Change Password Modal -->
-        <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 class="text-xl font-bold mb-4">Change Password</h2>
-        
-                <form id="updatePasswordForm">
-                    <label for="currentPassword" class="block mb-2">Current Password</label>
-                    <input type="password" id="currentPassword" name="currentPassword" 
-                           class="w-full border p-2 rounded" required autocomplete="current-password">
-        
-                    <label for="newPassword" class="block mt-4 mb-2">New Password</label>
-                    <input type="password" id="newPassword" name="newPassword" 
-                           class="w-full border p-2 rounded" required autocomplete="new-password">
-        
-                    <label for="confirmPassword" class="block mt-4 mb-2">Confirm New Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" 
-                           class="w-full border p-2 rounded" required>
-        
-                    <div class="flex justify-end gap-4 mt-6">
-                        <button type="button" id="closeModal"
-                                class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition">
-                            Cancel
-                        </button>
-                        <button type="submit"
-                                class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
-                            Update Password
-                        </button>
+            <!-- Announcements Section (Hidden by default) -->
+            <section id="announcements" class="hidden">
+                <div class="bg-white p-4 rounded shadow">
+                    <p class="text-gray-600">No announcements at this time.</p>
+                </div>
+            </section>
+
+            <!-- Lab Rules Section (Hidden by default) -->
+            <section id="lab-rules" class="hidden">
+                <div class="bg-white p-4 rounded shadow">
+                    <div class="flex items-center justify-center relative">
+                        <!-- Left Image -->
+                        <img src="dist/css/images.png" alt="Left Logo" class="w-28 h-28 absolute left-0">
+            
+                        <!-- Title Section -->
+                        <div class="text-center">
+                            <h2 class="text-xl font-bold text-gray-800">University of Cebu</h2>
+                            <h3 class="text-lg font-semibold text-gray-700">COLLEGE OF INFORMATION & COMPUTER STUDIES</h3>
+                            <h4 class="text-md font-semibold text-gray-600">LABORATORY RULES AND REGULATIONS</h4>
+                        </div>
+            
+                        <!-- Right Image -->
+                        <img src="dist/css/image.png" alt="Right Logo" class="w-28 h-28 absolute right-0">
                     </div>
-                </form>
-            </div>
-        </div>
-               
+                    <p class="mt-4 text-gray-700">To avoid embarrassment and maintain camaraderie with your friends and superiors at our laboratories, please observe the following:</p>
+            
+                    <ul class="list-decimal list-inside mt-4 text-gray-700 space-y-2">
+                        <li>Maintain silence, proper decorum, and discipline inside the laboratory. Mobile phones, walkmans, and other personal pieces of equipment must be switched off.</li>
+                        <li>Games are not allowed inside the lab. This includes computer-related games, card games, and other games that may disturb the operation of the lab.</li>
+                        <li>Surfing the Internet is allowed only with the permission of the instructor. Downloading and installing of software are strictly prohibited.</li>
+                        <li>Getting access to other websites not related to the course (especially pornographic and illicit sites) is strictly prohibited.</li>
+                        <li>Deleting computer files and changing the set-up of the computer is a major offense.</li>
+                        <li>Observe computer time usage carefully. A fifteen-minute allowance is given for each use. Otherwise, the unit will be given to those who wish to “sit-in.”</li>
+                        <li>Observe proper decorum while inside the laboratory:
+                            <ul class="list-disc list-inside ml-6">
+                                <li>Do not get inside the lab unless the instructor is present.</li>
+                                <li>All bags, knapsacks, and the likes must be deposited at the counter.</li>
+                                <li>Follow the seating arrangement of your instructor.</li>
+                                <li>At the end of class, all software programs must be closed.</li>
+                                <li>Return all chairs to their proper places after using.</li>
+                            </ul>
+                        </li>
+                        <li>Chewing gum, eating, drinking, smoking, and other forms of vandalism are prohibited inside the lab.</li>
+                        <li>Anyone causing a continual disturbance will be asked to leave the lab. Acts or gestures offensive to the members of the community, including public display of physical intimacy, are not tolerated.</li>
+                        <li>Persons exhibiting hostile or threatening behavior such as yelling, swearing, or disregarding requests made by lab personnel will be asked to leave the lab.</li>
+                        <li>For serious offenses, the lab personnel may call the Civil Security Office (CSU) for assistance.</li>
+                        <li>Any technical problem or difficulty must be addressed to the laboratory supervisor, student assistant, or instructor immediately.</li>
+                    </ul>
+            
+                    <h4 class="text-md font-semibold text-gray-700 mt-6">DISCIPLINARY ACTION</h4>
+                    <ul class="list-disc list-inside text-gray-700 space-y-2 mt-2">
+                        <li><strong>First Offense</strong> – The Head or the Dean or OIC recommends to the Guidance Center for a suspension from classes for each offender.</li>
+                        <li><strong>Second and Subsequent Offenses</strong> – A recommendation for a heavier sanction will be endorsed to the Guidance Center.</li>
+                    </ul>
+                </div>
+            </section>            
 
-        <!-- ✅ Announcements Section -->
-        <div id="announcementsSection" class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold">Announcements</h2>
-            <p class="text-gray-600">No announcements at this time.</p>
-        </div>
+            <!-- Sit-in History Section (Hidden by default) -->
+            <section id="dashboard">
+                <div class="bg-white p-4 rounded shadow">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-gray-300 px-4 py-2">Date</th>
+                                <th class="border border-gray-300 px-4 py-2">Time In</th>
+                                <th class="border border-gray-300 px-4 py-2">Time Out</th>
+                                <th class="border border-gray-300 px-4 py-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sitInTableBody">
+                            <!-- Data will be inserted dynamically here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-        <!-- ✅ Lab Rules Section -->
-        <div id="labRulesSection" class="hidden bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold">Lab Rules</h2>
-            <p>Follow the guidelines while using lab resources.</p>
-        </div>
 
-        <!-- ✅ Sit-in History Section -->
-        <div id="sitInHistorySection" class="hidden bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold">Sit-in History</h2>
-            <p class="text-gray-600">Your sit-in records will appear here.</p>
-        </div>
-
-        <!-- ✅ Reserve Session Section -->
-        <div id="reserveSessionSection" class="hidden bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold">Reserve a Session</h2>
-            <p class="text-gray-600">Reserve a session for sit-in monitoring.</p>
+            <!-- Reserve Session Section (Hidden by default) -->
+            <section id="reserve-session" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">Reserve a Session</h2>
+                <div class="bg-white p-4 rounded shadow">
+                    <p>Reserve a session for sit-in monitoring.</p>
+                    <button class="bg-blue-500 text-white py-2 px-4 rounded">Reserve Now</button>
+                </div>
+            </section>
         </div>
     </div>
-
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-    const updatePasswordForm = document.getElementById("updatePasswordForm");
-    const passwordModal = document.getElementById("passwordModal");
-    const closeModal = document.getElementById("closeModal");
-    const changePasswordButton = document.getElementById("changePassword");
-
-    if (!updatePasswordForm || !passwordModal || !closeModal || !changePasswordButton) {
-        console.error("One or more elements not found.");
-        return;
-    }
-
-    // Show password modal when clicking 'Change Password'
-    changePasswordButton.addEventListener("click", function () {
-        passwordModal.classList.remove("hidden");
-    });
-
-    // Close modal
-    closeModal.addEventListener("click", function () {
-        passwordModal.classList.add("hidden");
-    });
-
-    updatePasswordForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
-
-        const userId = sessionStorage.getItem("loggedInUserId"); // Get logged-in user ID
-        if (!userId) {
-            alert("User not identified. Please log in again.");
-            return;
-        }
-
-        const currentPassword = document.getElementById("currentPassword").value.trim();
-        const newPassword = document.getElementById("newPassword").value.trim();
-        const confirmPassword = document.getElementById("confirmPassword").value.trim();
-
-        if (newPassword !== confirmPassword) {
-            alert("New passwords do not match!");
-            return;
-        }
-
-        try {
-            const response = await fetch("/update-password", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId, currentPassword, newPassword }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                alert("Password updated successfully!");
-                updatePasswordForm.reset();
-                passwordModal.classList.add("hidden");
-            } else {
-                alert("Error: " + data.message);
+        document.getElementById("uploadProfilePic").addEventListener("change", function (event) {
+            const file = event.target.files[0]; // Get the selected file
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById("profilePic").src = e.target.result; // Display the uploaded image
+                    saveProfilePicture(file); // Save to server or local storage
+                };
+                reader.readAsDataURL(file);
             }
-        } catch (err) {
-            console.error("Fetch Error:", err);
-            alert("Something went wrong. Please try again.");
-        }
-    });
-});
-
+        });
         document.addEventListener("DOMContentLoaded", function () {
-            const userId = sessionStorage.getItem("loggedInUserId"); // Store user ID in sessionStorage on login
-            fetch(`/get-profile?id=${userId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        console.error("Error:", data.error);
+            const fileInput = document.getElementById("profileImageInput");
+
+            if (fileInput) {
+                fileInput.addEventListener("change", function (event) {
+                    const file = event.target.files[0];
+                    const userId = new URLSearchParams(window.location.search).get("id"); // Get user ID dynamically
+
+                    if (!userId) {
+                        console.error("Error: User ID not found in URL!");
                         return;
                     }
 
-                    // Populate spans
-                    document.getElementById("userIdText").textContent = data.idNumber;
-                    document.getElementById("fullNameText").textContent = data.firstName + " " + (data.middleName ? data.middleName + " " : "") + data.lastName;
-                    document.getElementById("emailText").textContent = data.email;
-                    document.getElementById("yearText").textContent = data.year;
-                    document.getElementById("courseText").textContent = data.course;
-                    document.getElementById("remainingSessionsText").textContent = data.remainingSessions;
-
-                    // Populate hidden input fields
-                    document.getElementById("userIdInput").value = data.idNumber;
-                    document.getElementById("fullNameInput").value = document.getElementById("fullNameText").textContent;
-                    document.getElementById("emailInput").value = data.email;
-                    document.getElementById("yearInput").value = data.year;
-                    document.getElementById("courseInput").value = data.course;
-                })
-                .catch(error => console.error("Error fetching profile:", error));
-        });
-
-        document.addEventListener("DOMContentLoaded", async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get("id");
-
-            if (!userId) {
-                alert("User not found!");
-                return;
-            }
-
-            try {
-                // Fetch user data
-                const response = await fetch(`/get-profile?id=${userId}`);
-                const user = await response.json();
-
-                if (user.error) {
-                    alert(user.error);
-                    return;
-                }
-
-                // ✅ Update Profile Info
-                document.getElementById("profileImage").src = user.profileImage || "/uploads/default.png";
-                document.getElementById("userIdText").textContent = user.idNumber;
-                document.getElementById("fullNameText").textContent = `${user.firstName} ${user.middleName} ${user.lastName}`;
-                document.getElementById("emailText").textContent = user.email;
-                document.getElementById("studentCourseSidebar").textContent = user.course; // Update sidebar course text
-
-                // ✅ Determine Remaining Sessions
-                let remainingSessions = user.remainingSessions; // Default from DB
-                if (remainingSessions === undefined || remainingSessions === null) {
-                    const computerCourses = ["computer", "it", "cs", "informatics", "software", "programming"];
-                    remainingSessions = computerCourses.some(keyword => user.course.toLowerCase().includes(keyword)) ? 15 : 10;
-                }
-
-                // ✅ Display Remaining Sessions
-                document.getElementById("remainingSessionsText").textContent = remainingSessions;
-
-            } catch (error) {
-                console.error("Error fetching profile:", error);
-                alert("Failed to load profile data.");
+                    if (file) {
+                        uploadProfilePicture(file, userId);
+                    }
+                });
+            } else {
+                console.error("Error: File input element not found!");
             }
         });
 
-        // ✅ Sidebar Toggle
-        document.getElementById("toggleSidebar").addEventListener("click", () => {
-            document.getElementById("sidebar").classList.toggle("-translate-x-64");
-        });
+        function saveProfilePicture(file) {
+            const userId = new URLSearchParams(window.location.search).get("id");
+            const formData = new FormData();
+            formData.append("profileImage", file);
+            formData.append("idNumber", userId);
 
-        // ✅ Logout
-        document.getElementById("logoutBtn").addEventListener("click", () => {
-            window.location.href = "/login.html";
-        });
-
-        function showSection(sectionId) {
-            document.querySelectorAll(".bg-white.p-6.rounded-lg.shadow-md").forEach(section => {
-                section.classList.add("hidden");
+            fetch("http://localhost:3000/upload-profile", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Profile picture updated successfully!");
+                } else {
+                    alert("Failed to update profile picture.");
+                }
+            })
+            .catch(error => {
+                console.error("Error uploading profile picture:", error);
+                alert("Error updating profile picture.");
             });
-            document.getElementById(sectionId).classList.remove("hidden");
         }
 
-        // ✅ Profile Image Upload
-        document.addEventListener("DOMContentLoaded", async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get("id");
+        function uploadProfilePicture(file, userId) {
+            const formData = new FormData();
+            formData.append("profileImage", file); // ✅ Must match Multer's expected field name
+            formData.append("userId", userId);
 
-            if (!userId) {
-                alert("User not found!");
-                return;
-            }
-
-            // Fetch user data
-            const response = await fetch(`/get-profile?id=${userId}`);
-            const user = await response.json();
-
-            if (user.error) {
-                alert(user.error);
-            } else {
-                // Populate user data
-                document.getElementById("profileImage").src = user.profileImage || "/uploads/default.png";
-                document.getElementById("userIdText").textContent = user.idNumber;
-                document.getElementById("fullNameText").textContent = `${user.firstName} ${user.middleName} ${user.lastName}`;
-                document.getElementById("emailText").textContent = user.email;
-                document.getElementById("remainingSessions").textContent = user.remainingSessions;
-
-                // Set values for input fields
-                document.getElementById("userIdInput").value = user.idNumber;
-                document.getElementById("fullNameInput").value = `${user.firstName} ${user.middleName} ${user.lastName}`;
-                document.getElementById("emailInput").value = user.email;
-            }
-        });
-
-        // Edit Profile Button
-        document.getElementById("editProfile").addEventListener("click", function () {
-            // Hide text spans
-            document.getElementById("fullNameText").classList.add("hidden");
-            document.getElementById("emailText").classList.add("hidden");
-            document.getElementById("yearText").classList.add("hidden");
-            document.getElementById("courseText").classList.add("hidden");
-
-            // Show input fields
-            document.getElementById("fullNameInput").classList.remove("hidden");
-            document.getElementById("emailInput").classList.remove("hidden");
-            document.getElementById("yearInput").classList.remove("hidden");
-            document.getElementById("courseInput").classList.remove("hidden");
-
-            // Hide "Edit Profile" button, show "Save" and "Change Password"
-            document.getElementById("editProfile").classList.add("hidden");
-            document.getElementById("saveProfile").classList.remove("hidden");
-            document.getElementById("changePassword").classList.remove("hidden");
-        });
-
-
-        // Save Profile Changes
-        document.getElementById("saveProfile").addEventListener("click", function () {
-            const updatedProfile = {
-                idNumber: document.getElementById("userIdInput").value,
-                fullName: document.getElementById("fullNameInput").value,
-                email: document.getElementById("emailInput").value,
-                year: document.getElementById("yearInput").value,
-                course: document.getElementById("courseInput").value
-            };
-
-            fetch("/update-password", {
+            fetch("http://localhost:3000/upload-profile", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include", // Important to send cookies
-                body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+                body: formData
             })
-
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert("Profile updated successfully!");
-
-                        // Update spans with new values
-                        document.getElementById("fullNameText").textContent = updatedProfile.fullName;
-                        document.getElementById("emailText").textContent = updatedProfile.email;
-                        document.getElementById("yearText").textContent = updatedProfile.year;
-                        document.getElementById("courseText").textContent = updatedProfile.course;
-
-                        // Hide input fields and show text spans
-                        document.getElementById("fullNameInput").classList.add("hidden");
-                        document.getElementById("emailInput").classList.add("hidden");
-                        document.getElementById("yearInput").classList.add("hidden");
-                        document.getElementById("courseInput").classList.add("hidden");
-
-                        document.getElementById("fullNameText").classList.remove("hidden");
-                        document.getElementById("emailText").classList.remove("hidden");
-                        document.getElementById("yearText").classList.remove("hidden");
-                        document.getElementById("courseText").classList.remove("hidden");
-
-                        // Show "Edit Profile" button again
-                        document.getElementById("editProfile").classList.remove("hidden");
-                        document.getElementById("saveProfile").classList.add("hidden");
-                        document.getElementById("changePassword").classList.add("hidden");
-                    } else {
-                        alert("Error updating profile.");
-                    }
-                })
-                .catch(error => console.error("Error updating profile:", error));
-        });
+            .then(response => response.text()) // Get raw response first
+            .then(text => {
+                console.log("Server response:", text); // Debug
+                return JSON.parse(text);
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log("Upload successful:", data);
+                } else {
+                    console.error("Error:", data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Error uploading profile picture:", error);
+            });
+        }
 
 
-        // Open Change Password Modal
-        document.getElementById("changePassword").addEventListener("click", () => {
-            document.getElementById("passwordModal").classList.remove("hidden");
-        });
+        function openChangePasswordModal() {
+            document.getElementById("changePasswordModal").classList.remove("hidden");
+        }
 
-        // Close Modal
-        document.getElementById("closeModal").addEventListener("click", () => {
-            document.getElementById("passwordModal").classList.add("hidden");
-        });
+        function closeChangePasswordModal() {
+            document.getElementById("changePasswordModal").classList.add("hidden");
+        }
 
-        // Submit Password Change
-        document.getElementById("submitPasswordChange").addEventListener("click", async () => {
+        function changePassword() {
             const currentPassword = document.getElementById("currentPassword").value;
             const newPassword = document.getElementById("newPassword").value;
-            const confirmPassword = document.getElementById("confirmPassword").value;
+            const confirmNewPassword = document.getElementById("confirmNewPassword").value;
 
-            if (newPassword !== confirmPassword) {
-                alert("New passwords do not match!");
+            if (!currentPassword || !newPassword || !confirmNewPassword) {
+                alert("Please fill out all fields.");
                 return;
             }
 
-            const response = await fetch("/change-password", {
+            if (newPassword !== confirmNewPassword) {
+                alert("New passwords do not match.");
+                return;
+            }
+
+            const userId = new URLSearchParams(window.location.search).get("id");
+            console.log("User ID being sent:", userId);
+
+            fetch("http://localhost:3000/change-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ currentPassword, newPassword })
+                body: JSON.stringify({
+                    idNumber: userId,
+                    currentPassword: currentPassword,
+                    newPassword: newPassword
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Password updated successfully!");
+                    closeChangePasswordModal();
+                } else {
+                    alert("Error: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("An error occurred while updating the password.");
             });
+        }
 
-            const result = await response.json();
-            if (result.success) {
-                alert("Password changed successfully!");
-                document.getElementById("passwordModal").classList.add("hidden");
-            } else {
-                alert(result.error);
-            }
+        function logout() {
+            fetch("/logout", { method: "POST" })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.message);
+                    localStorage.clear();  // Clear stored session info
+                    sessionStorage.clear();
+                    window.location.href = "login.html"; // Redirect to login
+                })
+                .catch(error => console.error("Logout error:", error));
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+            // Get user ID from the URL (e.g., student.html?id=232323)
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get("id"); 
+
+            fetch("data.json")
+                .then(response => response.json())
+                .then(users => {
+                    console.log("Fetched Data:", users); // Debugging log
+
+                    // Find the user with the matching ID
+                    const user = users.find(u => u.idNumber === userId);
+
+                    if (user) {
+                        document.getElementById("idNumber").value = user.idNumber;
+                        document.getElementById("firstname").value = user.firstName;
+                        document.getElementById("middlename").value = user.middleName;
+                        document.getElementById("lastname").value = user.lastName;
+                        document.getElementById("email").value = user.email;
+                        document.getElementById("year").value = user.year;
+                        document.getElementById("course").value = user.course;
+
+                        // Set Remaining Sessions based on course
+                        const remainingSessions = ["Computer Science", "IT", "Software Engineering"].includes(user.course) ? 15 : 10;
+                        document.getElementById("remainingSessions").textContent = remainingSessions;
+                    } else {
+                        console.error("User not found!");
+                    }
+                })
+                .catch(error => console.error("Error loading profile data:", error));
         });
-    </script>
+
+        function saveProfile() {
+            const updatedData = {
+                idNumber: document.getElementById("idNumber").value,
+                firstName: document.getElementById("firstname").value,
+                middleName: document.getElementById("middlename").value,
+                lastName: document.getElementById("lastname").value,
+                email: document.getElementById("email").value,
+                year: document.getElementById("year").value,
+                course: document.getElementById("course").value
+            };
+
+            fetch("http://localhost:3000/update-profile", {  
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedData),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to update profile");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert("Profile updated successfully!");
+                } else {
+                    alert("Failed to update profile.");
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Error updating profile.");
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const menuLinks = document.querySelectorAll(".w-64 ul li a");
+    
+            function hideAllSections() {
+                document.querySelectorAll("section").forEach(section => {
+                    section.classList.add("hidden");
+                });
+            }
+    
+            function showSavedSection() {
+                let savedSection = localStorage.getItem("activeSection") || "dashboard"; // Default to Sit-in History if no selection
+                let sectionToShow = document.getElementById(savedSection);
+                if (sectionToShow) {
+                    hideAllSections();
+                    sectionToShow.classList.remove("hidden");
+                }
+            }
+    
+            menuLinks.forEach(link => {
+                link.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    let targetId = this.getAttribute("href").substring(1);
+                    let targetSection = document.getElementById(targetId);
+    
+                    if (targetSection) {
+                        hideAllSections();
+                        targetSection.classList.remove("hidden");
+                        localStorage.setItem("activeSection", targetId);
+                    }
+                });
+            });
+    
+            showSavedSection();
+        });
+    </script>            
 </body>
 </html>

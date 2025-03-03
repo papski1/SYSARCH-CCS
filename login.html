@@ -47,19 +47,16 @@
         const result = await response.json();
 
         if (response.ok) {
-            // ✅ Store userId in sessionStorage instead of localStorage
+            // ✅ Store userId in sessionStorage
             sessionStorage.setItem("loggedInUserId", result.userId);
 
-            // ✅ Debugging: Check if it's stored
-            console.log("Stored userId in sessionStorage:", sessionStorage.getItem("loggedInUserId"));
-
-            // ✅ Redirect to student dashboard
-            window.location.href = `/student.html?id=${result.userId}`;
+            // ✅ Redirect based on user role
+            window.location.href = result.redirect;
         } else {
             document.getElementById("error-message").textContent = result.message;
         }
     });
-
     </script>
+
 </body>
 </html>

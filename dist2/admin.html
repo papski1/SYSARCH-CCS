@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="script.js" defer></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-md p-4 fixed h-full">
+            <h2 class="text-xl font-semibold mb-4">Admin Panel</h2>
+            <ul class="space-y-2">
+                <li><a href="#dashboard" class="block py-2 px-4 rounded hover:bg-gray-200">Dashboard</a></li>
+                <li><a href="#students" class="block py-2 px-4 rounded hover:bg-gray-200">Students</a></li>
+                <li><a href="#sit-in" class="block py-2 px-4 rounded hover:bg-gray-200">Sit-in Monitoring</a></li>
+                <li><a href="#reports" class="block py-2 px-4 rounded hover:bg-gray-200">Reports</a></li>
+                <li><a href="#announcements" class="block py-2 px-4 rounded hover:bg-gray-200">Announcements</a></li>
+                <li><a href="#feedback" class="block py-2 px-4 rounded hover:bg-gray-200">Feedback</a></li>
+                <li><a href="#reservations" class="block py-2 px-4 rounded hover:bg-gray-200">Reservations</a></li>
+                <li><a href="#reset-session" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Reset Sessions</a></li>
+                <li><a href="#logout" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-6 space-y-6 ml-64">
+            <header>
+                <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+            </header>
+
+            <!-- Overview Cards -->
+            <section id="dashboard">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded shadow">Total Students: <span id="total-students" class="font-semibold">0</span></div>
+                    <div class="bg-white p-4 rounded shadow">Current Sit-in: <span id="current-sit-in" class="font-semibold">0</span></div>
+                    <div class="bg-white p-4 rounded shadow">Pending Reservations: <span id="pending-reservations" class="font-semibold">0</span></div>
+                </div>
+            </section>
+
+            <!-- Students Section with Search Bar -->
+            <section id="students" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">Students</h2>
+                <input type="text" id="search-bar" placeholder="Search students..." class="w-full p-2 mb-4 border rounded">
+                <div class="bg-white p-4 rounded shadow">List of students will be displayed here</div>
+            </section>
+
+            <!-- Collapsible Sections -->
+            <section id="sit-in" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">Sit-in Monitoring</h2>
+                <div class="bg-white p-4 rounded shadow">View current and past sit-in records</div>
+            </section>
+
+            <section id="reports" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">Reports</h2>
+                <div class="bg-white p-4 rounded shadow">View Sit-in Reports & Daily Statistics</div>
+            </section>
+
+            <section id="announcements" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">Announcements</h2>
+                <div class="bg-white p-4 rounded shadow">Create / Edit / Delete Announcements</div>
+            </section>
+            
+            <section id="feedback" class="hidden">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h2 class="text-xl font-bold text-gray-800">User Feedback</h2>
+                        <table class="w-full border-collapse border border-gray-300 mt-4">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="border border-gray-300 px-4 py-2">Date</th>
+                                    <th class="border border-gray-300 px-4 py-2">User</th>
+                                    <th class="border border-gray-300 px-4 py-2">Message</th>
+                                    <th class="border border-gray-300 px-4 py-2">Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feedbackTableBody">
+                                <!-- Feedback messages will be dynamically added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>                
+            </section>
+            <!-- Reservations Section -->
+            <section id="reservations" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">Reservations</h2>
+                <div class="bg-white p-4 rounded shadow">
+                    <p>Pending reservations will be displayed here.</p>
+                    <table class="w-full mt-4 border">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-2 border">Student Name</th>
+                                <th class="p-2 border">Reservation Time</th>
+                                <th class="p-2 border">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservation-list">
+                            <tr>
+                                <td class="p-2 border">John Doe</td>
+                                <td class="p-2 border">10:00 AM - 11:00 AM</td>
+                                <td class="p-2 border">
+                                    <button class="bg-green-500 text-white px-3 py-1 rounded" onclick="approveReservation(this)">Approve</button>
+                                    <button class="bg-red-500 text-white px-3 py-1 rounded ml-2" onclick="rejectReservation(this)">Reject</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="../admin.js"></script>
+</body>
+</html>

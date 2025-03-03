@@ -11,13 +11,13 @@
   },
   {
     "idNumber": "3333",
-    "firstName": "Rey Mark",
-    "middleName": "NA",
-    "lastName": "Rivas",
-    "email": "papsleroy16@gmail.com",
+    "firstName": "Rey Lakai",
+    "middleName": "Paps",
+    "lastName": "Leroi",
+    "email": "reymarkrivas61@gmail.com",
     "year": "3rd Year",
-    "course": "BS Business Administration",
-    "password": "$2b$10$5bhcMgCAhNiowRtSW7z6LOHtSeMcP4y13O2PRCY.xwZFGN0TxRR36"
+    "course": "BS Information Technology",
+    "password": "$2b$10$nBnD/H8DbZDDpSP5LTT2NeALjpNiA7lVSKk2ZOfllEawZpm5wR/Ma"
   },
   {
     "idNumber": "232323",
@@ -26,7 +26,16 @@
     "lastName": "leroi",
     "email": "papsleroy12@gmail.com",
     "year": "1st Year",
-    "course": "BS Electrical Engineering",
-    "password": "$2b$10$s91NLNz8iwE6mazWRc37..b2XQTfbGpg9.SThl9ghtjVZPe7uX8pC"
+    "course": "BS Electrical Engineering"
+  },
+  {
+    "idNumber": "0992",
+    "firstName": "erica love",
+    "middleName": "rivas",
+    "lastName": "aguylo",
+    "email": "ecairivas@gmail.com",
+    "year": "1st Year",
+    "course": "BS Business Administration",
+    "password": "$2b$10$sGswpvfxygi/cJFM8dAoduneofLhnKChAbiFHmrpVDxeY9Wjw8nF."
   }
 ]

@@ -6,25 +6,31 @@ const bcrypt = require("bcryptjs");
 const session = require("express-session");
 const router = express.Router();
 const usersFile = "data.json";
+const cors = require("cors");
 
 const app = express();
 const PORT = 3000;
 const DATA_FILE = path.join(__dirname, "data.json");
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
+app.use(express.json()); // Parses JSON bodies
+app.use(express.urlencoded({ extended: true })); // Parses form data
+app.use(cors()); 
+app.use(express.static("dist"));
+app.use(router);
 app.use(session({
     secret: "your_secret_key",
     resave: false,
     saveUninitialized: true,
     cookie: { secure: false } // Change to true if using HTTPS
 }));
+app.use((req, res, next) => {
+    console.log(`Incoming request: ${req.method} ${req.url}`);
+    next();
+});
 
 // Serve static files
 app.use(express.static(__dirname)); // Serve login.html
-app.use(express.static("public"));
 app.use("/dist", express.static(path.join(__dirname, "dist")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -50,13 +56,26 @@ app.get("/forgot-password", (req, res) => res.sendFile(path.join(__dirname, "dis
 app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public", "student.html")));
 app.get("/student.html", (req, res) => res.sendFile(path.join(__dirname, "dist", "student.html")));
 
+// Example: Manually serve admin.html if needed
+app.get("/admin.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "dist2", "admin.html"));
+});
+
 // **User Authentication**
 app.post("/login", async (req, res) => {
     console.log("Login attempt:", req.body);
 
     const { identifier, password } = req.body;
-    let users = readData();
+    let users = readData(); // Read user data from data.json
 
+    // ✅ Admin Login (Separate from Students)
+    if (identifier === "admin" && password === "users") {
+        req.session.user = { idNumber: "admin", role: "admin" };
+        console.log("🔒 Admin logged in:", req.session.user);
+        return res.json({ userId: "admin", redirect: "/admin.html" });
+    }
+
+    // ✅ Student Login
     const user = users.find(user => user.idNumber === identifier || user.email === identifier);
     if (!user) return res.status(401).json({ message: "User not found!" });
 
@@ -67,14 +86,24 @@ app.post("/login", async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: "Invalid password!" });
 
+        // ✅ Store student session
         req.session.user = { idNumber: user.idNumber, role: "student" };
-        console.log("🔒 Session stored:", req.session.user);
+        console.log("🔒 Student session stored:", req.session.user);
 
-        res.json({ userId: user.idNumber, redirect: `/student.html?id=${user.idNumber}` });
+        return res.json({ userId: user.idNumber, redirect: `/student.html?id=${user.idNumber}` });
 
     } catch (error) {
-        res.status(500).json({ message: "Error comparing passwords" });
+        return res.status(500).json({ message: "Error comparing passwords" });
     }
+});
+
+app.post("/logout", (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ message: "Logout failed" });
+        }
+        res.json({ message: "Logged out successfully" });
+    });
 });
 
 // **User Registration**
@@ -132,39 +161,50 @@ app.post("/reset-password", async (req, res) => {
     res.status(200).json({ message: "Password reset successful!" });
 });
 
-// **Update Password**
-router.post("/update-password", async (req, res) => {
-    const { userId, currentPassword, newPassword } = req.body;
+app.post("/change-password", (req, res) => {
+    const { idNumber, currentPassword, newPassword } = req.body;
 
-    if (!userId || !currentPassword || !newPassword) {
-        return res.status(400).json({ success: false, message: "All fields are required." });
+    if (!idNumber || !currentPassword || !newPassword) {
+        return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // Load users from data.json
-    let users = JSON.parse(fs.readFileSync(usersFile, "utf8"));
-    let user = users.find(user => user.idNumber === userId);
+    // Read user data
+    fs.readFile("data.json", "utf8", (err, data) => {
+        if (err) {
+            console.error("Error reading data.json:", err);
+            return res.status(500).json({ success: false, message: "Server error" });
+        }
 
-    if (!user) {
-        return res.status(404).json({ success: false, message: "User not found." });
-    }
+        let users = JSON.parse(data);
+        let user = users.find(u => u.idNumber === idNumber);
 
-    // Compare current password
-    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!passwordMatch) {
-        return res.status(400).json({ success: false, message: "Current password is incorrect." });
-    }
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+        console.log("Stored Password:", user.password);
+        console.log("Entered Current Password:", currentPassword);
 
-    // Save updated users list back to data.json
-    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), "utf8");
+        // Compare hashed password
+        const isMatch = bcrypt.compareSync(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: "Incorrect current password" });
+        }
 
-    res.json({ success: true, message: "Password updated successfully." });
+        // **✅ Corrected: Update user password AFTER checking**
+        user.password = bcrypt.hashSync(newPassword, 10);
+
+        // Save updated data
+        fs.writeFile("data.json", JSON.stringify(users, null, 2), (err) => {
+            if (err) {
+                console.error("Error updating password:", err);
+                return res.status(500).json({ success: false, message: "Failed to update password" });
+            }
+            console.log("Password updated successfully for user:", idNumber);
+            res.json({ success: true, message: "Password updated successfully" });
+        });
+    });
 });
-
-module.exports = router;
 
 // **Profile Management**
 app.get("/get-profile", (req, res) => {
@@ -186,35 +226,51 @@ app.get("/get-profile", (req, res) => {
     });
 });
 
-app.post("/update-profile", (req, res) => {
-    let users = readData();
-    const userIndex = users.findIndex(user => user.idNumber === req.body.idNumber);
+// Load and update the profile in data.json
+router.post("/update-profile", (req, res) => {
+    console.log("Received update request:", req.body);
 
-    if (userIndex === -1) return res.status(404).json({ error: "User not found!" });
+    fs.readFile("data.json", "utf8", (err, data) => {
+        if (err) {
+            console.error("Error reading data.json:", err);
+            return res.status(500).json({ success: false, message: "Server error" });
+        }
 
-    users[userIndex].year = req.body.year;
-    users[userIndex].course = req.body.course;
-    users[userIndex].email = req.body.email;
-    users[userIndex].fullName = req.body.fullName;
+        let users = JSON.parse(data);
+        const index = users.findIndex(user => user.idNumber === req.body.idNumber);
 
-    writeData(users);
-    res.json({ success: true });
+        if (index !== -1) {
+            users[index] = req.body;
+            fs.writeFile("data.json", JSON.stringify(users, null, 2), (err) => {
+                if (err) {
+                    console.error("Error saving profile:", err);
+                    return res.status(500).json({ success: false, message: "Failed to save profile" });
+                }
+                console.log("Profile updated successfully!");
+                res.json({ success: true });
+            });
+        } else {
+            console.error("User not found!");
+            res.status(404).json({ success: false, message: "User not found" });
+        }
+    });
 });
 
-// **Profile Image Upload**
+// Configure Multer storage
 const storage = multer.diskStorage({
-    destination: "./uploads/",
+    destination: "./uploads/", // Folder to store images
     filename: (req, file, cb) => {
-        const uniqueName = Date.now() + path.extname(file.originalname);
-        cb(null, uniqueName);
+        cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage }); // Middleware for file upload
 
 app.post("/upload-profile", upload.single("profileImage"), (req, res) => {
+    console.log("File Received:", req.file); // Debugging
+    if (!req.file) return res.status(400).json({ error: "No file uploaded!" });
+
     const userId = req.body.userId;
     let users = readData();
-
     const userIndex = users.findIndex(user => user.idNumber === userId);
     if (userIndex === -1) return res.status(404).json({ error: "User not found!" });
 
