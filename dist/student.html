@@ -98,13 +98,13 @@
                 <h2 class="text-xl font-bold mb-4">Change Password</h2>
 
                 <label class="block mb-2">Current Password</label>
-                <input type="password" id="currentPassword" class="w-full border p-2 rounded">
+                <input type="password" id="currentPassword" class="w-full border p-2 rounded" required>
 
                 <label class="block mt-4 mb-2">New Password</label>
-                <input type="password" id="newPassword" class="w-full border p-2 rounded">
+                <input type="password" id="newPassword" class="w-full border p-2 rounded" required>
 
                 <label class="block mt-4 mb-2">Confirm New Password</label>
-                <input type="password" id="confirmNewPassword" class="w-full border p-2 rounded">
+                <input type="password" id="confirmPassword" class="w-full border p-2 rounded" required>
 
                 <div class="flex justify-end gap-4 mt-6">
                     <button id="closeModal" class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition">
@@ -212,40 +212,48 @@
     }
 });
 
-document.getElementById("updatePasswordBtn").addEventListener("click", function () {
-    const userId = localStorage.getItem("userId");  // Retrieve the user ID
-    console.log(userId); // Check if the user ID is stored properly
+document.getElementById("updatePasswordBtn").addEventListener("click", async function (e) {
+    e.preventDefault(); // Prevent default form submission
 
-    if (!userId) {
-        alert("User ID not found in local storage.");
+    const currentPassword = document.getElementById("currentPassword").value.trim();
+    const newPassword = document.getElementById("newPassword").value.trim();
+    const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        alert("Please fill in all fields.");
         return;
     }
-
-    const currentPassword = document.getElementById("currentPassword").value;
-    const newPassword = document.getElementById("newPassword").value;
-    const confirmPassword = document.getElementById("confirmPassword").value;
 
     if (newPassword !== confirmPassword) {
-        alert("New passwords do not match!");
+        alert("New password and confirm password do not match.");
         return;
     }
 
-    fetch("/update-password", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            userId: userId, // Send the user ID
-            currentPassword: currentPassword,
-            newPassword: newPassword
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-    })
-    .catch(error => console.error("Error:", error));
+    try {
+        const response = await fetch("/update-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ currentPassword, newPassword, confirmPassword }) // Send all expected fields
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("Password updated successfully!");
+            document.getElementById("passwordModal").classList.add("hidden"); // Close modal
+        } else {
+            alert("Error: " + (data.message || "Failed to update password."));
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong. Please try again.");
+    }
+
+    // Debugging: Check form data
+    const formData = new FormData(document.getElementById('changePasswordForm'));
+    for (let [key, value] of formData.entries()) {
+        console.log(key, value); // Debugging output
+    }
 });
 
 
@@ -328,11 +336,13 @@ document.getElementById("updatePasswordBtn").addEventListener("click", function 
         course: document.getElementById("courseInput").value
     };
 
-    fetch("/update-profile", {
+    fetch("/update-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedProfile)
+        credentials: "include", // Important to send cookies
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
     })
+
     .then(response => response.json())
     .then(data => {
         if (data.success) {
@@ -381,9 +391,9 @@ document.getElementById("updatePasswordBtn").addEventListener("click", function 
         document.getElementById("submitPasswordChange").addEventListener("click", async () => {
             const currentPassword = document.getElementById("currentPassword").value;
             const newPassword = document.getElementById("newPassword").value;
-            const confirmNewPassword = document.getElementById("confirmNewPassword").value;
+            const confirmPassword = document.getElementById("confirmPassword").value;
 
-            if (newPassword !== confirmNewPassword) {
+            if (newPassword !== confirmPassword) {
                 alert("New passwords do not match!");
                 return;
             }

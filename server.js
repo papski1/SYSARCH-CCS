@@ -2,7 +2,19 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const bcrypt = require("bcryptjs");
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+const session = require("express-session");
+
+app.use(session({
+    secret: "your_secret_key",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Change to true if using HTTPS
+}));
+
 const PORT = 3000;
 
 // Serve login.html (since it's outside dist)
@@ -16,9 +28,6 @@ app.use("/dist", express.static(path.join(__dirname, "dist")));
 
 // ✅ Serve uploaded images correctly
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// Middleware to parse JSON requests
-app.use(express.json());
 
 // Default route → Redirect to login page
 app.get("/", (req, res) => {
@@ -114,22 +123,48 @@ app.post("/update-profile", (req, res) => {
     res.json({ success: true });
 });
 
-app.post("/update-password", (req, res) => {
-    const { userId, currentPassword, newPassword } = req.body;
-    let users = readData(); // Load users from `data.json`
+app.post("/update-password", async (req, res) => {
+    console.log("Session Data:", req.session); // Debugging session
+    console.log("Request Body:", req.body); // Debugging request body
 
-    console.log("Received User ID:", userId);  // Debugging
-    console.log("Users in Database:", users.map(u => u.idNumber)); // Debugging
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    console.log("Received data - Current Password:", currentPassword, "New Password:", newPassword, "Confirm Password:", confirmPassword);
 
-    const userIndex = users.findIndex(user => user.idNumber === userId);
+    if (!req.session.user) {
+        console.log("Unauthorized request: No session user");
+        return res.status(401).json({ message: "Unauthorized! Please log in." });
+    }
+
+    let users = readData();
+    const userIndex = users.findIndex(user => user.idNumber === req.session.user.idNumber);
+
     if (userIndex === -1) {
-        console.log("User not found!");  // Debugging
+        console.log("User not found:", req.session.user.idNumber);
         return res.status(404).json({ message: "User not found!" });
     }
 
-    res.status(200).json({ message: "Password update successful!" });
-});
+    const user = users[userIndex];
+    console.log("User Found:", user);
 
+    // ✅ Check if the current password matches
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    console.log("Password Match:", isMatch);
+
+    if (!isMatch) {
+        console.log("Incorrect current password!");
+        return res.status(401).json({ message: "Incorrect current password!" });
+    }
+
+    // ✅ Hash the new password before storing it
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    users[userIndex].password = hashedPassword;
+    console.log("Updated Password Hash:", hashedPassword);
+
+    writeData(users);
+    console.log("Password updated successfully!");
+
+    res.status(200).json({ message: "Password updated successfully!" });
+});
 
 // Handle profile image upload
 app.post("/upload-profile", upload.single("profileImage"), (req, res) => {
@@ -177,7 +212,7 @@ app.get("/forgot-password", (req, res) => {
     res.sendFile(path.join(__dirname, "dist", "views", "forgotpassword.html"));
 });
 
-app.post("/reset-password", (req, res) => {
+app.post("/reset-password", async (req, res) => {
     const { idNumber, newPassword } = req.body;
 
     if (!idNumber || !newPassword) {
@@ -191,7 +226,9 @@ app.post("/reset-password", (req, res) => {
         return res.status(404).json({ message: "User not found!" });
     }
 
-    users[userIndex].password = newPassword;
+    // ✅ Hash the new password before storing it
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    users[userIndex].password = hashedPassword;
     writeData(users);
 
     res.status(200).json({ message: "Password reset successful!" });
@@ -199,32 +236,37 @@ app.post("/reset-password", (req, res) => {
 
 // Login endpoint (Mock authentication)
 app.post("/login", (req, res) => {
+    console.log("Login attempt:", req.body); // ✅ Log the request body
+
     const { identifier, password } = req.body;
     let users = readData(); // Read users from data.json
 
-    // ✅ Default Admin Login
-    if (identifier === "admin" && password === "users") {
-        return res.json({ redirect: "/dist2/admin.html" }); // Redirect to Admin Dashboard
-    }
-
-    // ✅ Find user by ID Number or Email
+    // ✅ Check if identifier exists
     const user = users.find(user => user.idNumber === identifier || user.email === identifier);
-
     if (!user) {
+        console.log("❌ User not found:", identifier);
         return res.status(401).json({ message: "User not found!" });
     }
 
-    // ✅ Check if password matches
+    console.log("✅ Found user:", user.idNumber);
+
+    // ✅ Check password match
     if (user.password !== password) {
+        console.log("❌ Incorrect password for:", user.idNumber);
         return res.status(401).json({ message: "Invalid password!" });
     }
 
-    // ✅ Send userId in response so frontend can store it
+    // ✅ Store session
+    req.session.user = { idNumber: user.idNumber, role: "student" };
+    console.log("🔒 Session stored:", req.session.user);
+
     res.json({ 
         userId: user.idNumber, 
         redirect: `/student.html?id=${user.idNumber}`
     });
 });
+
+
 
 
 app.get("/student.html", (req, res) => {
