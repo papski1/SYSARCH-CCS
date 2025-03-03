@@ -8,6 +8,9 @@ const PORT = 3000;
 // Serve login.html (since it's outside dist)
 app.use(express.static(__dirname));
 
+// Middleware for serving static files
+app.use(express.static("public"));
+
 // Serve static files from the 'dist' directory
 app.use("/dist", express.static(path.join(__dirname, "dist")));
 
@@ -55,10 +58,21 @@ if (!fs.existsSync("./uploads")) {
     fs.mkdirSync("./uploads");
 }
 
-app.get("/profile.html", (req, res) => {
-    res.sendFile(path.join(__dirname, "dist", "views", "profile.html"));
+// Route to serve profile.html as a partial page
+app.get("/profile", (req, res) => {
+    fs.readFile(path.join(__dirname, "public", "profile.html"), "utf8", (err, data) => {
+        if (err) {
+            res.status(500).send("Error loading profile page");
+            return;
+        }
+        res.send(data);
+    });
 });
 
+// Route to serve student dashboard
+app.get("/dashboard", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "student.html"));
+});
 
 // Get user profile data
 app.get("/get-profile", (req, res) => {
