@@ -32,26 +32,32 @@
     </div>
 
     <script>
-        document.getElementById("loginForm").addEventListener("submit", async function(event) {
-            event.preventDefault();
-            const identifier = document.getElementById("identifier").value.trim();
-            const password = document.getElementById("password").value.trim();
-            
-            const response = await fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifier, password })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                window.location.href = result.redirect;
-            } else {
-                document.getElementById("error-message").textContent = result.message;
-            }
+    document.getElementById("loginForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+        const identifier = document.getElementById("identifier").value.trim();
+        const password = document.getElementById("password").value.trim();
+        
+        const response = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier, password })
         });
-    </script>
 
+        const result = await response.json();
+
+        if (response.ok) {
+            // ✅ Store userId in localStorage
+            localStorage.setItem("userId", result.userId);
+
+            // ✅ Debugging: Check if it's stored
+            console.log("Stored userId:", localStorage.getItem("userId"));
+
+            // ✅ Redirect to student dashboard
+            window.location.href = result.redirect;
+        } else {
+            document.getElementById("error-message").textContent = result.message;
+        }
+    });
+    </script>
 </body>
 </html>

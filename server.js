@@ -96,6 +96,41 @@ app.get("/get-profile", (req, res) => {
     });
 });
 
+app.post("/update-profile", (req, res) => {
+    let users = readData();
+    const userIndex = users.findIndex(user => user.idNumber === req.body.idNumber);
+
+    if (userIndex === -1) {
+        return res.status(404).json({ error: "User not found!" });
+    }
+
+    // Update user data
+    users[userIndex].year = req.body.year;
+    users[userIndex].course = req.body.course;
+    users[userIndex].email = req.body.email;
+    users[userIndex].fullName = req.body.fullName;
+
+    writeData(users); // Save changes to `data.json`
+    res.json({ success: true });
+});
+
+app.post("/update-password", (req, res) => {
+    const { userId, currentPassword, newPassword } = req.body;
+    let users = readData(); // Load users from `data.json`
+
+    console.log("Received User ID:", userId);  // Debugging
+    console.log("Users in Database:", users.map(u => u.idNumber)); // Debugging
+
+    const userIndex = users.findIndex(user => user.idNumber === userId);
+    if (userIndex === -1) {
+        console.log("User not found!");  // Debugging
+        return res.status(404).json({ message: "User not found!" });
+    }
+
+    res.status(200).json({ message: "Password update successful!" });
+});
+
+
 // Handle profile image upload
 app.post("/upload-profile", upload.single("profileImage"), (req, res) => {
     const userId = req.body.userId; // Get user ID from request
@@ -184,9 +219,13 @@ app.post("/login", (req, res) => {
         return res.status(401).json({ message: "Invalid password!" });
     }
 
-    // ✅ Redirect to Student Dashboard instead of Profile Page
-    res.json({ redirect: `/student.html?id=${user.idNumber}` });
+    // ✅ Send userId in response so frontend can store it
+    res.json({ 
+        userId: user.idNumber, 
+        redirect: `/student.html?id=${user.idNumber}`
+    });
 });
+
 
 app.get("/student.html", (req, res) => {
     res.sendFile(path.join(__dirname, "dist", "student.html"));

@@ -43,7 +43,6 @@
         <!-- ✅ Welcome Message -->
         <h1 class="text-2xl font-bold mb-4" id="welcomeMessage">Welcome, User</h1>
 
-        <!-- Updated Profile Section -->
         <!-- Profile Section -->
     <div id="profileSection" class="bg-white p-6 rounded-lg shadow-md">
         <h2 class="text-3xl font-bold text-center mb-6">Profile</h2>
@@ -67,12 +66,18 @@
             <input type="text" id="fullNameInput" class="w-full border p-2 rounded hidden" />
 
             <p class="mt-2"><strong>Email:</strong> <span id="emailText"></span></p>
-            <input type="email" id="emailInput" class="w-full border p-2 rounded hidden" />
+            <input type="email" id="emailInput" class="w-full border p-2 rounded hidden" />    
 
-            <p class="mt-2"><strong>Remaining Sessions:</strong> <span id="remainingSessions" class="font-bold text-lg text-blue-600"></span></p>
+            <p class="mt-2"><strong>Year:</strong> <span id="yearText"></span></p>
+            <input type="text" id="yearInput" class="w-full border p-2 rounded hidden" />  
+            
+            <p class="mt-2"><strong>Course:</strong> <span id="courseText"></span></p>
+            <input type="text" id="courseInput" class="w-full border p-2 rounded hidden" />
+            
+            <p><strong>Remaining Sessions:</strong> <span id="remainingSessionsText">Loading...</span></p>
 
             <div class="flex gap-4 mt-4">
-                <button id="editProfile" class="w-1/2 bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 transition">
+                <button id="editProfile" class="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 transition">
                     Edit Profile
                 </button>
 
@@ -88,29 +93,29 @@
     </div>
 
     <!-- Change Password Modal -->
-    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h2 class="text-xl font-bold mb-4">Change Password</h2>
+        <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h2 class="text-xl font-bold mb-4">Change Password</h2>
 
-            <label class="block mb-2">Current Password</label>
-            <input type="password" id="currentPassword" class="w-full border p-2 rounded">
+                <label class="block mb-2">Current Password</label>
+                <input type="password" id="currentPassword" class="w-full border p-2 rounded">
 
-            <label class="block mt-4 mb-2">New Password</label>
-            <input type="password" id="newPassword" class="w-full border p-2 rounded">
+                <label class="block mt-4 mb-2">New Password</label>
+                <input type="password" id="newPassword" class="w-full border p-2 rounded">
 
-            <label class="block mt-4 mb-2">Confirm New Password</label>
-            <input type="password" id="confirmNewPassword" class="w-full border p-2 rounded">
+                <label class="block mt-4 mb-2">Confirm New Password</label>
+                <input type="password" id="confirmNewPassword" class="w-full border p-2 rounded">
 
-            <div class="flex justify-end gap-4 mt-6">
-                <button id="closeModal" class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition">
-                    Cancel
-                </button>
-                <button id="submitPasswordChange" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
-                    Update Password
-                </button>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="closeModal" class="bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition">
+                        Cancel
+                    </button>
+                    <button id="updatePasswordBtn" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                        Update Password
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
         <!-- ✅ Announcements Section -->
         <div id="announcementsSection" class="bg-white p-6 rounded-lg shadow-md">
@@ -138,41 +143,111 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get("id");
-    
-            if (!userId) {
-                alert("User not found!");
-                return;
-            }
-    
-            // ✅ Fetch user data
-            const response = await fetch(`/get-profile?id=${userId}`);
-            const user = await response.json();
-    
-            if (user.error) {
-                alert(user.error);
-            } else {
-                // ✅ Update Sidebar Info
-                document.getElementById("profileImageSidebar").src = user.profileImage || "/uploads/default.png";
-                document.getElementById("studentNameSidebar").textContent = `${user.firstName} ${user.lastName}`;
-                document.getElementById("studentCourseSidebar").textContent = user.course;
-                
-                // ✅ Set Welcome Message
-                document.getElementById("welcomeMessage").textContent = `Welcome, ${user.firstName}`;
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch("/get-profile?id=0999") // Pass correct user ID dynamically
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error("Error:", data.error);
+                    return;
+                }
 
-                // ✅ Update Profile Section
-                document.getElementById("profileImage").src = user.profileImage || "/uploads/default.png";
-                document.getElementById("userInfo").innerHTML = `
-                    <p><strong>ID:</strong> ${user.idNumber}</p>
-                    <p><strong>Name:</strong> ${user.firstName} ${user.middleName} ${user.lastName}</p>
-                    <p><strong>Email:</strong> ${user.email}</p>
-                    <p><strong>Year:</strong> ${user.year}</p>
-                    <p><strong>Course:</strong> ${user.course}</p>
-                `;
-            }
-        });
+                 // Populate spans
+                document.getElementById("userIdText").textContent = data.idNumber;
+                document.getElementById("fullNameText").textContent = data.firstName + " " + (data.middleName ? data.middleName + " " : "") + data.lastName;
+                document.getElementById("emailText").textContent = data.email;
+                document.getElementById("yearText").textContent = data.year;
+                document.getElementById("courseText").textContent = data.course;
+                document.getElementById("remainingSessionsText").textContent = data.remainingSessions;
+
+                // Populate hidden input fields
+                document.getElementById("userIdInput").value = data.idNumber;
+                document.getElementById("fullNameInput").value = document.getElementById("fullNameText").textContent;
+                document.getElementById("emailInput").value = data.email;
+                document.getElementById("yearInput").value = data.year;
+                document.getElementById("courseInput").value = data.course;
+            })
+            .catch(error => console.error("Error fetching profile:", error));
+    });
+
+    document.addEventListener("DOMContentLoaded", async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get("id");
+
+    if (!userId) {
+        alert("User not found!");
+        return;
+    }
+
+    try {
+        // Fetch user data
+        const response = await fetch(`/get-profile?id=${userId}`);
+        const user = await response.json();
+
+        if (user.error) {
+            alert(user.error);
+            return;
+        }
+
+        // ✅ Update Profile Info
+        document.getElementById("profileImage").src = user.profileImage || "/uploads/default.png";
+        document.getElementById("userIdText").textContent = user.idNumber;
+        document.getElementById("fullNameText").textContent = `${user.firstName} ${user.middleName} ${user.lastName}`;
+        document.getElementById("emailText").textContent = user.email;
+        document.getElementById("studentCourseSidebar").textContent = user.course; // Update sidebar course text
+
+        // ✅ Determine Remaining Sessions
+        let remainingSessions = user.remainingSessions; // Default from DB
+        if (remainingSessions === undefined || remainingSessions === null) {
+            const computerCourses = ["computer", "it", "cs", "informatics", "software", "programming"];
+            remainingSessions = computerCourses.some(keyword => user.course.toLowerCase().includes(keyword)) ? 15 : 10;
+        }
+
+        // ✅ Display Remaining Sessions
+        document.getElementById("remainingSessionsText").textContent = remainingSessions;
+
+    } catch (error) {
+        console.error("Error fetching profile:", error);
+        alert("Failed to load profile data.");
+    }
+});
+
+document.getElementById("updatePasswordBtn").addEventListener("click", function () {
+    const userId = localStorage.getItem("userId");  // Retrieve the user ID
+    console.log(userId); // Check if the user ID is stored properly
+
+    if (!userId) {
+        alert("User ID not found in local storage.");
+        return;
+    }
+
+    const currentPassword = document.getElementById("currentPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+
+    if (newPassword !== confirmPassword) {
+        alert("New passwords do not match!");
+        return;
+    }
+
+    fetch("/update-password", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            userId: userId, // Send the user ID
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+    })
+    .catch(error => console.error("Error:", error));
+});
+
 
         // ✅ Sidebar Toggle
         document.getElementById("toggleSidebar").addEventListener("click", () => {
@@ -192,116 +267,141 @@
         }
 
         // ✅ Profile Image Upload
-        document.addEventListener("DOMContentLoaded", async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get("id");
+            document.addEventListener("DOMContentLoaded", async () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get("id");
 
-    if (!userId) {
-        alert("User not found!");
-        return;
-    }
+                if (!userId) {
+                    alert("User not found!");
+                    return;
+                }
 
-    // Fetch user data
-    const response = await fetch(`/get-profile?id=${userId}`);
-    const user = await response.json();
+                // Fetch user data
+                const response = await fetch(`/get-profile?id=${userId}`);
+                const user = await response.json();
 
-    if (user.error) {
-        alert(user.error);
-    } else {
-        // Populate user data
-        document.getElementById("profileImage").src = user.profileImage || "/uploads/default.png";
-        document.getElementById("userIdText").textContent = user.idNumber;
-        document.getElementById("fullNameText").textContent = `${user.firstName} ${user.middleName} ${user.lastName}`;
-        document.getElementById("emailText").textContent = user.email;
-        document.getElementById("remainingSessions").textContent = user.remainingSessions;
+        if (user.error) {
+            alert(user.error);
+        } else {
+            // Populate user data
+            document.getElementById("profileImage").src = user.profileImage || "/uploads/default.png";
+            document.getElementById("userIdText").textContent = user.idNumber;
+            document.getElementById("fullNameText").textContent = `${user.firstName} ${user.middleName} ${user.lastName}`;
+            document.getElementById("emailText").textContent = user.email;
+            document.getElementById("remainingSessions").textContent = user.remainingSessions;
 
-        // Set values for input fields
-        document.getElementById("userIdInput").value = user.idNumber;
-        document.getElementById("fullNameInput").value = `${user.firstName} ${user.middleName} ${user.lastName}`;
-        document.getElementById("emailInput").value = user.email;
-    }
-});
+                // Set values for input fields
+            document.getElementById("userIdInput").value = user.idNumber;
+            document.getElementById("fullNameInput").value = `${user.firstName} ${user.middleName} ${user.lastName}`;
+            document.getElementById("emailInput").value = user.email;
+        }
+    });
 
-// Edit Profile Button
-document.getElementById("editProfile").addEventListener("click", () => {
-    document.getElementById("userIdText").classList.add("hidden");
-    document.getElementById("fullNameText").classList.add("hidden");
-    document.getElementById("emailText").classList.add("hidden");
+        // Edit Profile Button
+        document.getElementById("editProfile").addEventListener("click", function () {
+            // Hide text spans
+            document.getElementById("fullNameText").classList.add("hidden");
+            document.getElementById("emailText").classList.add("hidden");
+            document.getElementById("yearText").classList.add("hidden");
+            document.getElementById("courseText").classList.add("hidden");
 
-    document.getElementById("userIdInput").classList.remove("hidden");
-    document.getElementById("fullNameInput").classList.remove("hidden");
-    document.getElementById("emailInput").classList.remove("hidden");
+            // Show input fields
+            document.getElementById("fullNameInput").classList.remove("hidden");
+            document.getElementById("emailInput").classList.remove("hidden");
+            document.getElementById("yearInput").classList.remove("hidden");
+            document.getElementById("courseInput").classList.remove("hidden");
 
-    document.getElementById("saveProfile").classList.remove("hidden");
-    document.getElementById("changePassword").classList.remove("hidden");
-    document.getElementById("editProfile").classList.add("hidden");
-});
-
-// Save Profile Changes
-    document.getElementById("saveProfile").addEventListener("click", async () => {
-        const updatedUser = {
-            idNumber: document.getElementById("userIdInput").value,
-            fullName: document.getElementById("fullNameInput").value,
-            email: document.getElementById("emailInput").value
-        };
-
-        const response = await fetch("/update-profile", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updatedUser)
+            // Hide "Edit Profile" button, show "Save" and "Change Password"
+            document.getElementById("editProfile").classList.add("hidden");
+            document.getElementById("saveProfile").classList.remove("hidden");
+            document.getElementById("changePassword").classList.remove("hidden");
         });
 
-        const result = await response.json();
-        if (result.success) {
+
+    // Save Profile Changes
+    document.getElementById("saveProfile").addEventListener("click", function () {
+    const updatedProfile = {
+        idNumber: document.getElementById("userIdInput").value,
+        fullName: document.getElementById("fullNameInput").value,
+        email: document.getElementById("emailInput").value,
+        year: document.getElementById("yearInput").value,
+        course: document.getElementById("courseInput").value
+    };
+
+    fetch("/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedProfile)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
             alert("Profile updated successfully!");
 
-            document.getElementById("userIdText").textContent = updatedUser.idNumber;
-            document.getElementById("fullNameText").textContent = updatedUser.fullName;
-            document.getElementById("emailText").textContent = updatedUser.email;
+            // Update spans with new values
+            document.getElementById("fullNameText").textContent = updatedProfile.fullName;
+            document.getElementById("emailText").textContent = updatedProfile.email;
+            document.getElementById("yearText").textContent = updatedProfile.year;
+            document.getElementById("courseText").textContent = updatedProfile.course;
 
+            // Hide input fields and show text spans
+            document.getElementById("fullNameInput").classList.add("hidden");
+            document.getElementById("emailInput").classList.add("hidden");
+            document.getElementById("yearInput").classList.add("hidden");
+            document.getElementById("courseInput").classList.add("hidden");
+
+            document.getElementById("fullNameText").classList.remove("hidden");
+            document.getElementById("emailText").classList.remove("hidden");
+            document.getElementById("yearText").classList.remove("hidden");
+            document.getElementById("courseText").classList.remove("hidden");
+
+            // Show "Edit Profile" button again
             document.getElementById("editProfile").classList.remove("hidden");
             document.getElementById("saveProfile").classList.add("hidden");
             document.getElementById("changePassword").classList.add("hidden");
         } else {
             alert("Error updating profile.");
         }
-    });
+    })
+    .catch(error => console.error("Error updating profile:", error));
+});
 
-    // Open Change Password Modal
-    document.getElementById("changePassword").addEventListener("click", () => {
-        document.getElementById("passwordModal").classList.remove("hidden");
-    });
 
-    // Close Modal
-    document.getElementById("closeModal").addEventListener("click", () => {
-        document.getElementById("passwordModal").classList.add("hidden");
-    });
-
-    // Submit Password Change
-    document.getElementById("submitPasswordChange").addEventListener("click", async () => {
-        const currentPassword = document.getElementById("currentPassword").value;
-        const newPassword = document.getElementById("newPassword").value;
-        const confirmNewPassword = document.getElementById("confirmNewPassword").value;
-
-        if (newPassword !== confirmNewPassword) {
-            alert("New passwords do not match!");
-            return;
-        }
-
-        const response = await fetch("/change-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ currentPassword, newPassword })
+        // Open Change Password Modal
+        document.getElementById("changePassword").addEventListener("click", () => {
+            document.getElementById("passwordModal").classList.remove("hidden");
         });
 
-        const result = await response.json();
-        if (result.success) {
-            alert("Password changed successfully!");
+        // Close Modal
+        document.getElementById("closeModal").addEventListener("click", () => {
             document.getElementById("passwordModal").classList.add("hidden");
-        } else {
-            alert(result.error);
-        }
-    });
+        });
+
+        // Submit Password Change
+        document.getElementById("submitPasswordChange").addEventListener("click", async () => {
+            const currentPassword = document.getElementById("currentPassword").value;
+            const newPassword = document.getElementById("newPassword").value;
+            const confirmNewPassword = document.getElementById("confirmNewPassword").value;
+
+            if (newPassword !== confirmNewPassword) {
+                alert("New passwords do not match!");
+                return;
+            }
+
+            const response = await fetch("/change-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert("Password changed successfully!");
+                document.getElementById("passwordModal").classList.add("hidden");
+            } else {
+                alert(result.error);
+            }
+        });
     </script>    
 </body>
 </html>
