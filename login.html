@@ -34,6 +34,7 @@
     <script>
     document.getElementById("loginForm").addEventListener("submit", async function(event) {
         event.preventDefault();
+
         const identifier = document.getElementById("identifier").value.trim();
         const password = document.getElementById("password").value.trim();
         
@@ -46,18 +47,19 @@
         const result = await response.json();
 
         if (response.ok) {
-            // ✅ Store userId in localStorage
-            localStorage.setItem("userId", result.userId);
+            // ✅ Store userId in sessionStorage instead of localStorage
+            sessionStorage.setItem("loggedInUserId", result.userId);
 
             // ✅ Debugging: Check if it's stored
-            console.log("Stored userId:", localStorage.getItem("userId"));
+            console.log("Stored userId in sessionStorage:", sessionStorage.getItem("loggedInUserId"));
 
             // ✅ Redirect to student dashboard
-            window.location.href = result.redirect;
+            window.location.href = `/student.html?id=${result.userId}`;
         } else {
             document.getElementById("error-message").textContent = result.message;
         }
     });
+
     </script>
 </body>
 </html>

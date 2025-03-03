@@ -19,5 +19,13 @@
     "fs": "^0.0.1-security",
     "multer": "^1.4.5-lts.1",
     "path": "^0.12.7"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papski1/SYSARCH-CCS.git"
+  },
+  "bugs": {
+    "url": "https://github.com/papski1/SYSARCH-CCS/issues"
+  },
+  "homepage": "https://github.com/papski1/SYSARCH-CCS#readme"
 }

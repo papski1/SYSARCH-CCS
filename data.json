@@ -1,24 +1,32 @@
 [
   {
-    "idNumber": "22635452",
+    "idNumber": "12333",
+    "firstName": "Erica Faith",
+    "middleName": "Rivas",
+    "lastName": "Aguylo",
+    "email": "ericaaguylo03@gmail.com",
+    "year": "2nd Year",
+    "course": "BS Civil Engineering",
+    "password": "$2b$10$amviRFl.fKMnfrbW/KfH/.1As1.ck6e5n7J8n4Ic7RQK6xQp4Im2e"
+  },
+  {
+    "idNumber": "3333",
     "firstName": "Rey Mark",
     "middleName": "NA",
     "lastName": "Rivas",
-    "email": "papsleroy12@gmail.com",
-    "year": "1st Year",
-    "course": "BS Electronics Engineering",
-    "password": "lakaipaps",
-    "profileImage": "1740923196834.jpg"
+    "email": "papsleroy16@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Business Administration",
+    "password": "$2b$10$5bhcMgCAhNiowRtSW7z6LOHtSeMcP4y13O2PRCY.xwZFGN0TxRR36"
   },
   {
-    "idNumber": "0999",
-    "firstName": "Constance",
-    "middleName": "Keilahni",
-    "lastName": "Rivas",
-    "email": "lakai2021@gmail.com",
-    "year": "2nd Year",
-    "course": "BS Computer Engineering",
-    "password": "lakai2021.",
-    "fullName": "Paps Kikoy Lakai"
+    "idNumber": "232323",
+    "firstName": "paps",
+    "middleName": "lakai",
+    "lastName": "leroi",
+    "email": "papsleroy12@gmail.com",
+    "year": "1st Year",
+    "course": "BS Electrical Engineering",
+    "password": "$2b$10$s91NLNz8iwE6mazWRc37..b2XQTfbGpg9.SThl9ghtjVZPe7uX8pC"
   }
 ]
