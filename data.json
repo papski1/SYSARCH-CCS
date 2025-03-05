@@ -21,12 +21,14 @@
   },
   {
     "idNumber": "232323",
-    "firstName": "paps",
-    "middleName": "lakai",
-    "lastName": "leroi",
-    "email": "papsleroy12@gmail.com",
-    "year": "1st Year",
-    "course": "BS Electrical Engineering"
+    "firstName": "Rey Paps",
+    "middleName": "Lakai",
+    "lastName": "Leroi",
+    "email": "reymarkrivas61@gmail.com",
+    "year": "2nd Year",
+    "course": "BS Information Technology",
+    "password": "$2b$10$L5ndhuI4HElFyG4BpSYkiu9kjwXglAfs.HcDs05v58xn40eekmKyy",
+    "profileImage": "/uploads/1741150035270.png"
   },
   {
     "idNumber": "0992",

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/"></script>
 </head>
 <body class="bg-gray-100 text-gray-900">
 
@@ -32,7 +32,7 @@
              <section id="profile" class="hidden">
                 <div class="bg-white p-4 rounded shadow">
                     <div class="flex items-center space-x-4">
-                        <img id="profilePic" src="default-profile.png" alt="Profile Picture" class="w-24 h-24 rounded-full border">
+                        <img id="profilePic" src="/uploads/default-profile.png" alt="Profile Picture" class="w-24 h-24 rounded-full border">
                         <input type="file" id="uploadProfilePic" class="hidden" accept="image/*">
                         <button onclick="document.getElementById('uploadProfilePic').click();" class="bg-blue-500 text-white py-2 px-4 rounded">Upload Photo</button>
                     </div>
@@ -178,43 +178,19 @@
     </div>
     <script>
         document.getElementById("uploadProfilePic").addEventListener("change", function (event) {
-            const file = event.target.files[0]; // Get the selected file
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    document.getElementById("profilePic").src = e.target.result; // Display the uploaded image
-                    saveProfilePicture(file); // Save to server or local storage
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        document.addEventListener("DOMContentLoaded", function () {
-            const fileInput = document.getElementById("profileImageInput");
-
-            if (fileInput) {
-                fileInput.addEventListener("change", function (event) {
-                    const file = event.target.files[0];
-                    const userId = new URLSearchParams(window.location.search).get("id"); // Get user ID dynamically
-
-                    if (!userId) {
-                        console.error("Error: User ID not found in URL!");
-                        return;
-                    }
-
-                    if (file) {
-                        uploadProfilePicture(file, userId);
-                    }
-                });
+            const file = event.target.files[0];
+            const userId = new URLSearchParams(window.location.search).get("id"); // Get user ID from URL
+            if (file && userId) {
+                uploadProfilePicture(file, userId);
             } else {
-                console.error("Error: File input element not found!");
+                console.error("No file or user ID found!");
             }
         });
 
-        function saveProfilePicture(file) {
-            const userId = new URLSearchParams(window.location.search).get("id");
+        function uploadProfilePicture(file, userId) {
             const formData = new FormData();
-            formData.append("profileImage", file);
-            formData.append("idNumber", userId);
+            formData.append("profileImage", file); // Must match Multer's field name
+            formData.append("userId", userId);
 
             fetch("http://localhost:3000/upload-profile", {
                 method: "POST",
@@ -223,9 +199,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Update the profile picture dynamically
+                    document.getElementById("profilePic").src = URL.createObjectURL(file);
                     alert("Profile picture updated successfully!");
                 } else {
-                    alert("Failed to update profile picture.");
+                    alert("Failed to update profile picture: " + data.error);
                 }
             })
             .catch(error => {
@@ -234,32 +212,70 @@
             });
         }
 
-        function uploadProfilePicture(file, userId) {
-            const formData = new FormData();
-            formData.append("profileImage", file); // ✅ Must match Multer's expected field name
-            formData.append("userId", userId);
+        function saveProfile() {
+            const updatedData = {
+                idNumber: document.getElementById("idNumber").value,
+                firstName: document.getElementById("firstname").value,
+                middleName: document.getElementById("middlename").value,
+                lastName: document.getElementById("lastname").value,
+                email: document.getElementById("email").value,
+                year: document.getElementById("year").value,
+                course: document.getElementById("course").value
+            };
 
-            fetch("http://localhost:3000/upload-profile", {
+            fetch("http://localhost:3000/update-profile", {
                 method: "POST",
-                body: formData
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedData),
             })
-            .then(response => response.text()) // Get raw response first
-            .then(text => {
-                console.log("Server response:", text); // Debug
-                return JSON.parse(text);
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    console.log("Upload successful:", data);
+                    alert("Profile updated successfully!");
                 } else {
-                    console.error("Error:", data.error);
+                    alert("Failed to update profile.");
                 }
             })
             .catch(error => {
-                console.error("Error uploading profile picture:", error);
+                console.error("Error:", error);
+                alert("Error updating profile.");
             });
         }
 
+        document.addEventListener("DOMContentLoaded", function () {
+            const menuLinks = document.querySelectorAll(".w-64 ul li a");
+
+            function hideAllSections() {
+                document.querySelectorAll("section").forEach(section => {
+                    section.classList.add("hidden");
+                });
+            }
+
+            function showSavedSection() {
+                let savedSection = localStorage.getItem("activeSection") || "dashboard"; // Default to dashboard
+                let sectionToShow = document.getElementById(savedSection);
+                if (sectionToShow) {
+                    hideAllSections();
+                    sectionToShow.classList.remove("hidden");
+                }
+            }
+
+            menuLinks.forEach(link => {
+                link.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    let targetId = this.getAttribute("href").substring(1);
+                    let targetSection = document.getElementById(targetId);
+
+                    if (targetSection) {
+                        hideAllSections();
+                        targetSection.classList.remove("hidden");
+                        localStorage.setItem("activeSection", targetId);
+                    }
+                });
+            });
+
+            showSavedSection();
+        });
 
         function openChangePasswordModal() {
             document.getElementById("changePasswordModal").classList.remove("hidden");
