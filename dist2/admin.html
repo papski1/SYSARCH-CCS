@@ -83,33 +83,52 @@
                 </section>                
             </section>
             <!-- Reservations Section -->
-            <section id="reservations" class="hidden">
+            <section id="reservations">
                 <h2 class="text-xl font-semibold mb-4">Reservations</h2>
-                <div class="bg-white p-4 rounded shadow">
-                    <p>Pending reservations will be displayed here.</p>
-                    <table class="w-full mt-4 border">
-                        <thead>
-                            <tr class="bg-gray-200">
-                                <th class="p-2 border">Student Name</th>
-                                <th class="p-2 border">Reservation Time</th>
-                                <th class="p-2 border">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reservation-list">
-                            <tr>
-                                <td class="p-2 border">John Doe</td>
-                                <td class="p-2 border">10:00 AM - 11:00 AM</td>
-                                <td class="p-2 border">
-                                    <button class="bg-green-500 text-white px-3 py-1 rounded" onclick="approveReservation(this)">Approve</button>
-                                    <button class="bg-red-500 text-white px-3 py-1 rounded ml-2" onclick="rejectReservation(this)">Reject</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                <table class="min-w-full bg-white border">
+                    <thead>
+                        <tr>
+                            <th class="border px-4 py-2">ID Number</th>
+                            <th class="border px-4 py-2">Name</th>
+                            <th class="border px-4 py-2">Purpose</th>
+                            <th class="border px-4 py-2">Date</th>
+                            <th class="border px-4 py-2">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reservations-table">
+                        <!-- Reservations will be loaded here -->
+                    </tbody>
+                </table>
+            </section>           
         </div>
     </div>
-    <script src="../admin.js"></script>
+    <script>
+        async function fetchReservations() {
+    try {
+        const response = await fetch("http://localhost:3000/reservations"); // Fetch data from server
+        const reservations = await response.json();
+
+        const tableBody = document.getElementById("reservations-table"); // Ensure this ID matches your HTML
+        tableBody.innerHTML = ""; // Clear previous data
+
+        reservations.forEach((reservation) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td class="border px-4 py-2">${reservation.idNumber}</td> <!-- Use idNumber -->
+                <td class="border px-4 py-2">${reservation.name}</td>
+                <td class="border px-4 py-2">${reservation.purpose}</td>
+                <td class="border px-4 py-2">${reservation.date}</td>
+                <td class="border px-4 py-2">${reservation.time}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Error fetching reservations:", error);
+    }
+}
+
+// Fetch reservations when the admin page loads
+document.addEventListener("DOMContentLoaded", fetchReservations);
+    </script>
 </body>
 </html>

@@ -44,6 +44,21 @@ function writeData(data) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf8");
 }
 
+// Function to read reservations
+function readReservations() {
+    if (!fs.existsSync(dataFilePath)) {
+        return [];
+    }
+    const data = fs.readFileSync(dataFilePath);
+    return JSON.parse(data).reservations || [];
+}
+
+// Function to save reservations
+function saveReservations(reservations) {
+    const data = { reservations };
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
+}
+
 // Ensure uploads folder exists
 if (!fs.existsSync("./uploads")) {
     fs.mkdirSync("./uploads");
@@ -60,6 +75,48 @@ app.get("/student.html", (req, res) => res.sendFile(path.join(__dirname, "dist",
 app.get("/admin.html", (req, res) => {
     res.sendFile(path.join(__dirname, "dist2", "admin.html"));
 });
+
+// Route: Make a reservation
+app.post("/reserve", async (req, res) => {
+    const { email, purpose, date, time } = req.body;
+    console.log("Received reservation request for email:", email);
+
+    // Load users from data.json
+    const users = JSON.parse(fs.readFileSync("data.json", "utf-8"));
+
+    // Find the user by email
+    const user = users.find((u) => u.email === email);
+    if (!user) {
+        console.log("User not found in database!");
+        return res.status(404).json({ message: "User not found!" });
+    }
+
+    console.log("User found:", user.firstName, user.lastName);
+
+    // Save reservation
+    const reservations = JSON.parse(fs.readFileSync("reservations.json", "utf-8"));
+    const newReservation = {
+        idNumber: user.idNumber,
+        name: `${user.firstName} ${user.lastName}`,
+        purpose,
+        date,
+        time
+    };
+    reservations.push(newReservation);
+    fs.writeFileSync("reservations.json", JSON.stringify(reservations, null, 2));
+
+    res.json({ message: "Reservation successful!" });
+});
+
+// Route: Admin view all reservations
+app.get("/reservations", (req, res) => {
+    if (!fs.existsSync("reservations.json")) {
+        return res.json([]);
+    }
+    const reservations = JSON.parse(fs.readFileSync("reservations.json", "utf8"));
+    res.json(reservations);
+});
+
 
 // **User Authentication**
 app.post("/login", async (req, res) => {
@@ -230,6 +287,11 @@ app.get("/get-profile", (req, res) => {
 router.post("/update-profile", (req, res) => {
     console.log("Received update request:", req.body);
 
+    if (!req.body || !req.body.oldIdNumber) {
+        console.error("Invalid request data!");
+        return res.status(400).json({ success: false, message: "Invalid request data" });
+    }
+
     fs.readFile("data.json", "utf8", (err, data) => {
         if (err) {
             console.error("Error reading data.json:", err);
@@ -237,10 +299,15 @@ router.post("/update-profile", (req, res) => {
         }
 
         let users = JSON.parse(data);
-        const index = users.findIndex(user => user.idNumber === req.body.idNumber);
+        console.log("Existing Users:", users);
+
+        const index = users.findIndex(user => String(user.idNumber) === String(req.body.oldIdNumber));
+        console.log("User found at index:", index);
 
         if (index !== -1) {
-            users[index] = req.body;
+            users[index] = { ...users[index], ...req.body }; 
+            delete users[index].oldIdNumber; 
+
             fs.writeFile("data.json", JSON.stringify(users, null, 2), (err) => {
                 if (err) {
                     console.error("Error saving profile:", err);
@@ -256,28 +323,72 @@ router.post("/update-profile", (req, res) => {
     });
 });
 
-// Configure Multer storage
+// Configure Multer for file uploads
 const storage = multer.diskStorage({
-    destination: "./uploads/", // Folder to store images
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)); // Unique filename
+    destination: function (req, file, cb) {
+        cb(null, "uploads/"); // Save files in the "uploads" folder
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + "-" + file.originalname); // Unique filename
     }
 });
-const upload = multer({ storage }); // Middleware for file upload
 
+const upload = multer({ storage: storage });
+
+// Endpoint to upload profile picture
 app.post("/upload-profile", upload.single("profileImage"), (req, res) => {
-    console.log("File Received:", req.file); // Debugging
-    if (!req.file) return res.status(400).json({ error: "No file uploaded!" });
+    try {
+        const { userId } = req.body;
 
-    const userId = req.body.userId;
-    let users = readData();
-    const userIndex = users.findIndex(user => user.idNumber === userId);
-    if (userIndex === -1) return res.status(404).json({ error: "User not found!" });
+        if (!userId) {
+            return res.status(400).json({ success: false, error: "User ID is required." });
+        }
 
-    users[userIndex].profileImage = `/uploads/${req.file.filename}`;
-    writeData(users);
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: "No file uploaded." });
+        }
 
-    res.json({ success: true, imagePath: users[userIndex].profileImage });
+        const filePath = `/uploads/${req.file.filename}`; // Path to the uploaded file
+
+        // Read user data from data.json
+        let users = readData();
+        const userIndex = users.findIndex(user => user.idNumber === userId);
+
+        if (userIndex === -1) {
+            return res.status(404).json({ success: false, error: "User not found." });
+        }
+
+        // Update the user's profile image path
+        users[userIndex].profileImage = filePath;
+        writeData(users); // Save the updated data
+
+        res.json({ success: true, imagePath: users[userIndex].profileImage });
+    } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        res.status(500).json({ success: false, error: "Internal server error." });
+    }
+});
+
+// Serve static files from the "uploads" folder
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// server.js
+app.get("/get-user", (req, res) => {
+    const { id } = req.query;
+
+    try {
+        const users = readData();
+        const user = users.find(user => user.idNumber === id);
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: "User not found!" });
+        }
+
+        res.json({ success: true, user });
+    } catch (error) {
+        console.error("Error fetching user data:", error);
+        res.status(500).json({ success: false, error: "Internal server error." });
+    }
 });
 
 // **Start the server**
