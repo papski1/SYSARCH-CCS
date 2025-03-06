@@ -15,7 +15,12 @@ const DATA_FILE = path.join(__dirname, "data.json");
 // Middleware
 app.use(express.json()); // Parses JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parses form data
-app.use(cors()); 
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true
+})); 
 app.use(express.static("dist"));
 app.use(router);
 app.use(session({
@@ -46,17 +51,30 @@ function writeData(data) {
 
 // Function to read reservations
 function readReservations() {
-    if (!fs.existsSync(dataFilePath)) {
+    if (!fs.existsSync("reservations.json")) {
         return [];
     }
-    const data = fs.readFileSync(dataFilePath);
-    return JSON.parse(data).reservations || [];
+    const data = fs.readFileSync("reservations.json");
+    return JSON.parse(data);
 }
 
 // Function to save reservations
 function saveReservations(reservations) {
-    const data = { reservations };
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
+    fs.writeFileSync("reservations.json", JSON.stringify(reservations, null, 2));
+}
+
+// Function to read sit-ins
+function readSitIns() {
+    if (!fs.existsSync("sit-ins.json")) {
+        return [];
+    }
+    const data = fs.readFileSync("sit-ins.json");
+    return JSON.parse(data);
+}
+
+// Function to save sit-ins
+function saveSitIns(sitIns) {
+    fs.writeFileSync("sit-ins.json", JSON.stringify(sitIns, null, 2));
 }
 
 // Ensure uploads folder exists
@@ -78,34 +96,135 @@ app.get("/admin.html", (req, res) => {
 
 // Route: Make a reservation
 app.post("/reserve", async (req, res) => {
-    const { email, purpose, date, time } = req.body;
-    console.log("Received reservation request for email:", email);
+    console.log("Received reservation request body:", req.body);
+    const { email, idNumber, purpose, date, time } = req.body;
 
-    // Load users from data.json
-    const users = JSON.parse(fs.readFileSync("data.json", "utf-8"));
-
-    // Find the user by email
-    const user = users.find((u) => u.email === email);
-    if (!user) {
-        console.log("User not found in database!");
-        return res.status(404).json({ message: "User not found!" });
+    // Validate required fields
+    if (!email || !idNumber || !purpose || !date || !time) {
+        console.error("Missing required fields:", { email, idNumber, purpose, date, time });
+        return res.status(400).json({ 
+            message: "Missing required fields", 
+            details: { email, idNumber, purpose, date, time } 
+        });
     }
 
-    console.log("User found:", user.firstName, user.lastName);
+    try {
+        // Load users from data.json
+        console.log("Reading users from data.json...");
+        const users = JSON.parse(fs.readFileSync("data.json", "utf-8"));
+        console.log("Loaded users from database");
 
-    // Save reservation
-    const reservations = JSON.parse(fs.readFileSync("reservations.json", "utf-8"));
-    const newReservation = {
-        idNumber: user.idNumber,
-        name: `${user.firstName} ${user.lastName}`,
-        purpose,
-        date,
-        time
-    };
-    reservations.push(newReservation);
-    fs.writeFileSync("reservations.json", JSON.stringify(reservations, null, 2));
+        // Find the user by email or idNumber
+        const user = users.find((u) => u.email === email || u.idNumber === idNumber);
+        if (!user) {
+            console.error("User not found with email:", email, "or idNumber:", idNumber);
+            return res.status(404).json({ 
+                message: "User not found!", 
+                details: { email, idNumber } 
+            });
+        }
 
-    res.json({ message: "Reservation successful!" });
+        console.log("User found:", user.firstName, user.lastName);
+
+        // Load existing reservations or create new array
+        let reservations = [];
+        if (fs.existsSync("reservations.json")) {
+            console.log("Reading existing reservations...");
+            reservations = JSON.parse(fs.readFileSync("reservations.json", "utf-8"));
+            console.log("Loaded existing reservations");
+        }
+
+        // Create new reservation with unique ID and status
+        const newReservation = {
+            id: Date.now(), // Unique ID for the reservation
+            idNumber: user.idNumber,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            course: user.course,
+            year: user.year,
+            purpose,
+            date,
+            time,
+            status: "pending" // Default status
+        };
+
+        console.log("Creating new reservation:", newReservation);
+
+        // Add new reservation
+        reservations.push(newReservation);
+
+        // Save updated reservations
+        console.log("Saving reservations to file...");
+        fs.writeFileSync("reservations.json", JSON.stringify(reservations, null, 2));
+        console.log("Saved reservation successfully");
+
+        res.json({ 
+            message: "Reservation successful!",
+            reservation: newReservation
+        });
+    } catch (error) {
+        console.error("Error processing reservation:", error);
+        res.status(500).json({ 
+            message: "Error processing reservation", 
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
+// Route: Update reservation status
+app.post("/update-reservation-status", (req, res) => {
+    const { reservationId, status } = req.body;
+
+    try {
+        if (!fs.existsSync("reservations.json")) {
+            return res.status(404).json({ message: "No reservations found" });
+        }
+
+        const reservations = JSON.parse(fs.readFileSync("reservations.json", "utf-8"));
+        const reservationIndex = reservations.findIndex(r => r.id === reservationId);
+
+        if (reservationIndex === -1) {
+            return res.status(404).json({ message: "Reservation not found" });
+        }
+
+        // If the reservation is rejected, remove it from the list
+        if (status === 'rejected') {
+            reservations.splice(reservationIndex, 1);
+        } else {
+            reservations[reservationIndex].status = status;
+        }
+
+        fs.writeFileSync("reservations.json", JSON.stringify(reservations, null, 2));
+
+        // If the reservation is approved, create a sit-in record
+        if (status === 'approved') {
+            const reservation = reservations[reservationIndex];
+            let sitIns = readSitIns();
+            
+            const newSitIn = {
+                id: Date.now(),
+                reservationId: reservation.id,
+                idNumber: reservation.idNumber,
+                name: reservation.name,
+                course: reservation.course,
+                year: reservation.year,
+                purpose: reservation.purpose,
+                date: reservation.date,
+                timeIn: reservation.time,
+                status: 'active',
+                timeOut: null
+            };
+
+            sitIns.push(newSitIn);
+            saveSitIns(sitIns);
+        }
+
+        res.json({ message: "Reservation status updated successfully" });
+    } catch (error) {
+        console.error("Error updating reservation status:", error);
+        res.status(500).json({ message: "Error updating reservation status" });
+    }
 });
 
 // Route: Admin view all reservations
@@ -116,7 +235,6 @@ app.get("/reservations", (req, res) => {
     const reservations = JSON.parse(fs.readFileSync("reservations.json", "utf8"));
     res.json(reservations);
 });
-
 
 // **User Authentication**
 app.post("/login", async (req, res) => {
@@ -265,22 +383,43 @@ app.post("/change-password", (req, res) => {
 
 // **Profile Management**
 app.get("/get-profile", (req, res) => {
-    const userId = req.query.id;
-    let users = readData();
-    const user = users.find(user => user.idNumber === userId);
+    try {
+        const userId = req.query.id;
+        console.log("Fetching profile for user ID:", userId);
+        
+        if (!userId) {
+            console.error("No user ID provided");
+            return res.status(400).json({ error: "User ID is required!" });
+        }
 
-    if (!user) return res.status(404).json({ error: "User not found!" });
+        let users = readData();
+        console.log("Total users in database:", users.length);
+        
+        const user = users.find(user => user.idNumber === userId);
+        console.log("User found:", user ? "Yes" : "No");
 
-    res.json({
-        idNumber: user.idNumber,
-        firstName: user.firstName,
-        middleName: user.middleName || "",
-        lastName: user.lastName,
-        email: user.email,
-        year: user.year,
-        course: user.course,
-        profileImage: user.profileImage || "/uploads/default.png"
-    });
+        if (!user) {
+            console.error("User not found with ID:", userId);
+            return res.status(404).json({ error: "User not found!" });
+        }
+
+        const response = {
+            idNumber: user.idNumber,
+            firstName: user.firstName,
+            middleName: user.middleName || "",
+            lastName: user.lastName,
+            email: user.email,
+            year: user.year,
+            course: user.course,
+            profileImage: user.profileImage || "/uploads/default.png"
+        };
+        
+        console.log("Sending profile data:", response);
+        res.json(response);
+    } catch (error) {
+        console.error("Error in get-profile endpoint:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
 });
 
 // Load and update the profile in data.json
@@ -388,6 +527,300 @@ app.get("/get-user", (req, res) => {
     } catch (error) {
         console.error("Error fetching user data:", error);
         res.status(500).json({ success: false, error: "Internal server error." });
+    }
+});
+
+// Route: Get all users (admin only)
+app.get("/get-all-users", (req, res) => {
+    try {
+        const users = readData();
+        // Filter out sensitive information
+        const sanitizedUsers = users.map(user => ({
+            idNumber: user.idNumber,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            middleName: user.middleName,
+            email: user.email,
+            course: user.course,
+            year: user.year,
+            profileImage: user.profileImage || "/uploads/default.png"
+        }));
+        res.json(sanitizedUsers);
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ message: "Error fetching users" });
+    }
+});
+
+// Route: Get all sit-ins
+app.get("/sit-ins", (req, res) => {
+    try {
+        const sitIns = readSitIns();
+        res.json(sitIns);
+    } catch (error) {
+        console.error("Error fetching sit-ins:", error);
+        res.status(500).json({ error: "Failed to fetch sit-ins" });
+    }
+});
+// Route: Update sit-in status
+app.post("/update-sit-in-status", (req, res) => {
+    try {
+        const { sitInId, status } = req.body;
+        let sitIns = readSitIns();
+        let reservations = readReservations();
+        
+        const sitInIndex = sitIns.findIndex(s => s.id === sitInId);
+        if (sitInIndex === -1) {
+            return res.status(404).json({ error: "Sit-in not found" });
+        }
+
+        sitIns[sitInIndex].status = status;
+        if (status === 'completed') {
+            sitIns[sitInIndex].timeOut = new Date().toISOString();
+            
+            // Remove the corresponding reservation
+            const reservationIndex = reservations.findIndex(r => r.id === sitIns[sitInIndex].reservationId);
+            if (reservationIndex !== -1) {
+                reservations.splice(reservationIndex, 1);
+                saveReservations(reservations);
+            }
+        }
+
+        saveSitIns(sitIns);
+        res.json({ message: "Sit-in status updated successfully" });
+    } catch (error) {
+        console.error("Error updating sit-in status:", error);
+        res.status(500).json({ error: "Failed to update sit-in status" });
+    }
+});
+
+// Helper functions for feedback
+function readFeedback() {
+    try {
+        if (!fs.existsSync("feedback.json")) {
+            fs.writeFileSync("feedback.json", JSON.stringify([], null, 2), "utf8");
+            return [];
+        }
+        const data = fs.readFileSync("feedback.json", "utf8");
+        return JSON.parse(data) || [];
+    } catch (error) {
+        console.error("Error reading feedback:", error);
+        return [];
+    }
+}
+
+function writeFeedback(feedback) {
+    try {
+        fs.writeFileSync("feedback.json", JSON.stringify(feedback || [], null, 2), "utf8");
+    } catch (error) {
+        console.error("Error writing feedback:", error);
+        throw error;
+    }
+}
+
+// Route: Submit feedback
+app.post("/submit-feedback", async (req, res) => {
+    try {
+        const { userId, type, message, date } = req.body;
+        
+        if (!userId || !type || !message) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Missing required fields" 
+            });
+        }
+
+        // Get user details
+        const users = readData();
+        const user = users.find(u => u.idNumber === userId);
+        
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "User not found" 
+            });
+        }
+
+        const feedback = readFeedback();
+        const newFeedback = {
+            id: Date.now(),
+            userId: userId,
+            userName: `${user.firstName} ${user.lastName}`,
+            type,
+            message,
+            date,
+            status: 'new'
+        };
+
+        feedback.unshift(newFeedback);
+        writeFeedback(feedback);
+
+        res.json({ 
+            success: true, 
+            message: "Feedback submitted successfully" 
+        });
+    } catch (error) {
+        console.error("Error submitting feedback:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error submitting feedback" 
+        });
+    }
+});
+
+// Route: Get all feedback (admin only)
+app.get("/feedback", (req, res) => {
+    try {
+        const feedback = readFeedback();
+        res.json(feedback);
+    } catch (error) {
+        console.error("Error fetching feedback:", error);
+        res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+});
+
+// Helper functions for announcements
+function readAnnouncements() {
+    try {
+        if (!fs.existsSync("announcements.json")) {
+            fs.writeFileSync("announcements.json", JSON.stringify([], null, 2), "utf8");
+            return [];
+        }
+        const data = fs.readFileSync("announcements.json", "utf8");
+        return JSON.parse(data) || [];
+    } catch (error) {
+        console.error("Error reading announcements:", error);
+        return [];
+    }
+}
+
+function writeAnnouncements(announcements) {
+    try {
+        fs.writeFileSync("announcements.json", JSON.stringify(announcements || [], null, 2), "utf8");
+    } catch (error) {
+        console.error("Error writing announcements:", error);
+        throw error;
+    }
+}
+
+// Route: Get all announcements
+app.get("/get-announcements", (req, res) => {
+    try {
+        const announcements = readAnnouncements();
+        res.json(announcements);
+    } catch (error) {
+        console.error("Error fetching announcements:", error);
+        res.status(500).json({ error: "Failed to fetch announcements" });
+    }
+});
+
+// Route: Post new announcement
+app.post("/post-announcement", (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message) {
+            return res.status(400).json({ error: "Message is required" });
+        }
+
+        const announcements = readAnnouncements();
+        const newAnnouncement = {
+            id: Date.now(),
+            message,
+            date: new Date().toISOString()
+        };
+
+        announcements.unshift(newAnnouncement);
+        writeAnnouncements(announcements);
+
+        res.json({ success: true, announcement: newAnnouncement });
+    } catch (error) {
+        console.error("Error posting announcement:", error);
+        res.status(500).json({ error: "Failed to post announcement" });
+    }
+});
+
+// Route: Delete announcement
+app.delete("/delete-announcement/:id", (req, res) => {
+    try {
+        const { id } = req.params;
+        const announcements = readAnnouncements();
+        const index = announcements.findIndex(a => a.id === parseInt(id));
+
+        if (index === -1) {
+            return res.status(404).json({ error: "Announcement not found" });
+        }
+
+        announcements.splice(index, 1);
+        writeAnnouncements(announcements);
+
+        res.json({ success: true, message: "Announcement deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting announcement:", error);
+        res.status(500).json({ error: "Failed to delete announcement" });
+    }
+});
+
+// Get a single announcement
+router.get("/get-announcement/:id", (req, res) => {
+    try {
+        const announcements = readAnnouncements();
+        const announcement = announcements.find(a => a.id === parseInt(req.params.id));
+        
+        if (!announcement) {
+            return res.status(404).json({ error: "Announcement not found" });
+        }
+        
+        res.json(announcement);
+    } catch (error) {
+        console.error("Error getting announcement:", error);
+        res.status(500).json({ error: "Error getting announcement" });
+    }
+});
+
+// Update an announcement
+router.put("/update-announcement/:id", (req, res) => {
+    try {
+        const announcements = readAnnouncements();
+        const index = announcements.findIndex(a => a.id === parseInt(req.params.id));
+        
+        if (index === -1) {
+            return res.status(404).json({ error: "Announcement not found" });
+        }
+        
+        const { message } = req.body;
+        if (!message) {
+            return res.status(400).json({ error: "Message is required" });
+        }
+        
+        announcements[index] = {
+            ...announcements[index],
+            message,
+            date: new Date().toISOString()
+        };
+        
+        writeAnnouncements(announcements);
+        res.json({ message: "Announcement updated successfully" });
+    } catch (error) {
+        console.error("Error updating announcement:", error);
+        res.status(500).json({ error: "Error updating announcement" });
+    }
+});
+
+// Delete an announcement
+router.delete("/delete-announcement/:id", (req, res) => {
+    try {
+        const announcements = readAnnouncements();
+        const filteredAnnouncements = announcements.filter(a => a.id !== parseInt(req.params.id));
+        
+        if (filteredAnnouncements.length === announcements.length) {
+            return res.status(404).json({ error: "Announcement not found" });
+        }
+        
+        writeAnnouncements(filteredAnnouncements);
+        res.json({ message: "Announcement deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting announcement:", error);
+        res.status(500).json({ error: "Error deleting announcement" });
     }
 });
 

@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="script.js" defer></script>
 </head>
 <body class="bg-gray-100 text-gray-900">
     <div class="flex h-screen">
         <!-- Sidebar -->
         <div class="w-64 bg-white shadow-md p-4 fixed h-full">
-            <h2 class="text-xl font-semibold mb-4">Admin Panel</h2>
+            <div class="flex justify-center mb-6">
+                <img src="/src/image.png" alt="Admin Logo" class="rounded-full w-32 h-32 object-cover">
+            </div>
             <ul class="space-y-2">
                 <li><a href="#dashboard" class="block py-2 px-4 rounded hover:bg-gray-200">Dashboard</a></li>
                 <li><a href="#students" class="block py-2 px-4 rounded hover:bg-gray-200">Students</a></li>
                 <li><a href="#sit-in" class="block py-2 px-4 rounded hover:bg-gray-200">Sit-in Monitoring</a></li>
                 <li><a href="#reports" class="block py-2 px-4 rounded hover:bg-gray-200">Reports</a></li>
-                <li><a href="#announcements" class="block py-2 px-4 rounded hover:bg-gray-200">Announcements</a></li>
                 <li><a href="#feedback" class="block py-2 px-4 rounded hover:bg-gray-200">Feedback</a></li>
                 <li><a href="#reservations" class="block py-2 px-4 rounded hover:bg-gray-200">Reservations</a></li>
                 <li><a href="#reset-session" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Reset Sessions</a></li>
@@ -33,34 +33,120 @@
 
             <!-- Overview Cards -->
             <section id="dashboard">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-white p-4 rounded shadow">Total Students: <span id="total-students" class="font-semibold">0</span></div>
-                    <div class="bg-white p-4 rounded shadow">Current Sit-in: <span id="current-sit-in" class="font-semibold">0</span></div>
-                    <div class="bg-white p-4 rounded shadow">Pending Reservations: <span id="pending-reservations" class="font-semibold">0</span></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-2">Total Students Registered</h3>
+                        <p class="text-3xl font-bold text-blue-600"><span id="total-students">0</span></p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-2">Current Sit-in</h3>
+                        <p class="text-3xl font-bold text-green-600"><span id="current-sit-in">0</span></p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-2">Pending Reservations</h3>
+                        <p class="text-3xl font-bold text-yellow-600"><span id="pending-reservations">0</span></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Statistics Chart -->
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-4">Student Statistics</h3>
+                        <canvas id="studentStatsChart" class="w-full h-64"></canvas>
+                    </div>
+
+                    <!-- Announcements Section -->
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-4">Announcements</h3>
+                        <div class="mb-4">
+                            <textarea id="announcementText" class="w-full p-2 border rounded mb-2" rows="3" placeholder="Enter your announcement..."></textarea>
+                            <button onclick="postAnnouncement()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Post Announcement</button>
+                        </div>
+                        <div class="mt-4">
+                            <h4 class="font-medium mb-2">Recent Announcements</h4>
+                            <div id="recentAnnouncements" class="space-y-2">
+                                <!-- Announcements will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <!-- Students Section with Search Bar -->
+            <!-- Students Section -->
             <section id="students" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Students</h2>
-                <input type="text" id="search-bar" placeholder="Search students..." class="w-full p-2 mb-4 border rounded">
-                <div class="bg-white p-4 rounded shadow">List of students will be displayed here</div>
+                <input type="text" id="search-bar" placeholder="Search by ID number..." class="w-full p-2 mb-4 border rounded">
+                <div class="bg-white p-4 rounded shadow">
+                    <table class="min-w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border px-4 py-2">ID Number</th>
+                                <th class="border px-4 py-2">Name</th>
+                                <th class="border px-4 py-2">Course</th>
+                                <th class="border px-4 py-2">Year</th>
+                                <th class="border px-4 py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-table">
+                            <!-- Students will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
             </section>
 
-            <!-- Collapsible Sections -->
+            <!-- Sit-in Monitoring Section -->
             <section id="sit-in" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Sit-in Monitoring</h2>
-                <div class="bg-white p-4 rounded shadow">View current and past sit-in records</div>
+                <div class="bg-white p-4 rounded shadow">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-medium mb-2">Active Sit-ins</h3>
+                        <table class="min-w-full border-collapse border border-gray-300">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="border px-4 py-2">ID Number</th>
+                                    <th class="border px-4 py-2">Name</th>
+                                    <th class="border px-4 py-2">Course</th>
+                                    <th class="border px-4 py-2">Year</th>
+                                    <th class="border px-4 py-2">Purpose</th>
+                                    <th class="border px-4 py-2">Date</th>
+                                    <th class="border px-4 py-2">Time In</th>
+                                    <th class="border px-4 py-2">Status</th>
+                                    <th class="border px-4 py-2">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-sit-ins-table">
+                                <!-- Active sit-ins will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-medium mb-2">Completed Sit-ins</h3>
+                        <table class="min-w-full border-collapse border border-gray-300">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="border px-4 py-2">ID Number</th>
+                                    <th class="border px-4 py-2">Name</th>
+                                    <th class="border px-4 py-2">Course</th>
+                                    <th class="border px-4 py-2">Year</th>
+                                    <th class="border px-4 py-2">Purpose</th>
+                                    <th class="border px-4 py-2">Date</th>
+                                    <th class="border px-4 py-2">Time In</th>
+                                    <th class="border px-4 py-2">Time Out</th>
+                                    <th class="border px-4 py-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="completed-sit-ins-table">
+                                <!-- Completed sit-ins will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <section id="reports" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Reports</h2>
                 <div class="bg-white p-4 rounded shadow">View Sit-in Reports & Daily Statistics</div>
-            </section>
-
-            <section id="announcements" class="hidden">
-                <h2 class="text-xl font-semibold mb-4">Announcements</h2>
-                <div class="bg-white p-4 rounded shadow">Create / Edit / Delete Announcements</div>
             </section>
             
             <section id="feedback" class="hidden">
@@ -83,52 +169,38 @@
                 </section>                
             </section>
             <!-- Reservations Section -->
-            <section id="reservations">
+            <section id="reservations" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Reservations</h2>
-                <table class="min-w-full bg-white border">
-                    <thead>
-                        <tr>
-                            <th class="border px-4 py-2">ID Number</th>
-                            <th class="border px-4 py-2">Name</th>
-                            <th class="border px-4 py-2">Purpose</th>
-                            <th class="border px-4 py-2">Date</th>
-                            <th class="border px-4 py-2">Time</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reservations-table">
-                        <!-- Reservations will be loaded here -->
-                    </tbody>
-                </table>
+                <div class="bg-white p-4 rounded shadow">
+                    <!-- Add search bar -->
+                    <div class="mb-4">
+                        <input type="text" 
+                               id="reservation-search" 
+                               placeholder="Search by ID number, name, or course..." 
+                               class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <table class="min-w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border px-4 py-2">ID Number</th>
+                                <th class="border px-4 py-2">Name</th>
+                                <th class="border px-4 py-2">Course</th>
+                                <th class="border px-4 py-2">Year</th>
+                                <th class="border px-4 py-2">Purpose</th>
+                                <th class="border px-4 py-2">Date</th>
+                                <th class="border px-4 py-2">Time</th>
+                                <th class="border px-4 py-2">Status</th>
+                                <th class="border px-4 py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservations-table">
+                            <!-- Reservations will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
             </section>           
         </div>
     </div>
-    <script>
-        async function fetchReservations() {
-    try {
-        const response = await fetch("http://localhost:3000/reservations"); // Fetch data from server
-        const reservations = await response.json();
-
-        const tableBody = document.getElementById("reservations-table"); // Ensure this ID matches your HTML
-        tableBody.innerHTML = ""; // Clear previous data
-
-        reservations.forEach((reservation) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td class="border px-4 py-2">${reservation.idNumber}</td> <!-- Use idNumber -->
-                <td class="border px-4 py-2">${reservation.name}</td>
-                <td class="border px-4 py-2">${reservation.purpose}</td>
-                <td class="border px-4 py-2">${reservation.date}</td>
-                <td class="border px-4 py-2">${reservation.time}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    } catch (error) {
-        console.error("Error fetching reservations:", error);
-    }
-}
-
-// Fetch reservations when the admin page loads
-document.addEventListener("DOMContentLoaded", fetchReservations);
-    </script>
+    <script src="/public/admin.js"></script>
 </body>
 </html>
