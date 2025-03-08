@@ -18,7 +18,6 @@
                 <li><a href="#students" class="block py-2 px-4 rounded hover:bg-gray-200">Students</a></li>
                 <li><a href="#sit-in" class="block py-2 px-4 rounded hover:bg-gray-200">Sit-in Monitoring</a></li>
                 <li><a href="#reports" class="block py-2 px-4 rounded hover:bg-gray-200">Reports</a></li>
-                <li><a href="#feedback" class="block py-2 px-4 rounded hover:bg-gray-200">Feedback</a></li>
                 <li><a href="#reservations" class="block py-2 px-4 rounded hover:bg-gray-200">Reservations</a></li>
                 <li><a href="#reset-session" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Reset Sessions</a></li>
                 <li><a href="#logout" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Logout</a></li>
@@ -146,28 +145,102 @@
 
             <section id="reports" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Reports</h2>
-                <div class="bg-white p-4 rounded shadow">View Sit-in Reports & Daily Statistics</div>
+                
+                <!-- Reports Tabs -->
+                <div class="mb-4">
+                    <div class="flex border-b">
+                        <button id="tab-sit-in-stats" class="py-2 px-4 font-medium text-blue-600 border-b-2 border-blue-600 active-tab">Sit-In Statistics</button>
+                        <button id="tab-user-feedback" class="py-2 px-4 font-medium text-gray-500 hover:text-blue-600">User Feedback</button>
+                        <button id="tab-student-reports" class="py-2 px-4 font-medium text-gray-500 hover:text-blue-600">Student Reports</button>
+                    </div>
+                </div>
+                
+                <!-- Sit-In Statistics Content -->
+                <div id="content-sit-in-stats" class="bg-white p-4 rounded shadow">
+                    <h3 class="text-lg font-medium mb-4">Sit-In Monitoring Statistics</h3>
+                    
+                    <!-- Statistics Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-50 p-4 rounded shadow">
+                            <h4 class="text-md font-semibold mb-2">Total Sessions</h4>
+                            <p class="text-2xl font-bold text-blue-600"><span id="total-sessions">0</span></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded shadow">
+                            <h4 class="text-md font-semibold mb-2">Average Duration</h4>
+                            <p class="text-2xl font-bold text-green-600"><span id="avg-duration">0</span> min</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded shadow">
+                            <h4 class="text-md font-semibold mb-2">Completion Rate</h4>
+                            <p class="text-2xl font-bold text-purple-600"><span id="completion-rate">0</span>%</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Weekly Activity Chart -->
+                    <div class="mb-6">
+                        <h4 class="text-md font-semibold mb-2">Weekly Activity</h4>
+                        <div class="bg-gray-50 p-4 rounded shadow">
+                            <canvas id="weeklyActivityChart" height="200"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Department Distribution -->
+                    <div>
+                        <h4 class="text-md font-semibold mb-2">Department Distribution</h4>
+                        <div class="bg-gray-50 p-4 rounded shadow">
+                            <canvas id="departmentDistributionChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Feedback Content -->
+                <div id="content-user-feedback" class="bg-white p-4 rounded shadow hidden">
+                    <h3 class="text-lg font-medium mb-4">User Feedback</h3>
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-gray-300 px-4 py-2">Date</th>
+                                <th class="border border-gray-300 px-4 py-2">User</th>
+                                <th class="border border-gray-300 px-4 py-2">Message</th>
+                                <th class="border border-gray-300 px-4 py-2">Type</th>
+                                <th class="border border-gray-300 px-4 py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedbackTableBody">
+                            <!-- Feedback messages will be dynamically added here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Student Reports Content -->
+                <div id="content-student-reports" class="bg-white p-4 rounded shadow hidden">
+                    <h3 class="text-lg font-medium mb-4">Student Reports</h3>
+                    
+                    <!-- Filter Controls -->
+                    <div class="mb-4 flex flex-wrap gap-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Student ID</label>
+                            <input type="text" id="student-report-id" placeholder="Enter ID" class="mt-1 p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Date Range</label>
+                            <div class="flex gap-2">
+                                <input type="date" id="report-date-start" class="mt-1 p-2 border rounded">
+                                <input type="date" id="report-date-end" class="mt-1 p-2 border rounded">
+                            </div>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="generate-report-btn" class="mt-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Generate Report</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Report Results -->
+                    <div id="student-report-results" class="mt-4">
+                        <!-- Student report content will be added here -->
+                        <p class="text-gray-500 text-center py-10">Select filters and click "Generate Report" to view student data</p>
+                    </div>
+                </div>
             </section>
             
-            <section id="feedback" class="hidden">
-                    <div class="bg-white p-4 rounded shadow">
-                        <h2 class="text-xl font-bold text-gray-800">User Feedback</h2>
-                        <table class="w-full border-collapse border border-gray-300 mt-4">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="border border-gray-300 px-4 py-2">Date</th>
-                                    <th class="border border-gray-300 px-4 py-2">User</th>
-                                    <th class="border border-gray-300 px-4 py-2">Message</th>
-                                    <th class="border border-gray-300 px-4 py-2">Type</th>
-                                </tr>
-                            </thead>
-                            <tbody id="feedbackTableBody">
-                                <!-- Feedback messages will be dynamically added here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </section>                
-            </section>
             <!-- Reservations Section -->
             <section id="reservations" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Reservations</h2>
@@ -201,6 +274,69 @@
             </section>           
         </div>
     </div>
+
+    <!-- Reset Sessions Section -->
+    <section id="reset-session" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold mb-4 text-red-600">Reset Sessions</h2>
+            
+            <!-- Status message area -->
+            <div id="reset-status-container" class="mb-4 hidden">
+                <div id="reset-status-message" class="p-3 rounded text-center"></div>
+            </div>
+            
+            <div class="mb-6">
+                <p class="mb-4 text-gray-700">Be careful! This action will permanently delete sessions data and cannot be undone.</p>
+                
+                <div class="mb-4">
+                    <h3 class="font-medium mb-2">Reset by Semester</h3>
+                    <select id="semester-select" class="w-full p-2 border rounded mb-2">
+                        <option value="">Select a semester...</option>
+                        <option value="First Semester">First Semester</option>
+                        <option value="Second Semester">Second Semester</option>
+                        <option value="Summer">Summer</option>
+                    </select>
+                    <button id="reset-semester-btn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Reset Semester</button>
+                </div>
+                
+                <div class="my-4 border-t border-gray-300"></div>
+                
+                <div>
+                    <h3 class="font-medium mb-2">Reset by User</h3>
+                    <input type="text" id="user-id-input" placeholder="Enter student ID number" class="w-full p-2 border rounded mb-2">
+                    <button id="reset-user-btn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Reset User Sessions</button>
+                </div>
+            </div>
+            
+            <div class="my-4 border-t border-gray-300"></div>
+            
+            <div class="mb-4">
+                <h3 class="font-medium mb-2">Recent Reset Operations</h3>
+                <div class="max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
+                    <table class="min-w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="p-2 text-left">Date</th>
+                                <th class="p-2 text-left">Type</th>
+                                <th class="p-2 text-left">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reset-logs-table">
+                            <!-- Reset logs will be loaded here -->
+                            <tr>
+                                <td colspan="3" class="p-2 text-center text-gray-500">Loading reset history...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button id="close-reset-modal" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Close</button>
+            </div>
+        </div>
+    </section>
+    
     <script src="/public/admin.js"></script>
 </body>
 </html>

@@ -34,6 +34,6 @@
   },
   "homepage": "https://github.com/papski1/SYSARCH-CCS#readme",
   "devDependencies": {
-    "tailwindcss": "^4.0.9"
+    "tailwindcss": "^4.0.12"
   }
 }

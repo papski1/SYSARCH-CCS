@@ -1,0 +1,39 @@
+[
+  {
+    "id": 1741450562210,
+    "timestamp": "2025-03-08T16:16:02.210Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "0992",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0
+    }
+  },
+  {
+    "id": 1741450550033,
+    "timestamp": "2025-03-08T16:15:50.033Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "dateRange": {
+        "start": "2025-01-01",
+        "end": "2025-05-31"
+      },
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0
+    }
+  },
+  {
+    "id": 1741450316631,
+    "timestamp": "2025-03-08T16:11:56.631Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "0992",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0
+    }
+  }
+]

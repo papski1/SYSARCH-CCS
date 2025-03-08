@@ -19,18 +19,27 @@ app.use(cors({
     origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true
+    credentials: true // Important for allowing cookies to be sent with requests
 })); 
-app.use(express.static("dist"));
-app.use(router);
+
+// Session middleware - Place this before any routes
 app.use(session({
     secret: "your_secret_key",
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } // Change to true if using HTTPS
+    cookie: { 
+        secure: false, // Change to true if using HTTPS
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
 }));
+
+app.use(express.static("dist"));
+app.use(router);
 app.use((req, res, next) => {
     console.log(`Incoming request: ${req.method} ${req.url}`);
+    console.log(`Session data:`, req.session);
     next();
 });
 
@@ -96,6 +105,7 @@ app.get("/admin.html", (req, res) => {
 
 // Route: Make a reservation
 app.post("/reserve", async (req, res) => {
+    console.log("=== START RESERVATION PROCESS ===");
     console.log("Received reservation request body:", req.body);
     const { email, idNumber, purpose, date, time } = req.body;
 
@@ -128,10 +138,23 @@ app.post("/reserve", async (req, res) => {
 
         // Load existing reservations or create new array
         let reservations = [];
-        if (fs.existsSync("reservations.json")) {
+        const reservationsPath = path.join(__dirname, "reservations.json");
+        console.log("Reservations file path:", reservationsPath);
+        
+        if (fs.existsSync(reservationsPath)) {
             console.log("Reading existing reservations...");
-            reservations = JSON.parse(fs.readFileSync("reservations.json", "utf-8"));
-            console.log("Loaded existing reservations");
+            try {
+                const fileContent = fs.readFileSync(reservationsPath, "utf-8");
+                console.log("Raw file content:", fileContent);
+                reservations = JSON.parse(fileContent);
+                console.log("Loaded existing reservations:", reservations.length, "found");
+            } catch (readError) {
+                console.error("Error reading reservations file:", readError);
+                // If file is corrupt, create a new empty array
+                reservations = [];
+            }
+        } else {
+            console.log("No existing reservations file, creating new one");
         }
 
         // Create new reservation with unique ID and status
@@ -152,12 +175,27 @@ app.post("/reserve", async (req, res) => {
 
         // Add new reservation
         reservations.push(newReservation);
+        console.log("Updated reservations array, now contains", reservations.length, "reservations");
 
         // Save updated reservations
         console.log("Saving reservations to file...");
-        fs.writeFileSync("reservations.json", JSON.stringify(reservations, null, 2));
-        console.log("Saved reservation successfully");
+        try {
+            fs.writeFileSync(reservationsPath, JSON.stringify(reservations, null, 2));
+            console.log("Saved reservation successfully");
+            
+            // Verify the file was written correctly
+            const verifyContent = fs.readFileSync(reservationsPath, "utf-8");
+            const verifyReservations = JSON.parse(verifyContent);
+            console.log("Verification: file now contains", verifyReservations.length, "reservations");
+        } catch (writeError) {
+            console.error("Error saving reservations file:", writeError);
+            return res.status(500).json({ 
+                message: "Error saving reservation", 
+                error: writeError.message 
+            });
+        }
 
+        console.log("=== END RESERVATION PROCESS ===");
         res.json({ 
             message: "Reservation successful!",
             reservation: newReservation
@@ -229,11 +267,28 @@ app.post("/update-reservation-status", (req, res) => {
 
 // Route: Admin view all reservations
 app.get("/reservations", (req, res) => {
-    if (!fs.existsSync("reservations.json")) {
+    console.log("Fetching all reservations for admin panel");
+    const reservationsPath = path.join(__dirname, "reservations.json");
+    console.log("Reservations file path:", reservationsPath);
+    
+    if (!fs.existsSync(reservationsPath)) {
+        console.log("Reservations file does not exist");
         return res.json([]);
     }
-    const reservations = JSON.parse(fs.readFileSync("reservations.json", "utf8"));
-    res.json(reservations);
+    
+    try {
+        const fileContent = fs.readFileSync(reservationsPath, "utf-8");
+        console.log("Raw file content:", fileContent);
+        const reservations = JSON.parse(fileContent);
+        console.log("Loaded", reservations.length, "reservations for admin panel");
+        res.json(reservations);
+    } catch (error) {
+        console.error("Error reading reservations file:", error);
+        return res.status(500).json({ 
+            message: "Error loading reservations", 
+            error: error.message 
+        });
+    }
 });
 
 // **User Authentication**
@@ -247,7 +302,18 @@ app.post("/login", async (req, res) => {
     if (identifier === "admin" && password === "users") {
         req.session.user = { idNumber: "admin", role: "admin" };
         console.log("🔒 Admin logged in:", req.session.user);
-        return res.json({ userId: "admin", redirect: "/admin.html" });
+        
+        // Save the session explicitly
+        req.session.save(err => {
+            if (err) {
+                console.error("Error saving admin session:", err);
+                return res.status(500).json({ message: "Failed to save session" });
+            }
+            
+            console.log("Admin session saved successfully, session id:", req.session.id);
+            return res.json({ userId: "admin", redirect: "/admin.html" });
+        });
+        return; // Don't continue execution
     }
 
     // ✅ Student Login
@@ -824,5 +890,221 @@ router.delete("/delete-announcement/:id", (req, res) => {
     }
 });
 
+// Function to read session reset logs
+function readResetLogs() {
+  if (!fs.existsSync("reset-logs.json")) {
+    return [];
+  }
+  const data = fs.readFileSync("reset-logs.json");
+  return JSON.parse(data);
+}
+
+// Function to save session reset logs
+function saveResetLogs(logs) {
+  fs.writeFileSync("reset-logs.json", JSON.stringify(logs, null, 2));
+}
+
+// Function to log a session reset operation
+function logSessionReset(adminId, resetType, details) {
+  try {
+    const logs = readResetLogs();
+    const logEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      adminId: adminId,
+      resetType: resetType, // 'user' or 'semester'
+      details: details,
+    };
+    
+    logs.unshift(logEntry); // Add to beginning of array (newest first)
+    
+    // Keep only the last 100 logs to avoid the file growing too large
+    const trimmedLogs = logs.slice(0, 100);
+    saveResetLogs(trimmedLogs);
+    
+    return logEntry;
+  } catch (error) {
+    console.error('Error logging session reset:', error);
+    return null;
+  }
+}
+
+// Function to reset sessions (either by semester or by individual user)
+function resetSessions(idNumber = null, semester = null, adminId = 'admin') {
+  try {
+    // Read current sit-ins and reservations
+    const sitIns = readSitIns();
+    const reservations = readReservations();
+    
+    let updatedSitIns = [...sitIns];
+    let updatedReservations = [...reservations];
+    let resetDetails = {};
+    
+    // If semester is provided, reset all sessions for that semester
+    if (semester) {
+      // For a semester reset, we would typically clear all reservations
+      // and completed sit-ins, assuming semesters align with dates
+      
+      // Define semester date ranges based on the semester value
+      // This is an example - adjust according to your academic calendar
+      const semesterDateRanges = {
+        'First Semester': { start: '2024-08-01', end: '2024-12-31' },
+        'Second Semester': { start: '2025-01-01', end: '2025-05-31' },
+        'Summer': { start: '2025-06-01', end: '2025-07-31' },
+      };
+      
+      const semesterRange = semesterDateRanges[semester];
+      
+      if (!semesterRange) {
+        throw new Error('Invalid semester specified');
+      }
+      
+      // Filter out reservations and sit-ins from the specified semester
+      const filteredReservations = reservations.filter(res => {
+        const resDate = new Date(res.date);
+        const startDate = new Date(semesterRange.start);
+        const endDate = new Date(semesterRange.end);
+        
+        return !(resDate >= startDate && resDate <= endDate);
+      });
+      
+      const filteredSitIns = sitIns.filter(sitIn => {
+        const sitInDate = new Date(sitIn.date);
+        const startDate = new Date(semesterRange.start);
+        const endDate = new Date(semesterRange.end);
+        
+        return !(sitInDate >= startDate && sitInDate <= endDate);
+      });
+      
+      resetDetails = {
+        semester: semester,
+        dateRange: semesterRange,
+        reservationsRemoved: reservations.length - filteredReservations.length,
+        sitInsRemoved: sitIns.length - filteredSitIns.length
+      };
+      
+      updatedReservations = filteredReservations;
+      updatedSitIns = filteredSitIns;
+      
+    } 
+    // If idNumber is provided, reset sessions for that specific user
+    else if (idNumber) {
+      // Remove all reservations and sit-ins for the specified user
+      const filteredReservations = reservations.filter(res => res.idNumber !== idNumber);
+      const filteredSitIns = sitIns.filter(sitIn => sitIn.idNumber !== idNumber);
+      
+      resetDetails = {
+        userId: idNumber,
+        reservationsRemoved: reservations.length - filteredReservations.length,
+        sitInsRemoved: sitIns.length - filteredSitIns.length
+      };
+      
+      updatedReservations = filteredReservations;
+      updatedSitIns = filteredSitIns;
+      
+    } else {
+      throw new Error('Either idNumber or semester must be provided');
+    }
+    
+    // Save the updated data
+    saveReservations(updatedReservations);
+    saveSitIns(updatedSitIns);
+    
+    // Log the reset operation
+    const resetType = idNumber ? 'user' : 'semester';
+    const logEntry = logSessionReset(adminId, resetType, resetDetails);
+    
+    return {
+      success: true,
+      message: idNumber 
+        ? `Sessions reset successfully for user ${idNumber}` 
+        : `Sessions reset successfully for ${semester}`,
+      details: resetDetails,
+      logId: logEntry ? logEntry.id : null
+    };
+  } catch (error) {
+    console.error('Error resetting sessions:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to reset sessions'
+    };
+  }
+}
+
+// Route to reset sessions
+app.post("/reset-sessions", (req, res) => {
+  const { idNumber, semester } = req.body;
+  
+  console.log("Reset Sessions Request:", { idNumber, semester });
+  console.log("Session:", req.session);
+  
+  // Check if user is authenticated and is an admin
+  if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+    console.log("Authorization failed:", {
+      hasSession: !!req.session,
+      hasUser: req.session && !!req.session.user,
+      role: req.session && req.session.user ? req.session.user.role : 'none'
+    });
+    
+    return res.status(403).json({ 
+      success: false, 
+      message: "Unauthorized. Only administrators can reset sessions." 
+    });
+  }
+  
+  // Ensure at least one parameter is provided
+  if (!idNumber && !semester) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Either idNumber or semester must be provided" 
+    });
+  }
+  
+  // Call the reset function with admin ID
+  const adminId = req.session.user.idNumber;
+  const result = resetSessions(idNumber, semester, adminId);
+  
+  if (result.success) {
+    return res.status(200).json(result);
+  } else {
+    return res.status(500).json(result);
+  }
+});
+
+// Route to get session reset logs
+app.get("/reset-logs", (req, res) => {
+  // Check if user is authenticated and is an admin
+  if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+    return res.status(403).json({ 
+      success: false, 
+      message: "Unauthorized. Only administrators can view reset logs." 
+    });
+  }
+  
+  try {
+    const logs = readResetLogs();
+    return res.status(200).json({ success: true, logs });
+  } catch (error) {
+    console.error("Error fetching reset logs:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch reset logs" 
+    });
+  }
+});
+
+// Route to check if the current user is an admin
+app.get("/check-admin", (req, res) => {
+  console.log("Check Admin Request - Session:", req.session);
+  
+  if (req.session && req.session.user && req.session.user.role === "admin") {
+    return res.json({ isAdmin: true });
+  } else {
+    return res.json({ isAdmin: false });
+  }
+});
+
 // **Start the server**
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
