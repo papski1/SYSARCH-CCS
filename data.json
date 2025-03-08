@@ -21,14 +21,14 @@
   },
   {
     "idNumber": "12345",
-    "firstName": "Ralphness",
-    "middleName": "Ng",
-    "lastName": "Munggoness",
-    "email": "ralphravina21@gmail.com",
-    "year": "2nd Year",
-    "course": "BS Information Technology",
-    "password": "$2b$10$kMrQmRdYm18zm9BG9p4J6u1i0hjoUCVDOJnIu8KYeBYZqlPqBT0Ny",
-    "profileImage": "/uploads/1741455615984-22.jpg"
+    "firstName": "Paps",
+    "middleName": "Lakai",
+    "lastName": "Leroi",
+    "email": "papsleroy16@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Software Engineering",
+    "password": "$2b$10$vAsIriFA7LaVLZlES/tJHuxyxVlIZO6GFsYW5oEf4rj/NtA3MJmIe",
+    "profileImage": "/uploads/1741464057034-22.jpg"
   },
   {
     "idNumber": "0992",
@@ -39,5 +39,15 @@
     "year": "1st Year",
     "course": "BS Business Administration",
     "password": "$2b$10$sGswpvfxygi/cJFM8dAoduneofLhnKChAbiFHmrpVDxeY9Wjw8nF."
+  },
+  {
+    "idNumber": "54321",
+    "firstName": "Ralphness",
+    "middleName": "Ng",
+    "lastName": "Munggoness",
+    "email": "ralphness@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Civil Engineering",
+    "password": "$2b$10$qxohz7JpOX9hyrbIr/lVA.iyDAuGibUnN7QlFMTR3HqQ9lDJMbOla"
   }
 ]

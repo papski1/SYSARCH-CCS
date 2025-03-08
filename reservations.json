@@ -1,17 +1,5 @@
 [
   {
-    "id": 1741451038138,
-    "idNumber": "12345",
-    "name": "Rey Lakai Leroi",
-    "email": "papskikoy616@gmaill.com",
-    "course": "BS Information Technology",
-    "year": "2nd Year",
-    "purpose": "research",
-    "date": "2025-03-10",
-    "time": "12:24",
-    "status": "approved"
-  },
-  {
     "id": 1741455434599,
     "idNumber": "12345",
     "name": "Ralphness Munggoness",
@@ -21,6 +9,18 @@
     "purpose": "capstone study",
     "date": "2025-03-09",
     "time": "13:38",
+    "status": "pending"
+  },
+  {
+    "id": 1741458088571,
+    "idNumber": "12345",
+    "name": "Ralphness Munggoness",
+    "email": "ralphravina21@gmail.com",
+    "course": "BS Information Technology",
+    "year": "2nd Year",
+    "purpose": "lakai research",
+    "date": "2025-03-10",
+    "time": "14:22",
     "status": "pending"
   }
 ]

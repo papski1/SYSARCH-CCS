@@ -9,7 +9,20 @@
     "purpose": "research",
     "date": "2025-03-10",
     "timeIn": "12:24",
-    "status": "active",
-    "timeOut": null
+    "status": "completed",
+    "timeOut": "2025-03-08T19:59:25.616Z"
+  },
+  {
+    "id": 1741463922896,
+    "reservationId": 1741463894761,
+    "idNumber": "12345",
+    "name": "Ralphness Munggoness",
+    "course": "BS Information Technology",
+    "year": "2nd Year",
+    "purpose": "skwiz skwiz",
+    "date": "2025-03-09",
+    "timeIn": "15:59",
+    "status": "completed",
+    "timeOut": "2025-03-08T19:59:23.906Z"
   }
 ]

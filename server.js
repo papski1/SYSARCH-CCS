@@ -402,6 +402,38 @@ app.post("/reset-password", async (req, res) => {
     res.status(200).json({ message: "Password reset successful!" });
 });
 
+app.post("/validate-password", (req, res) => {
+    const { idNumber, currentPassword } = req.body;
+
+    if (!idNumber || !currentPassword) {
+        return res.status(400).json({ valid: false });
+    }
+
+    // Read user data
+    fs.readFile("data.json", "utf8", (err, data) => {
+        if (err) {
+            console.error("Error reading data.json:", err);
+            return res.status(500).json({ valid: false });
+        }
+
+        try {
+            let users = JSON.parse(data);
+            let user = users.find(u => u.idNumber === idNumber);
+
+            if (!user) {
+                return res.status(404).json({ valid: false });
+            }
+
+            // Compare hashed password
+            const isMatch = bcrypt.compareSync(currentPassword, user.password);
+            res.json({ valid: isMatch });
+        } catch (error) {
+            console.error("Error validating password:", error);
+            res.status(500).json({ valid: false });
+        }
+    });
+});
+
 app.post("/change-password", (req, res) => {
     const { idNumber, currentPassword, newPassword } = req.body;
 
