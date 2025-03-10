@@ -1,34 +1,111 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Login - UC Laboratory Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#1f2937',
+                            card: '#374151',
+                            text: '#f3f4f6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-4xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+        <!-- Left Side - Login Form -->
+        <div class="w-full md:w-1/2 p-8">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-800">Welcome Back!</h2>
+                <p class="text-gray-600 mt-2">Please login to your account</p>
+            </div>
 
-    <div class="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 class="text-2xl font-bold text-center mb-4">Login</h2>
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ID Number or Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="identifier" class="pl-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                    </div>
+                </div>
 
-        <form id="loginForm">
-            <label class="block mb-2 text-sm font-medium">ID Number or Username</label>
-            <input type="text" id="identifier" class="w-full p-2 border rounded mb-4" required>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <input type="password" id="password" class="pl-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                    </div>
+                </div>
 
-            <label class="block mb-2 text-sm font-medium">Password</label>
-            <input type="password" id="password" class="w-full p-2 border rounded mb-4" required>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                    </div>
+                    <a href="/forgot-password" class="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200">Forgot Password?</a>
+                </div>
 
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Login
-            </button>
-        </form>
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02]">
+                    Login
+                </button>
 
-        <p class="text-sm text-center mt-4">
-            <a href="/register" class="text-blue-600 hover:underline">Register</a> | 
-            <a href="/forgot-password" class="text-blue-600 hover:underline">Forgot Password?</a>
-        </p>
+                <div class="text-center">
+                    <span class="text-gray-600">Don't have an account?</span>
+                    <a href="/register" class="text-blue-600 hover:text-blue-800 hover:underline ml-1 transition-colors duration-200">Register now</a>
+                </div>
+            </form>
 
-        <p id="error-message" class="text-red-500 text-sm text-center mt-2"></p>
+            <p id="error-message" class="mt-4 text-red-500 text-sm text-center hidden"></p>
+        </div>
+
+        <!-- Right Side - Information -->
+        <div class="hidden md:block w-1/2 bg-gradient-to-br from-blue-600 to-purple-700 p-12 text-white">
+            <div class="h-full flex flex-col justify-center">
+                <img src="dist/src/image.png" alt="UC Logo" class="w-32 h-32 mx-auto mb-8 object-contain bg-transparent rounded-full border-2 border-white/20 p-2">
+                <h2 class="text-3xl font-bold mb-6">CCS Sit-In Monitoring System</h2>
+                <p class="text-lg mb-8">Access the computer laboratory resources and manage your sessions efficiently.</p>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Easy session booking</span>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Track your lab hours</span>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span>Get instant notifications</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -37,26 +114,76 @@
 
         const identifier = document.getElementById("identifier").value.trim();
         const password = document.getElementById("password").value.trim();
+        const errorMessage = document.getElementById("error-message");
         
-        const response = await fetch("/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier, password })
-        });
+        try {
+            const response = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ identifier, password })
+            });
 
-        const result = await response.json();
+            const result = await response.json();
 
-        if (response.ok) {
-            // ✅ Store userId in sessionStorage
-            sessionStorage.setItem("loggedInUserId", result.userId);
+            if (response.ok) {
+                // Store userId in sessionStorage
+                sessionStorage.setItem("loggedInUserId", result.userId);
 
-            // ✅ Redirect based on user role
-            window.location.href = result.redirect;
-        } else {
-            document.getElementById("error-message").textContent = result.message;
+                // Save to localStorage if remember me is checked
+                if (document.getElementById("remember").checked) {
+                    localStorage.setItem("rememberedUser", identifier);
+                } else {
+                    localStorage.removeItem("rememberedUser");
+                }
+
+                // Show success message before redirect
+                errorMessage.textContent = "Login successful! Redirecting...";
+                errorMessage.classList.remove("hidden", "text-red-500");
+                errorMessage.classList.add("text-green-500");
+
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = result.redirect;
+                }, 1000);
+            } else {
+                errorMessage.textContent = result.message;
+                errorMessage.classList.remove("hidden");
+                errorMessage.classList.add("text-red-500");
+                
+                // Shake animation for error
+                const form = document.getElementById("loginForm");
+                form.classList.add("animate-shake");
+                setTimeout(() => form.classList.remove("animate-shake"), 500);
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+            errorMessage.textContent = "An error occurred. Please try again.";
+            errorMessage.classList.remove("hidden");
         }
     });
-    </script>
 
+    // Check for remembered user
+    window.addEventListener("load", () => {
+        const rememberedUser = localStorage.getItem("rememberedUser");
+        if (rememberedUser) {
+            document.getElementById("identifier").value = rememberedUser;
+            document.getElementById("remember").checked = true;
+        }
+    });
+
+    // Add keyframe animation for shake effect
+    const style = document.createElement("style");
+    style.textContent = `
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+            animation: shake 0.2s ease-in-out 0s 2;
+        }
+    `;
+    document.head.appendChild(style);
+    </script>
 </body>
 </html>

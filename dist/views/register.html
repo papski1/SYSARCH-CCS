@@ -1,76 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Register - UC Laboratory Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#1f2937',
+                            card: '#374151',
+                            text: '#f3f4f6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-6xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+        <!-- Left Side - Information -->
+        <div class="hidden md:block w-1/3 bg-gradient-to-br from-blue-600 to-purple-700 p-12 text-white">
+            <div class="h-full flex flex-col justify-center">
+                <img src="dist/src/image.png" alt="UC Logo" class="w-32 h-32 mx-auto mb-8 object-contain bg-transparent rounded-full border-2 border-white/20 p-2">
+                <h2 class="text-3xl font-bold mb-6">Join CCS Sit-In Monitoring System</h2>
+                <p class="text-lg mb-8">Create your account to access computer laboratory resources and manage your sessions efficiently.</p>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Easy session booking</span>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Track your lab hours</span>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-6 w-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span>Get instant notifications</span>
+                    </div>
+                </div>
 
-    <div class="bg-white p-8 rounded-lg shadow-lg w-1/2 max-w-lg">
-        <h2 class="text-2xl font-bold text-center mb-6">Register</h2>
+                <div class="mt-12 text-center">
+                    <p class="text-white/80">Already have an account?</p>
+                    <a href="../login.html" class="inline-block mt-2 px-6 py-2 border-2 border-white text-white rounded-lg hover:bg-white hover:text-blue-600 transition-all duration-200">
+                        Login here
+                    </a>
+                </div>
+            </div>
+        </div>
 
-        <form id="registerForm">
-            <label class="block mb-2 text-sm font-medium">ID Number</label>
-            <input type="text" id="idNumber" class="w-full p-2 border rounded mb-4" required>
+        <!-- Right Side - Registration Form -->
+        <div class="w-full md:w-2/3 p-8">
+            <div class="text-center mb-8 md:hidden">
+                <img src="dist/src/image.png" alt="UC Logo" class="w-24 h-24 mx-auto mb-4 object-contain bg-transparent rounded-full border-2 border-white/20 p-2">
+                <h2 class="text-2xl font-bold text-gray-800">Create Account</h2>
+                <p class="text-gray-600 mt-2">Fill in your information to register</p>
+            </div>
 
-            <label class="block mb-2 text-sm font-medium">First Name</label>
-            <input type="text" id="firstName" class="w-full p-2 border rounded mb-4" required>
+            <form id="registerForm" class="space-y-6">
+                <!-- Personal Information Section -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+                            <input type="text" id="idNumber" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                        </div>
+                    </div>
+                </div>
 
-            <label class="block mb-2 text-sm font-medium">Middle Name</label>
-            <input type="text" id="middleName" class="w-full p-2 border rounded mb-4">
+                <!-- Name Details Section -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Name Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <input type="text" id="firstName" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                            <input type="text" id="middleName" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <input type="text" id="lastName" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                        </div>
+                    </div>
+                </div>
 
-            <label class="block mb-2 text-sm font-medium">Last Name</label>
-            <input type="text" id="lastName" class="w-full p-2 border rounded mb-4" required>
+                <!-- Academic Information Section -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Academic Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Year Level</label>
+                            <select id="year" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                                <option value="">Select Year Level</option>
+                                <option value="1st Year">1st Year</option>
+                                <option value="2nd Year">2nd Year</option>
+                                <option value="3rd Year">3rd Year</option>
+                                <option value="4th Year">4th Year</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                            <select id="course" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                                <option value="">Select Course</option>
+                                <option value="BS Computer Science">BS Computer Science</option>
+                                <option value="BS Information Technology">BS Information Technology</option>
+                                <option value="BS Information Systems">BS Information Systems</option>
+                                <option value="BS Software Engineering">BS Software Engineering</option>
+                                <option value="BS Computer Engineering">BS Computer Engineering</option>
+                                <option value="BS Electronics Engineering">BS Electronics Engineering</option>
+                                <option value="BS Electrical Engineering">BS Electrical Engineering</option>
+                                <option value="BS Mechanical Engineering">BS Mechanical Engineering</option>
+                                <option value="BS Civil Engineering">BS Civil Engineering</option>
+                                <option value="BS Business Administration">BS Business Administration</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-            <label class="block mb-2 text-sm font-medium">Email</label>
-            <input type="email" id="email" class="w-full p-2 border rounded mb-4" required>
+                <!-- Password Section -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Security</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <div class="relative">
+                                <input type="password" id="password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                            <div class="relative">
+                                <input type="password" id="confirmPassword" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <label class="block mb-2 text-sm font-medium">Year Level</label>
-            <select id="year" class="w-full p-2 border rounded mb-4" required>
-                <option value="">Select Year Level</option>
-                <option value="1st Year">1st Year</option>
-                <option value="2nd Year">2nd Year</option>
-                <option value="3rd Year">3rd Year</option>
-                <option value="4th Year">4th Year</option>
-            </select>
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02]">
+                    Create Account
+                </button>
 
-            <label class="block mb-2 text-sm font-medium">Course</label>
-            <select id="course" class="w-full p-2 border rounded mb-4" required>
-                <option value="">Select Course</option>
-                <option value="BS Computer Science">BS Computer Science</option>
-                <option value="BS Information Technology">BS Information Technology</option>
-                <option value="BS Information Systems">BS Information Systems</option>
-                <option value="BS Software Engineering">BS Software Engineering</option>
-                <option value="BS Computer Engineering">BS Computer Engineering</option>
-                <option value="BS Electronics Engineering">BS Electronics Engineering</option>
-                <option value="BS Electrical Engineering">BS Electrical Engineering</option>
-                <option value="BS Mechanical Engineering">BS Mechanical Engineering</option>
-                <option value="BS Civil Engineering">BS Civil Engineering</option>
-                <option value="BS Business Administration">BS Business Administration</option>
-            </select>
+                <div class="text-center md:hidden">
+                    <span class="text-gray-600">Already have an account?</span>
+                    <a href="../login.html" class="text-blue-600 hover:text-blue-800 hover:underline ml-1 transition-colors duration-200">Login here</a>
+                </div>
+            </form>
 
-            <label class="block mb-2 text-sm font-medium">Password</label>
-            <input type="password" id="password" class="w-full p-2 border rounded mb-4" required>
-
-            <label class="block mb-2 text-sm font-medium">Confirm Password</label>
-            <input type="password" id="confirmPassword" class="w-full p-2 border rounded mb-4" required>
-
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                Register
-            </button>
-        </form>
-
-        <p class="text-sm text-center mt-4">
-            Already have an account? <a href="../login.html" class="text-blue-600 hover:underline">Login</a>
-        </p>
-
-        <!-- Success message (Initially Hidden) -->
-        <p id="success-message" class="text-green-500 text-sm text-center mt-2 hidden"></p>
-
-        <!-- Error message (Initially Hidden) -->
-        <p id="error-message" class="text-red-500 text-sm text-center mt-2 hidden"></p>
+            <div id="success-message" class="mt-4 text-green-500 text-sm text-center hidden"></div>
+            <div id="error-message" class="mt-4 text-red-500 text-sm text-center hidden"></div>
+        </div>
     </div>
 
     <script>
@@ -97,30 +195,60 @@
             if (password !== confirmPassword) {
                 errorMessage.textContent = "Passwords do not match!";
                 errorMessage.classList.remove("hidden");
+                
+                // Shake animation for error
+                const form = document.getElementById("registerForm");
+                form.classList.add("animate-shake");
+                setTimeout(() => form.classList.remove("animate-shake"), 500);
                 return;
             }
 
-            const response = await fetch("/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ idNumber, firstName, middleName, lastName, email, year, course, password })
-            });
+            try {
+                const response = await fetch("/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ idNumber, firstName, middleName, lastName, email, year, course, password })
+                });
 
-            const result = await response.json();
+                const result = await response.json();
 
-            if (response.ok) {
-                successMessage.textContent = "Registration successful! Redirecting to login...";
-                successMessage.classList.remove("hidden");
+                if (response.ok) {
+                    successMessage.textContent = "Registration successful! Redirecting to login...";
+                    successMessage.classList.remove("hidden");
 
-                // Redirect to login page after 3 seconds
-                setTimeout(() => {
-                    window.location.href = result.redirect;
-                }, 3000);
-            } else {
-                errorMessage.textContent = result.message;
+                    // Redirect to login page after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = result.redirect;
+                    }, 3000);
+                } else {
+                    errorMessage.textContent = result.message;
+                    errorMessage.classList.remove("hidden");
+                    
+                    // Shake animation for error
+                    const form = document.getElementById("registerForm");
+                    form.classList.add("animate-shake");
+                    setTimeout(() => form.classList.remove("animate-shake"), 500);
+                }
+            } catch (error) {
+                console.error("Registration error:", error);
+                errorMessage.textContent = "An error occurred. Please try again.";
                 errorMessage.classList.remove("hidden");
             }
         });
+
+        // Add keyframe animation for shake effect
+        const style = document.createElement("style");
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+            .animate-shake {
+                animation: shake 0.2s ease-in-out 0s 2;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

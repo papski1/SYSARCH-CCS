@@ -321,6 +321,44 @@ async function loadDashboardData() {
         // Update statistics
         await updateDashboardStats(localStorage.getItem("currentUserId"));
         
+        // Load last session data
+        const sitInResponse = await fetch(`http://localhost:3000/sit-ins?userId=${localStorage.getItem("currentUserId")}`);
+        const sitIns = await sitInResponse.json();
+        
+        // Update last session
+        if (sitIns && sitIns.length > 0) {
+            const lastSitIn = sitIns[sitIns.length - 1];
+            const lastSessionDate = new Date(lastSitIn.date).toLocaleDateString();
+            document.getElementById('lastSession').textContent = lastSessionDate;
+        }
+
+        // Load recent activity
+        const recentActivityContainer = document.getElementById('recentActivity');
+        recentActivityContainer.innerHTML = ''; // Clear loading animation
+
+        if (sitIns && sitIns.length > 0) {
+            const recentSitIns = sitIns.slice(-3).reverse(); // Get last 3 sessions
+            recentSitIns.forEach(sitIn => {
+                const activityDate = new Date(sitIn.date).toLocaleDateString();
+                const activityTime = new Date(sitIn.date).toLocaleTimeString();
+                const status = sitIn.status.charAt(0).toUpperCase() + sitIn.status.slice(1);
+                
+                const activityElement = document.createElement('div');
+                activityElement.className = 'border-l-4 border-blue-500 pl-4 py-2';
+                activityElement.innerHTML = `
+                    <p class="font-medium dark:text-gray-100">${status} Session</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${activityDate} at ${activityTime}</p>
+                `;
+                recentActivityContainer.appendChild(activityElement);
+            });
+        } else {
+            recentActivityContainer.innerHTML = `
+                <div class="text-center text-gray-500 dark:text-gray-400 py-4">
+                    <p>No recent activity</p>
+                </div>
+            `;
+        }
+        
     } catch (error) {
         console.error("Error loading dashboard data:", error);
     }

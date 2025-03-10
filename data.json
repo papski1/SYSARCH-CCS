@@ -25,6 +25,21 @@
     "totalSessions": 15,
     "completedSessions": 0,
     "pendingReservations": 0,
-    "remainingSessions": 10
+    "remainingSessions": 9,
+    "profileImage": "/uploads/1741580060559-download.jpg"
+  },
+  {
+    "idNumber": "242424",
+    "firstName": "Ken",
+    "middleName": "Harvey",
+    "lastName": "Doblas",
+    "email": "doblas@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Information Technology",
+    "password": "$2b$10$aX7jv/U2P4YbIvpG03sSp.VBY5lOxuIX0uEg4/80RQWfh9EAXdQiO",
+    "completedSessions": 0,
+    "pendingReservations": 0,
+    "remainingSessions": 15,
+    "profileImage": "/uploads/1741581696160-doblas.jpg"
   }
 ]
