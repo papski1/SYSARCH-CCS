@@ -64,5 +64,19 @@
     "labRoom": "530",
     "programmingLanguage": "JavaScript",
     "status": "approved"
+  },
+  {
+    "id": 1741572233981,
+    "idNumber": "22635452",
+    "name": "Rey Mark Rivas",
+    "email": "reymarkrivas61@gmail.com",
+    "course": "BS Information Technology",
+    "year": "3rd Year",
+    "purpose": "research",
+    "date": "2025-03-11",
+    "time": "10:03",
+    "labRoom": "524",
+    "programmingLanguage": "JavaScript",
+    "status": "approved"
   }
 ]

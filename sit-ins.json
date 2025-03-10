@@ -35,8 +35,8 @@
     "purpose": "capstone project",
     "date": "2025-03-10",
     "timeIn": "07:05",
-    "status": "active",
-    "timeOut": null
+    "status": "completed",
+    "timeOut": "2025-03-10T02:04:39.290Z"
   },
   {
     "id": 1741565146365,
@@ -48,8 +48,8 @@
     "purpose": "capstone study",
     "date": "2025-03-10",
     "timeIn": "08:05",
-    "status": "active",
-    "timeOut": null
+    "status": "completed",
+    "timeOut": "2025-03-10T02:04:35.842Z"
   },
   {
     "id": 1741565445063,
@@ -61,8 +61,8 @@
     "purpose": "capstone study",
     "date": "2025-03-10",
     "timeIn": "08:10",
-    "status": "active",
-    "timeOut": null
+    "status": "completed",
+    "timeOut": "2025-03-10T02:04:32.921Z"
   },
   {
     "id": 1741565777428,
@@ -77,6 +77,21 @@
     "status": "completed",
     "timeOut": "2025-03-10T00:22:21.656Z",
     "labRoom": "530",
+    "programmingLanguage": "JavaScript"
+  },
+  {
+    "id": 1741572255384,
+    "reservationId": 1741572233981,
+    "idNumber": "22635452",
+    "name": "Rey Mark Rivas",
+    "course": "BS Information Technology",
+    "year": "3rd Year",
+    "purpose": "research",
+    "date": "2025-03-11",
+    "timeIn": "10:03",
+    "status": "completed",
+    "timeOut": "2025-03-10T02:04:28.785Z",
+    "labRoom": "524",
     "programmingLanguage": "JavaScript"
   }
 ]
