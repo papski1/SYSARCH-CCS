@@ -448,26 +448,42 @@ async function updateReservationStatus(reservationId, status) {
             body: JSON.stringify({ reservationId, status })
         });
 
-        if (response.ok) {
-            // Remove the reservation from the UI if it's rejected
-            if (status === 'rejected') {
-                const row = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
-                if (row) {
-                    row.remove();
-                }
-            }
-            
-            // Refresh the reservations list
-            fetchReservations();
-            
-            // Show success message
-            alert("Reservation status updated successfully!");
-        } else {
-            alert("Failed to update reservation status");
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update reservation status');
         }
+
+        const data = await response.json();
+        
+        // Show appropriate message based on status
+        let message = data.message;
+        if (status === 'approved') {
+            message = "Reservation approved and sit-in session created successfully.";
+            
+            // Refresh both reservations and sit-ins tables
+            await Promise.all([
+                fetchReservations(),
+                fetchSitIns()
+            ]);
+            
+            // Update dashboard counts
+            const dashboardSitInCount = document.getElementById('current-sit-in');
+            if (dashboardSitInCount) {
+                const currentCount = parseInt(dashboardSitInCount.textContent || '0');
+                dashboardSitInCount.textContent = currentCount + 1;
+            }
+        } else if (status === 'rejected') {
+            message = "Reservation rejected successfully.";
+            // Only refresh reservations for rejected status
+            await fetchReservations();
+        }
+        
+        // Show success message
+        alert(message);
+        
     } catch (error) {
         console.error("Error updating reservation status:", error);
-        alert("Error updating reservation status");
+        alert("Error: " + (error.message || "Failed to update reservation status"));
     }
 }
 
@@ -491,102 +507,152 @@ function logout() {
 // Add this to your existing JavaScript section
 async function fetchSitIns() {
     try {
+        console.log("Fetching sit-ins...");
         const response = await fetch("http://localhost:3000/sit-ins");
-        const sitIns = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const responseText = await response.text();
+        console.log("Raw sit-ins response:", responseText);
+        
+        const sitIns = JSON.parse(responseText);
+        console.log("Parsed sit-ins:", sitIns);
 
         // Separate active and completed sit-ins
         const activeSitIns = sitIns.filter(sitIn => sitIn.status === 'active');
         const completedSitIns = sitIns.filter(sitIn => sitIn.status === 'completed');
 
+        console.log("Active sit-ins:", activeSitIns);
+        console.log("Completed sit-ins:", completedSitIns);
+
         // Update active sit-ins table
         const activeTableBody = document.getElementById("active-sit-ins-table");
+        if (!activeTableBody) {
+            console.error("Active sit-ins table body not found!");
+            return;
+        }
+        
         activeTableBody.innerHTML = "";
-        activeSitIns.forEach(sitIn => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td class="border px-4 py-2">${sitIn.idNumber}</td>
-                <td class="border px-4 py-2">${sitIn.name}</td>
-                <td class="border px-4 py-2">${sitIn.course}</td>
-                <td class="border px-4 py-2">${sitIn.year}</td>
-                <td class="border px-4 py-2">${sitIn.purpose}</td>
-                <td class="border px-4 py-2">${sitIn.date}</td>
-                <td class="border px-4 py-2">${sitIn.timeIn}</td>
-                <td class="border px-4 py-2">
-                    <span class="px-2 py-1 rounded text-sm bg-green-100 text-green-800">
-                        ${sitIn.status}
-                    </span>
-                </td>
-                <td class="border px-4 py-2">
-                    <button onclick="completeSitIn(${sitIn.id})" 
-                        class="bg-blue-500 text-white px-2 py-1 rounded text-sm">
-                        Mark as Completed
-                    </button>
-                </td>
-            `;
-            activeTableBody.appendChild(row);
-        });
+
+        if (activeSitIns.length === 0) {
+            activeTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-gray-500">No active sit-ins</td></tr>';
+        } else {
+            activeSitIns.forEach(sitIn => {
+                const row = document.createElement("tr");
+                row.dataset.sitInId = sitIn.id;
+                row.innerHTML = `
+                    <td class="border px-4 py-2">${sitIn.idNumber || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.name || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.course || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.year || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.purpose || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.date || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.timeIn || 'N/A'}</td>
+                    <td class="border px-4 py-2">
+                        <span class="px-2 py-1 rounded text-sm bg-green-100 text-green-800">
+                            ${sitIn.status || 'N/A'}
+                        </span>
+                    </td>
+                    <td class="border px-4 py-2">
+                        <button onclick="completeSitIn('${sitIn.id}')" 
+                            class="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Mark as Completed
+                        </button>
+                    </td>
+                `;
+                activeTableBody.appendChild(row);
+            });
+        }
 
         // Update completed sit-ins table
         const completedTableBody = document.getElementById("completed-sit-ins-table");
+        if (!completedTableBody) {
+            console.error("Completed sit-ins table body not found!");
+            return;
+        }
+        
         completedTableBody.innerHTML = "";
-        completedSitIns.forEach(sitIn => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td class="border px-4 py-2">${sitIn.idNumber}</td>
-                <td class="border px-4 py-2">${sitIn.name}</td>
-                <td class="border px-4 py-2">${sitIn.course}</td>
-                <td class="border px-4 py-2">${sitIn.year}</td>
-                <td class="border px-4 py-2">${sitIn.purpose}</td>
-                <td class="border px-4 py-2">${sitIn.date}</td>
-                <td class="border px-4 py-2">${sitIn.timeIn}</td>
-                <td class="border px-4 py-2">${sitIn.timeOut}</td>
-                <td class="border px-4 py-2">
-                    <span class="px-2 py-1 rounded text-sm bg-gray-100 text-gray-800">
-                        ${sitIn.status}
-                    </span>
-                </td>
-            `;
-            completedTableBody.appendChild(row);
-        });
+
+        if (completedSitIns.length === 0) {
+            completedTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-gray-500">No completed sit-ins</td></tr>';
+        } else {
+            completedSitIns.forEach(sitIn => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td class="border px-4 py-2">${sitIn.idNumber || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.name || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.course || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.year || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.purpose || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.date || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.timeIn || 'N/A'}</td>
+                    <td class="border px-4 py-2">${sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A'}</td>
+                    <td class="border px-4 py-2">
+                        <span class="px-2 py-1 rounded text-sm bg-gray-100 text-gray-800">
+                            ${sitIn.status || 'N/A'}
+                        </span>
+                    </td>
+                `;
+                completedTableBody.appendChild(row);
+            });
+        }
 
         // Update current sit-in count in dashboard
-        document.getElementById('current-sit-in').textContent = activeSitIns.length;
+        const currentSitInElement = document.getElementById('current-sit-in');
+        if (currentSitInElement) {
+            currentSitInElement.textContent = activeSitIns.length;
+        }
     } catch (error) {
         console.error("Error fetching sit-ins:", error);
+        const activeTableBody = document.getElementById("active-sit-ins-table");
+        const completedTableBody = document.getElementById("completed-sit-ins-table");
+        
+        if (activeTableBody) {
+            activeTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-red-500">Error loading active sit-ins: ' + error.message + '</td></tr>';
+        }
+        if (completedTableBody) {
+            completedTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-red-500">Error loading completed sit-ins: ' + error.message + '</td></tr>';
+        }
     }
 }
 
 async function completeSitIn(sitInId) {
     try {
+        if (!confirm('Are you sure you want to mark this sit-in as completed?')) {
+            return;
+        }
+
         const response = await fetch("http://localhost:3000/update-sit-in-status", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                sitInId: sitInId,
-                status: 'completed'
+                sitInId: parseInt(sitInId),
+                status: 'completed',
+                timeOut: new Date().toISOString()
             })
         });
 
-        if (response.ok) {
-            // Remove the sit-in from the active table
-            const row = document.querySelector(`tr[data-sit-in-id="${sitInId}"]`);
-            if (row) {
-                row.remove();
-            }
-            
-            // Refresh both tables
-            fetchSitIns();
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to update sit-in status');
+        }
+
+        if (data.success) {
+            // Refresh the sit-ins tables
+            await fetchSitIns();
             
             // Show success message
             alert("Sit-in marked as completed successfully!");
         } else {
-            alert("Failed to update sit-in status");
+            throw new Error(data.message || 'Failed to update sit-in status');
         }
+        
     } catch (error) {
         console.error("Error completing sit-in:", error);
-        alert("Error completing sit-in");
+        alert("Error completing sit-in: " + error.message);
     }
 }
 

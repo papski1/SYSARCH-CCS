@@ -1,3 +1,14 @@
+// Function to check authentication
+function checkAuthentication() {
+    const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+    if (!userId) {
+        console.error("No user ID found!");
+        window.location.href = '/login.html';
+        return false;
+    }
+    return true;
+}
+
 // Function to hide all sections
 function hideAllSections() {
     const sections = document.querySelectorAll(".section");
@@ -243,44 +254,64 @@ async function loadAnnouncements() {
 }
 
 // Function to update dashboard statistics
-async function updateDashboardStats() {
+async function updateDashboardStats(userId) {
     try {
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
-        if (!userId) return;
+        // Fetch user data
+        const response = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch user data');
+        }
+        const userData = await response.json();
         
         // Fetch sit-ins and reservations data to update counts
-        const [sitIns, reservations] = await Promise.all([
-            fetch(`http://localhost:3000/sit-ins?userId=${userId}`).then(res => res.json()),
-            fetch(`http://localhost:3000/reservations?userId=${userId}`).then(res => res.json())
+        const [sitInsResponse, reservationsResponse] = await Promise.all([
+            fetch(`http://localhost:3000/sit-ins`),
+            fetch(`http://localhost:3000/reservations`)
         ]);
-        
-        // Update total sessions count
-        if (document.getElementById('totalSessions')) {
-            const totalCount = (sitIns?.length || 0) + (reservations?.length || 0);
-            document.getElementById('totalSessions').textContent = totalCount;
+
+        if (!sitInsResponse.ok || !reservationsResponse.ok) {
+            throw new Error('Failed to fetch data');
         }
+
+        const sitIns = await sitInsResponse.json();
+        const reservations = await reservationsResponse.json();
+        
+        // Ensure we have arrays to work with
+        const sitInsArray = Array.isArray(sitIns) ? sitIns : [];
+        const reservationsArray = Array.isArray(reservations) ? reservations : [];
+        
+        // Filter sit-ins and reservations for this user
+        const userSitIns = sitInsArray.filter(s => s.idNumber === userId);
+        const userReservations = reservationsArray.filter(r => r.idNumber === userId);
         
         // Update completed sessions count
         if (document.getElementById('completedSessions')) {
-            const completedCount = sitIns?.filter(s => s.status === 'completed')?.length || 0;
+            const completedCount = userSitIns.filter(s => s.status === 'completed').length;
             document.getElementById('completedSessions').textContent = completedCount;
         }
         
         // Update pending sessions count
         if (document.getElementById('pendingSessions')) {
-            const pendingCount = reservations?.filter(r => r.status === 'pending')?.length || 0;
+            const pendingCount = userReservations.filter(r => r.status === 'pending').length;
             document.getElementById('pendingSessions').textContent = pendingCount;
         }
         
-        // Update remaining sessions on dashboard
-        const remainingSessions = document.getElementById('remainingSessions')?.textContent || '0';
-        const dashboardRemainingElement = document.getElementById('dashboardRemainingSessions');
-        if (dashboardRemainingElement) {
-            dashboardRemainingElement.textContent = remainingSessions;
+        // Update remaining sessions
+        if (document.getElementById('remainingSessions')) {
+            document.getElementById('remainingSessions').textContent = userData.remainingSessions || 0;
         }
         
+        // Update remaining sessions in modal if it exists
+        if (document.getElementById('remainingSessionsModal')) {
+            document.getElementById('remainingSessionsModal').textContent = userData.remainingSessions || 0;
+        }
     } catch (error) {
         console.error('Error updating dashboard stats:', error);
+        // Set default values if there's an error
+        if (document.getElementById('completedSessions')) document.getElementById('completedSessions').textContent = '0';
+        if (document.getElementById('pendingSessions')) document.getElementById('pendingSessions').textContent = '0';
+        if (document.getElementById('remainingSessions')) document.getElementById('remainingSessions').textContent = '0';
+        if (document.getElementById('remainingSessionsModal')) document.getElementById('remainingSessionsModal').textContent = '0';
     }
 }
 
@@ -288,7 +319,7 @@ async function updateDashboardStats() {
 async function loadDashboardData() {
     try {
         // Update statistics
-        await updateDashboardStats();
+        await updateDashboardStats(localStorage.getItem("currentUserId"));
         
     } catch (error) {
         console.error("Error loading dashboard data:", error);
@@ -676,7 +707,7 @@ function openChangePasswordModal() {
         // Simple input handler for new password
         newPasswordInput.addEventListener('input', function() {
             // Enable confirm password field when new password has some value
-            if (this.value.length > 0) {
+                if (this.value.length > 0) {
                 confirmNewPasswordInput.disabled = false;
             } else {
                 confirmNewPasswordInput.disabled = true;
@@ -936,116 +967,306 @@ async function loadReservationHistory() {
 }
 
 // Function to submit feedback
-async function submitFeedback() {
+async function submitFeedback(sitInId) {
     try {
-        const feedbackType = document.getElementById("feedbackType").value;
-        const feedbackMessage = document.getElementById("feedbackMessage").value.trim();
+        const feedbackTextarea = document.querySelector(`textarea[data-sit-in-id="${sitInId}"]`);
+        if (!feedbackTextarea) {
+            throw new Error('Feedback textarea not found');
+        }
+
+        const comments = feedbackTextarea.value.trim();
+        if (!comments) {
+            alert('Please enter your feedback comments');
+            return;
+        }
+
         const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
-
-        if (!feedbackMessage) {
-            alert("Please enter a feedback message.");
-            return;
-        }
-
         if (!userId) {
-            alert("User ID not found. Please try logging in again.");
-            return;
+            throw new Error('User ID not found');
         }
 
-        // Disable the button and show loading state
-        const submitButton = document.querySelector('#feedbackForm button');
-        const originalButtonText = submitButton.innerHTML;
-        submitButton.disabled = true;
-        submitButton.innerHTML = 'Submitting...';
-
-        // Get user profile data
-        const userResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
-        if (!userResponse.ok) {
-            throw new Error(`Failed to fetch user data: ${userResponse.status}`);
-        }
-        
-        const userData = await userResponse.json();
-        if (!userData || !userData.email || !userData.idNumber) {
-            throw new Error("Invalid user data received from server");
-        }
-
-        // Submit feedback
-        const response = await fetch("http://localhost:3000/submit-feedback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+        const response = await fetch('http://localhost:3000/submit-feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
-                userId: userId,
-                name: `${userData.firstName} ${userData.lastName}`,
-                email: userData.email,
-                type: feedbackType,
-                message: feedbackMessage,
-                timestamp: new Date().toISOString()
+                userId,
+                sitInId,
+                comments,
+                date: new Date().toISOString()
             })
         });
 
-        const result = await response.json();
-        
-        if (response.ok) {
-            alert("Feedback submitted successfully! Thank you for your input.");
-            document.getElementById("feedbackForm").reset();
+        if (!response.ok) {
+            throw new Error('Failed to submit feedback');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Feedback submitted successfully!');
+            feedbackTextarea.value = '';
         } else {
-            throw new Error(result.message || 'Failed to submit feedback');
+            throw new Error(data.message || 'Failed to submit feedback');
         }
     } catch (error) {
-        console.error("Error submitting feedback:", error);
-        alert(`Failed to submit feedback: ${error.message}`);
-    } finally {
-        // Restore button state
-        const submitButton = document.querySelector('#feedbackForm button');
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.innerHTML = 'Submit Feedback';
+        console.error('Error submitting feedback:', error);
+        alert('Error submitting feedback: ' + error.message);
+    }
+}
+
+// Function to generate star rating HTML
+function generateStarRating(rating) {
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+        stars += `
+            <button class="star ${i <= rating ? 'text-yellow-400' : 'text-gray-300'}" data-rating="${i}">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+            </button>
+        `;
+    }
+    return stars;
+}
+
+// Function to view sit-in details
+async function viewDetails(sitInId) {
+    try {
+        const response = await fetch(`http://localhost:3000/sit-ins/${sitInId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch sit-in details');
         }
+        const sitIn = await response.json();
+
+        // Create and show modal with sit-in details
+        const modalHtml = `
+            <div id="sitInDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <div class="mt-3 text-center">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Sit-in Details</h3>
+                        <div class="mt-2 px-7 py-3">
+                            <div class="text-left space-y-2">
+                                <p><strong>Lab Room:</strong> ${sitIn.labRoom || 'N/A'}</p>
+                                <p><strong>Date:</strong> ${new Date(sitIn.date).toLocaleDateString()}</p>
+                                <p><strong>Time In:</strong> ${sitIn.timeIn || 'N/A'}</p>
+                                <p><strong>Time Out:</strong> ${sitIn.timeOut || 'N/A'}</p>
+                                <p><strong>Purpose:</strong> ${sitIn.purpose || 'N/A'}</p>
+                                <p><strong>Programming Language:</strong> ${sitIn.programmingLanguage || 'N/A'}</p>
+                                <p><strong>Status:</strong> ${sitIn.status || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="items-center px-4 py-3">
+                            <button id="closeSitInDetailsModal" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal to document
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add event listener to close button
+        document.getElementById('closeSitInDetailsModal').addEventListener('click', () => {
+            document.getElementById('sitInDetailsModal').remove();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('sitInDetailsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'sitInDetailsModal') {
+                document.getElementById('sitInDetailsModal').remove();
+            }
+        });
+
+    } catch (error) {
+        console.error('Error viewing details:', error);
+        alert('Failed to load sit-in details. Please try again.');
     }
 }
 
 // Function to load sit-in history
 async function loadSitInHistory() {
     try {
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
-        const response = await fetch("http://localhost:3000/sit-ins");
-        const sitIns = await response.json();
-        
-        const userSitIns = sitIns.filter(sitIn => sitIn.idNumber === userId);
-        const tableBody = document.getElementById("sitInTableBody");
-        
-        if (!tableBody) return;
-        tableBody.innerHTML = '';
+        // Get user data from localStorage
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const userId = localStorage.getItem('currentUserId');
 
-        if (userSitIns.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No sit-in history found</td></tr>';
+        if (!userData && !userId) {
+            console.error('User data not found');
+            window.location.href = '/login.html';
             return;
         }
 
+        const idToUse = userData?.idNumber || userId;
+
+        const response = await fetch('http://localhost:3000/sit-ins');
+        if (!response.ok) {
+            throw new Error('Failed to fetch sit-in history');
+        }
+
+        const sitIns = await response.json();
+        const userSitIns = sitIns.filter(sitIn => sitIn.idNumber === idToUse);
+
+        const tableBody = document.getElementById('sitInTableBody');
+        tableBody.innerHTML = '';
+
+        if (userSitIns.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No sit-in history found</td></tr>';
+            return;
+        }
+
+        // Create main table for sit-in details
         userSitIns.forEach(sitIn => {
-            const row = document.createElement("tr");
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
+            
+            // Format date and time
+            const dateTime = new Date(sitIn.date);
+            const formattedDate = dateTime.toLocaleDateString();
+            const formattedTime = dateTime.toLocaleTimeString();
+
             row.innerHTML = `
-                <td class="border px-4 py-2">${new Date(sitIn.timeIn).toLocaleDateString()}</td>
-                <td class="border px-4 py-2">${new Date(sitIn.timeIn).toLocaleTimeString()}</td>
-                <td class="border px-4 py-2">${sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : '-'}</td>
-                <td class="border px-4 py-2">${sitIn.purpose}</td>
-                <td class="border px-4 py-2">
-                    <span class="px-2 py-1 rounded text-sm ${
-                        sitIn.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
-                        sitIn.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                    }">${sitIn.status}</span>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.labRoom || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${formattedDate} ${formattedTime}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.duration || '1 hour'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.programmingLanguage || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        ${sitIn.status || 'N/A'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <button onclick="viewDetails('${sitIn._id}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                        View Details
+                    </button>
                 </td>
             `;
             tableBody.appendChild(row);
+
+            // Create feedback section for this sit-in
+            const feedbackRow = document.createElement('tr');
+            feedbackRow.className = 'bg-gray-50 dark:bg-gray-800';
+            
+            // Create star rating HTML
+            const starRating = sitIn.rating ? generateStarRating(sitIn.rating) : generateStarRating(0);
+
+            feedbackRow.innerHTML = `
+                <td colspan="6" class="px-6 py-4">
+                    <div class="space-y-4">
+                        <h4 class="font-medium text-gray-900 dark:text-gray-100">Feedback</h4>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Rating:</span>
+                            <div class="flex items-center space-x-1" data-sit-in-id="${sitIn._id}">
+                                ${starRating}
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm text-gray-600 dark:text-gray-400">Comments:</label>
+                            <div class="flex items-center space-x-2">
+                                <textarea 
+                                    class="w-full px-2 py-1 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600" 
+                                    rows="2" 
+                                    placeholder="Add your comments..."
+                                    data-sit-in-id="${sitIn._id}"
+                                >${sitIn.comments || ''}</textarea>
+                                <button 
+                                    onclick="submitFeedback('${sitIn._id}')" 
+                                    class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                >
+                                    Submit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(feedbackRow);
+
+            // Add event listeners for star rating
+            const stars = feedbackRow.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                star.addEventListener('click', () => updateRating(sitIn._id, index + 1));
+            });
         });
     } catch (error) {
-        console.error("Error loading sit-in history:", error);
-        const tableBody = document.getElementById("sitInTableBody");
-        if (tableBody) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-red-500">Error loading sit-in history</td></tr>';
-        }
+        console.error('Error loading sit-in history:', error);
+        const tableBody = document.getElementById('sitInTableBody');
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-600">Error loading sit-in history</td></tr>';
     }
+}
+
+// Function to update rating
+async function updateRating(sitInId, rating) {
+    try {
+        const response = await fetch(`http://localhost:3000/update-sit-in-rating`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sitInId,
+                rating
+            })
+        });
+
+        if (response.status === 404) {
+            throw new Error('Rating update service is currently unavailable');
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update rating');
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to update rating');
+        }
+
+        // Update the star rating display immediately
+        const starsContainer = document.querySelector(`div[data-sit-in-id="${sitInId}"]`);
+        if (starsContainer) {
+            starsContainer.innerHTML = generateStarRating(rating);
+            // Reattach event listeners to stars
+            const stars = starsContainer.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                star.addEventListener('click', () => updateRating(sitInId, index + 1));
+            });
+        }
+
+    } catch (error) {
+        console.error('Error updating rating:', error);
+        alert(error.message);
+    }
+}
+
+// Function to update the setupHistoryTabs function to include authentication check
+function setupHistoryTabs() {
+    if (!checkAuthentication()) return;
+    
+    const sitInHistoryTab = document.getElementById('sitInHistoryTab');
+    const reservationHistoryTab = document.getElementById('reservationHistoryTab');
+    const sitInHistoryContent = document.getElementById('sitInHistoryContent');
+    const reservationHistoryContent = document.getElementById('reservationHistoryContent');
+
+    sitInHistoryTab.addEventListener('click', () => {
+        sitInHistoryTab.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
+        reservationHistoryTab.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600');
+        sitInHistoryContent.classList.remove('hidden');
+        reservationHistoryContent.classList.add('hidden');
+        loadSitInHistory();
+    });
+
+    reservationHistoryTab.addEventListener('click', () => {
+        reservationHistoryTab.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
+        sitInHistoryTab.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600');
+        reservationHistoryContent.classList.remove('hidden');
+        sitInHistoryContent.classList.add('hidden');
+        loadReservationHistory();
+    });
 }
 
 // Function to setup lab rules toggle
@@ -1067,39 +1288,6 @@ function setupLabRulesToggle() {
     }
 }
 
-// Function to setup history tabs
-function setupHistoryTabs() {
-    const sitInHistoryTab = document.getElementById('sitInHistoryTab');
-    const reservationHistoryTab = document.getElementById('reservationHistoryTab');
-    
-    const sitInHistoryContent = document.getElementById('sitInHistoryContent');
-    const reservationHistoryContent = document.getElementById('reservationHistoryContent');
-    
-    if (sitInHistoryTab && reservationHistoryTab) {
-        sitInHistoryTab.addEventListener('click', function() {
-            // Update active tab styling
-            sitInHistoryTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            reservationHistoryTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            reservationHistoryTab.classList.add('text-gray-500');
-            
-            // Show/hide content
-            sitInHistoryContent.classList.remove('hidden');
-            reservationHistoryContent.classList.add('hidden');
-        });
-        
-        reservationHistoryTab.addEventListener('click', function() {
-            // Update active tab styling
-            reservationHistoryTab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-            sitInHistoryTab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
-            sitInHistoryTab.classList.add('text-gray-500');
-            
-            // Show/hide content
-            reservationHistoryContent.classList.remove('hidden');
-            sitInHistoryContent.classList.add('hidden');
-        });
-    }
-}
-
 // Function to setup reservation form
 function setupReservationForm() {
     const form = document.getElementById('reservationForm');
@@ -1117,27 +1305,20 @@ async function reserveSession() {
         const purpose = document.getElementById("purpose").value.trim();
         const date = document.getElementById("date").value;
         const time = document.getElementById("time").value;
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
-
-        if (!userId) {
-            alert("User ID not found. Please try logging in again.");
-            return;
-        }
-
-        if (!purpose || !date || !time) {
-            alert("Please fill in all fields: purpose, date, and time.");
-            return;
-        }
-
-        // Get user profile data
-        const userResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
-        if (!userResponse.ok) {
-            throw new Error(`Failed to fetch user data: ${userResponse.status}`);
-        }
+        const labRoom = document.getElementById("labRoom").value;
+        const programmingLanguage = document.getElementById("programmingLanguage").value;
         
-        const userData = await userResponse.json();
-        if (!userData || !userData.email || !userData.idNumber) {
-            throw new Error("Invalid user data received from server");
+        // Get user ID from localStorage or URL
+        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        if (!userId) {
+            alert("Please log in first");
+            window.location.href = '/login.html';
+            return;
+        }
+
+        if (!purpose || !date || !time || !labRoom || !programmingLanguage) {
+            alert("Please fill in all fields: purpose, lab room, programming language, date, and time.");
+            return;
         }
 
         // Disable the button and show loading state
@@ -1152,6 +1333,17 @@ async function reserveSession() {
             Processing...
         `;
 
+        // Get user profile data
+        const userResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
+        if (!userResponse.ok) {
+            throw new Error(`Failed to fetch user data: ${userResponse.status}`);
+        }
+        
+        const userData = await userResponse.json();
+        if (!userData || !userData.email || !userData.idNumber) {
+            throw new Error("Invalid user data received from server");
+        }
+
         // Make reservation
         const response = await fetch("http://localhost:3000/reserve", {
             method: "POST",
@@ -1165,7 +1357,9 @@ async function reserveSession() {
                 idNumber: userData.idNumber,
                 purpose, 
                 date, 
-                time 
+                time,
+                labRoom,
+                programmingLanguage
             })
         });
 
@@ -1202,23 +1396,27 @@ async function reserveSession() {
             `;
         }
     }
-} 
+}
 
 // Function to handle quick session reservation
 async function quickReserveSession() {
     try {
-        const purpose = document.getElementById("quickPurpose").value.trim();
+        const purpose = document.getElementById("quickPurpose").value;
+        const labRoom = document.getElementById("quickLabRoom").value;
+        const programmingLanguage = document.getElementById("quickProgrammingLanguage").value;
         const date = document.getElementById("quickDate").value;
         const time = document.getElementById("quickTime").value;
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
 
-        if (!userId) {
-            alert("User ID not found. Please try logging in again.");
+        if (!purpose || !labRoom || !programmingLanguage || !date || !time) {
+            alert("Please fill in all fields (Purpose, Lab Room, Programming Language, Date, and Time)");
             return;
         }
 
-        if (!purpose || !date || !time) {
-            alert("Please fill in all fields: purpose, date, and time.");
+        // Get user ID from localStorage or URL
+        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        if (!userId) {
+            alert("Please log in first");
+            window.location.href = '/login.html';
             return;
         }
 
@@ -1233,67 +1431,45 @@ async function quickReserveSession() {
             throw new Error("Invalid user data received from server");
         }
 
-        // Disable the button and show loading state
-        const submitButton = document.querySelector('#quickReservationForm button');
-        const originalButtonText = submitButton.innerHTML;
-        submitButton.disabled = true;
-        submitButton.innerHTML = `
-            <svg class="animate-spin h-5 w-5 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Processing...
-        `;
-
-        // Make reservation
-        const response = await fetch("http://localhost:3000/reserve", {
-            method: "POST",
+        // Create the reservation
+        const response = await fetch('http://localhost:3000/reserve', {
+            method: 'POST',
             headers: { 
-                "Content-Type": "application/json",
-                "Accept": "application/json"
+                'Content-Type': 'application/json',
             },
             credentials: 'include',
             body: JSON.stringify({ 
                 email: userData.email,
                 idNumber: userData.idNumber,
                 purpose, 
+                labRoom,
+                programmingLanguage,
                 date, 
                 time 
             })
         });
 
-        const result = await response.json();
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to make reservation');
+        }
+
+        const data = await response.json();
+        alert("Reservation successful!");
         
-        if (response.ok) {
-            alert("Reservation successful! Your session has been booked.");
-            document.getElementById("quickReservationForm").reset();
-            
-            // Refresh dashboard data
-            loadDashboardData();
-            
-            // Also refresh reservation history if that tab is open
-            const reservationHistorySection = document.getElementById("reservation-history");
-            if (reservationHistorySection && !reservationHistorySection.classList.contains("hidden")) {
-                await loadReservationHistory();
-            }
-        } else {
-            throw new Error(result.message || 'Failed to make reservation');
-        }
+        // Close the modal
+        const modal = document.getElementById('quickReserveModal');
+        modal.style.display = 'none';
+        
+        // Reset form
+        document.getElementById("quickReservationForm").reset();
+        
+        // Update dashboard stats
+        updateDashboardStats(userId);
+        
     } catch (error) {
-        console.error("Error making reservation:", error);
-        alert(`Failed to make reservation: ${error.message}`);
-    } finally {
-        // Restore button state
-        const submitButton = document.querySelector('#quickReservationForm button');
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Reserve Now
-            `;
-        }
+        console.error('Error:', error);
+        alert(error.message || "Failed to make reservation. Please try again.");
     }
 }
 

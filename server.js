@@ -7,6 +7,7 @@ const session = require("express-session");
 const router = express.Router();
 const usersFile = "data.json";
 const cors = require("cors");
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const PORT = 3000;
@@ -36,6 +37,7 @@ app.use(session({
 }));
 
 app.use(express.static("dist"));
+app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(router);
 app.use((req, res, next) => {
     console.log(`Incoming request: ${req.method} ${req.url}`);
@@ -74,16 +76,24 @@ function saveReservations(reservations) {
 
 // Function to read sit-ins
 function readSitIns() {
-    if (!fs.existsSync("sit-ins.json")) {
+    const sitInsPath = path.join(__dirname, "sit-ins.json");
+    if (!fs.existsSync(sitInsPath)) {
+        fs.writeFileSync(sitInsPath, JSON.stringify([], null, 2));
         return [];
     }
-    const data = fs.readFileSync("sit-ins.json");
-    return JSON.parse(data);
+    try {
+        const data = fs.readFileSync(sitInsPath, "utf8");
+        return JSON.parse(data);
+    } catch (error) {
+        console.error("Error reading sit-ins:", error);
+        return [];
+    }
 }
 
 // Function to save sit-ins
 function saveSitIns(sitIns) {
-    fs.writeFileSync("sit-ins.json", JSON.stringify(sitIns, null, 2));
+    const sitInsPath = path.join(__dirname, "sit-ins.json");
+    fs.writeFileSync(sitInsPath, JSON.stringify(sitIns, null, 2));
 }
 
 // Ensure uploads folder exists
@@ -107,14 +117,14 @@ app.get("/admin.html", (req, res) => {
 app.post("/reserve", async (req, res) => {
     console.log("=== START RESERVATION PROCESS ===");
     console.log("Received reservation request body:", req.body);
-    const { email, idNumber, purpose, date, time } = req.body;
+    const { email, idNumber, purpose, date, time, labRoom, programmingLanguage } = req.body;
 
     // Validate required fields
-    if (!email || !idNumber || !purpose || !date || !time) {
-        console.error("Missing required fields:", { email, idNumber, purpose, date, time });
+    if (!email || !idNumber || !purpose || !date || !time || !labRoom || !programmingLanguage) {
+        console.error("Missing required fields:", { email, idNumber, purpose, date, time, labRoom, programmingLanguage });
         return res.status(400).json({ 
             message: "Missing required fields", 
-            details: { email, idNumber, purpose, date, time } 
+            details: { email, idNumber, purpose, date, time, labRoom, programmingLanguage } 
         });
     }
 
@@ -168,6 +178,8 @@ app.post("/reserve", async (req, res) => {
             purpose,
             date,
             time,
+            labRoom,
+            programmingLanguage,
             status: "pending" // Default status
         };
 
@@ -215,29 +227,39 @@ app.post("/update-reservation-status", (req, res) => {
     const { reservationId, status } = req.body;
 
     try {
-        if (!fs.existsSync("reservations.json")) {
-            return res.status(404).json({ message: "No reservations found" });
-        }
-
-        const reservations = JSON.parse(fs.readFileSync("reservations.json", "utf-8"));
+        // Read current reservations
+        let reservations = readReservations();
         const reservationIndex = reservations.findIndex(r => r.id === reservationId);
 
         if (reservationIndex === -1) {
             return res.status(404).json({ message: "Reservation not found" });
         }
 
-        // If the reservation is rejected, remove it from the list
-        if (status === 'rejected') {
-            reservations.splice(reservationIndex, 1);
-        } else {
-            reservations[reservationIndex].status = status;
-        }
+        const reservation = reservations[reservationIndex];
+        reservation.status = status;
+        
+        // Save updated reservations
+        saveReservations(reservations);
 
-        fs.writeFileSync("reservations.json", JSON.stringify(reservations, null, 2));
-
-        // If the reservation is approved, create a sit-in record
+        // If the reservation is approved
         if (status === 'approved') {
-            const reservation = reservations[reservationIndex];
+            // Update user's remaining sessions
+            let users = readData();
+            const userIndex = users.findIndex(u => u.idNumber === reservation.idNumber);
+            
+            if (userIndex === -1) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            // Deduct one session from remaining sessions
+            if (users[userIndex].remainingSessions > 0) {
+                users[userIndex].remainingSessions--;
+                writeData(users);
+            } else {
+                return res.status(400).json({ message: "User has no remaining sessions" });
+            }
+
+            // Create a sit-in record
             let sitIns = readSitIns();
             
             const newSitIn = {
@@ -251,14 +273,22 @@ app.post("/update-reservation-status", (req, res) => {
                 date: reservation.date,
                 timeIn: reservation.time,
                 status: 'active',
-                timeOut: null
+                timeOut: null,
+                labRoom: reservation.labRoom,
+                programmingLanguage: reservation.programmingLanguage
             };
 
             sitIns.push(newSitIn);
             saveSitIns(sitIns);
         }
 
-        res.json({ message: "Reservation status updated successfully" });
+        res.json({ 
+            success: true,
+            message: status === 'approved' 
+                ? "Reservation approved and sit-in session created successfully" 
+                : "Reservation status updated successfully",
+            status: status
+        });
     } catch (error) {
         console.error("Error updating reservation status:", error);
         res.status(500).json({ message: "Error updating reservation status" });
@@ -365,6 +395,12 @@ app.post("/register", async (req, res) => {
         // ✅ Hash the password before storing
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Determine initial sessions based on course
+        const isComputerCourse = course.toLowerCase().includes('computer') || 
+                                course.toLowerCase().includes('information') || 
+                                course.toLowerCase().includes('software');
+        const initialSessions = isComputerCourse ? 15 : 10;
+
         const newUser = { 
             idNumber, 
             firstName, 
@@ -373,7 +409,10 @@ app.post("/register", async (req, res) => {
             email, 
             year, 
             course, 
-            password: hashedPassword // Store the hashed password
+            password: hashedPassword, // Store the hashed password
+            completedSessions: 0,
+            pendingReservations: 0,
+            remainingSessions: initialSessions
         };
 
         users.push(newUser);
@@ -509,7 +548,8 @@ app.get("/get-profile", (req, res) => {
             email: user.email,
             year: user.year,
             course: user.course,
-            profileImage: user.profileImage || "/uploads/default.png"
+            profileImage: user.profileImage || "/uploads/default.png",
+            remainingSessions: user.remainingSessions || 0
         };
         
         console.log("Sending profile data:", response);
@@ -654,41 +694,60 @@ app.get("/get-all-users", (req, res) => {
 app.get("/sit-ins", (req, res) => {
     try {
         const sitIns = readSitIns();
+        console.log("Retrieved sit-ins:", sitIns); // Add logging
         res.json(sitIns);
     } catch (error) {
-        console.error("Error fetching sit-ins:", error);
-        res.status(500).json({ error: "Failed to fetch sit-ins" });
+        console.error("Error handling sit-ins:", error);
+        res.status(500).json({ message: "Error fetching sit-ins data", error: error.message });
     }
 });
+
 // Route: Update sit-in status
 app.post("/update-sit-in-status", (req, res) => {
     try {
-        const { sitInId, status } = req.body;
-        let sitIns = readSitIns();
-        let reservations = readReservations();
+        console.log("Updating sit-in status:", req.body);
+        const { sitInId, status, timeOut } = req.body;
         
-        const sitInIndex = sitIns.findIndex(s => s.id === sitInId);
+        if (!sitInId || !status) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "sitInId and status are required" 
+            });
+        }
+
+        let sitIns = readSitIns();
+        const sitInIndex = sitIns.findIndex(s => s.id === parseInt(sitInId));
+        
         if (sitInIndex === -1) {
-            return res.status(404).json({ error: "Sit-in not found" });
+            return res.status(404).json({ 
+                success: false, 
+                message: "Sit-in not found" 
+            });
         }
 
+        // Update the sit-in status
         sitIns[sitInIndex].status = status;
+        
+        // If completing the sit-in, add the timeOut
         if (status === 'completed') {
-            sitIns[sitInIndex].timeOut = new Date().toISOString();
-            
-            // Remove the corresponding reservation
-            const reservationIndex = reservations.findIndex(r => r.id === sitIns[sitInIndex].reservationId);
-            if (reservationIndex !== -1) {
-                reservations.splice(reservationIndex, 1);
-                saveReservations(reservations);
-            }
+            sitIns[sitInIndex].timeOut = timeOut || new Date().toISOString();
         }
 
+        // Save the updated sit-ins
         saveSitIns(sitIns);
-        res.json({ message: "Sit-in status updated successfully" });
+
+        res.json({ 
+            success: true, 
+            message: "Sit-in status updated successfully",
+            sitIn: sitIns[sitInIndex]
+        });
     } catch (error) {
         console.error("Error updating sit-in status:", error);
-        res.status(500).json({ error: "Failed to update sit-in status" });
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to update sit-in status",
+            error: error.message 
+        });
     }
 });
 
@@ -719,49 +778,49 @@ function writeFeedback(feedback) {
 // Route: Submit feedback
 app.post("/submit-feedback", async (req, res) => {
     try {
-        const { userId, type, message, date } = req.body;
-        
-        if (!userId || !type || !message) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Missing required fields" 
+        const { userId, sitInId, type, message, date } = req.body;
+
+        if (!userId || !sitInId || !type || !message) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
             });
         }
 
-        // Get user details
-        const users = readData();
-        const user = users.find(u => u.idNumber === userId);
-        
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "User not found" 
-            });
-        }
-
-        const feedback = readFeedback();
-        const newFeedback = {
-            id: Date.now(),
-            userId: userId,
-            userName: `${user.firstName} ${user.lastName}`,
+        const feedback = {
+            id: uuidv4(),
+            userId,
+            sitInId,
             type,
             message,
-            date,
-            status: 'new'
+            date
         };
 
-        feedback.unshift(newFeedback);
-        writeFeedback(feedback);
+        // Read existing feedback
+        let feedbackData = [];
+        try {
+            feedbackData = JSON.parse(fs.readFileSync('data/feedback.json', 'utf8'));
+        } catch (error) {
+            // If file doesn't exist, create it with empty array
+            fs.writeFileSync('data/feedback.json', '[]');
+        }
 
-        res.json({ 
-            success: true, 
-            message: "Feedback submitted successfully" 
+        // Add new feedback
+        feedbackData.push(feedback);
+
+        // Save updated feedback data
+        fs.writeFileSync('data/feedback.json', JSON.stringify(feedbackData, null, 2));
+
+        res.json({
+            success: true,
+            message: 'Feedback submitted successfully',
+            feedback
         });
     } catch (error) {
-        console.error("Error submitting feedback:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Error submitting feedback" 
+        console.error('Error submitting feedback:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
         });
     }
 });

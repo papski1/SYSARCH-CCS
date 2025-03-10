@@ -1,53 +1,30 @@
 [
   {
-    "idNumber": "12333",
-    "firstName": "Erica Faith",
-    "middleName": "Rivas",
-    "lastName": "Aguylo",
-    "email": "ericaaguylo03@gmail.com",
-    "year": "2nd Year",
-    "course": "BS Civil Engineering",
-    "password": "$2b$10$amviRFl.fKMnfrbW/KfH/.1As1.ck6e5n7J8n4Ic7RQK6xQp4Im2e"
-  },
-  {
-    "idNumber": "3333",
-    "firstName": "Rey Lakai",
-    "middleName": "Paps",
-    "lastName": "Leroi",
-    "email": "reymarkrivas61@gmail.com",
-    "year": "3rd Year",
-    "course": "BS Information Technology",
-    "password": "$2b$10$nBnD/H8DbZDDpSP5LTT2NeALjpNiA7lVSKk2ZOfllEawZpm5wR/Ma"
-  },
-  {
-    "idNumber": "12345",
-    "firstName": "Paps",
-    "middleName": "Lakai",
-    "lastName": "Leroi",
-    "email": "papsleroy16@gmail.com",
-    "year": "3rd Year",
-    "course": "BS Software Engineering",
-    "password": "$2b$10$vAsIriFA7LaVLZlES/tJHuxyxVlIZO6GFsYW5oEf4rj/NtA3MJmIe",
-    "profileImage": "/uploads/1741464057034-22.jpg"
-  },
-  {
-    "idNumber": "0992",
-    "firstName": "erica love",
-    "middleName": "rivas",
-    "lastName": "aguylo",
-    "email": "ecairivas@gmail.com",
-    "year": "1st Year",
-    "course": "BS Business Administration",
-    "password": "$2b$10$sGswpvfxygi/cJFM8dAoduneofLhnKChAbiFHmrpVDxeY9Wjw8nF."
-  },
-  {
     "idNumber": "54321",
     "firstName": "Ralphness",
     "middleName": "Ng",
     "lastName": "Munggoness",
     "email": "ralphness@gmail.com",
+    "year": "4th Year",
+    "course": "BS Business Administration",
+    "password": "$2b$10$mtOifhHkylekthAsW//8auC5dhpDg1pdh7YdGRqPS1QfbTlt1DRn6",
+    "totalSessions": 10,
+    "completedSessions": 0,
+    "pendingReservations": 0,
+    "remainingSessions": 10
+  },
+  {
+    "idNumber": "22635452",
+    "firstName": "Rey Mark",
+    "middleName": "NA",
+    "lastName": "Rivas",
+    "email": "reymarkrivas61@gmail.com",
     "year": "3rd Year",
-    "course": "BS Civil Engineering",
-    "password": "$2b$10$qxohz7JpOX9hyrbIr/lVA.iyDAuGibUnN7QlFMTR3HqQ9lDJMbOla"
+    "course": "BS Information Technology",
+    "password": "$2b$10$08RlcN5ep7wvdt.HejlVYe17LenROFfwuhCKbmHifjfVW016hQM5O",
+    "totalSessions": 15,
+    "completedSessions": 0,
+    "pendingReservations": 0,
+    "remainingSessions": 11
   }
 ]
