@@ -1,11 +1,15 @@
 // Function to check authentication
 function checkAuthentication() {
-    const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+    const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId') || new URLSearchParams(window.location.search).get("id");
+    
     if (!userId) {
-        console.error("No user ID found!");
-        window.location.href = '/login.html';
+        window.location.href = '/';
         return false;
     }
+    
+    // Store userId in localStorage for consistency
+    localStorage.setItem('userId', userId);
+    localStorage.setItem('currentUserId', userId);
     return true;
 }
 
@@ -31,33 +35,19 @@ async function showSection(sectionId) {
 }
 
 // Document Ready Event Handler
-document.addEventListener("DOMContentLoaded", function() {
-    // Get user ID from the URL (e.g., student.html?id=232323)
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get("id");
-
-    // If no user ID in URL, try to get it from localStorage
-    if (!userId) {
-        const storedUserId = localStorage.getItem("currentUserId");
-        if (storedUserId) {
-            // If we have a stored ID, update the URL
-            window.history.replaceState({}, '', `?id=${storedUserId}`);
-        } else {
-            console.error("No user ID found!");
-            return;
-        }
+document.addEventListener("DOMContentLoaded", async function() {
+    // Check authentication first
+    if (!checkAuthentication()) {
+        return;
     }
 
-    // Store the user ID in localStorage for persistence
-    localStorage.setItem("currentUserId", userId || localStorage.getItem("currentUserId"));
+    // Load announcements immediately
+    await loadAnnouncements();
     
-    // Set up navigation
+    // Setup navigation
     setupNavigation();
     
-    // Load profile data
-    loadProfile();
-    
-    // Set up history tabs
+    // Setup history tabs
     setupHistoryTabs();
     
     // Setup lab rules toggle
@@ -74,16 +64,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Setup modal event listeners
     setupModalEventListeners();
-
-    // Debug check for modal elements
-    const modal = document.getElementById('quickReserveModal');
-    const reserveButton = document.querySelector('button[onclick="openQuickReserveModal()"]');
-    const changePasswordModal = document.getElementById('changePasswordModal');
-    console.log('Modal elements check:', {
-        modalExists: !!modal,
-        reserveButtonExists: !!reserveButton,
-        changePasswordModalExists: !!changePasswordModal
-    });
 
     // Initialize dark mode
     initializeDarkMode();
@@ -202,54 +182,40 @@ async function loadAnnouncements() {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const announcements = await response.json();
+        const data = await response.json();
+        const announcements = Array.isArray(data) ? data : [];
         
-        const container = document.getElementById("announcements-container");
-        if (!container) return;
-        
+        const announcementsContainer = document.getElementById('announcements');
+        announcementsContainer.innerHTML = '';
+
         if (announcements.length === 0) {
-            container.innerHTML = '<p class="text-gray-500 text-center">No announcements at this time.</p>';
+            announcementsContainer.innerHTML = '<p class="text-gray-500">No announcements yet.</p>';
             return;
         }
-        
-        // Sort announcements by date (newest first)
-        announcements.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        let html = '';
-        announcements.forEach(announcement => {
-            const date = new Date(announcement.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            html += `
-                <div class="mb-4 pb-4 border-b border-gray-200 last:border-0">
-                    <div class="flex justify-between items-start">
-                        <h3 class="text-md font-semibold text-gray-800">${announcement.title || 'Announcement'}</h3>
-                        <span class="text-xs text-gray-500">${date}</span>
-                    </div>
-                    <p class="text-gray-600 mt-1">${announcement.message}</p>
-                </div>
+
+        // Display only the 3 most recent announcements in the dashboard
+        announcements.slice(0, 3).forEach(announcement => {
+            const announcementElement = document.createElement('div');
+            announcementElement.className = 'p-4 bg-white rounded-lg shadow-md mb-4 hover:bg-gray-50 transition-colors duration-200 cursor-pointer dark:bg-dark-card dark:hover:bg-gray-700';
+            announcementElement.onclick = () => openAnnouncementsModal();
+            announcementElement.innerHTML = `
+                <p class="text-blue-600 font-medium mb-1 dark:text-blue-400">CCS | Admin</p>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2 dark:text-gray-100">${announcement.title}</h3>
+                <p class="text-gray-600 mb-2 dark:text-gray-300 line-clamp-2">${announcement.message}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(announcement.date).toLocaleString()}</p>
             `;
+            announcementsContainer.appendChild(announcementElement);
         });
-        
-        container.innerHTML = html;
-        
+
         // Update last seen timestamp
         localStorage.setItem("lastSeenAnnouncement", new Date().getTime().toString());
         
         // Clear notification dot if present
         clearAnnouncementNotification();
-        
     } catch (error) {
         console.error("Error loading announcements:", error);
-        const container = document.getElementById("announcements-container");
-        if (container) {
-            container.innerHTML = '<p class="text-red-500 text-center">Error loading announcements. Please try again later.</p>';
-        }
+        const announcementsContainer = document.getElementById('announcements');
+        announcementsContainer.innerHTML = '<p class="text-red-500">Error loading announcements.</p>';
     }
 }
 
@@ -318,49 +284,38 @@ async function updateDashboardStats(userId) {
 // Function to load dashboard data
 async function loadDashboardData() {
     try {
-        // Update statistics
-        await updateDashboardStats(localStorage.getItem("currentUserId"));
-        
-        // Load last session data
-        const sitInResponse = await fetch(`http://localhost:3000/sit-ins?userId=${localStorage.getItem("currentUserId")}`);
-        const sitIns = await sitInResponse.json();
-        
-        // Update last session
-        if (sitIns && sitIns.length > 0) {
-            const lastSitIn = sitIns[sitIns.length - 1];
-            const lastSessionDate = new Date(lastSitIn.date).toLocaleDateString();
-            document.getElementById('lastSession').textContent = lastSessionDate;
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
+        if (!userId) {
+            console.error('User ID not found');
+            return;
         }
 
-        // Load recent activity
-        const recentActivityContainer = document.getElementById('recentActivity');
-        recentActivityContainer.innerHTML = ''; // Clear loading animation
+        // Update dashboard stats
+        await updateDashboardStats(userId);
 
-        if (sitIns && sitIns.length > 0) {
-            const recentSitIns = sitIns.slice(-3).reverse(); // Get last 3 sessions
-            recentSitIns.forEach(sitIn => {
-                const activityDate = new Date(sitIn.date).toLocaleDateString();
-                const activityTime = new Date(sitIn.date).toLocaleTimeString();
-                const status = sitIn.status.charAt(0).toUpperCase() + sitIn.status.slice(1);
-                
-                const activityElement = document.createElement('div');
-                activityElement.className = 'border-l-4 border-blue-500 pl-4 py-2';
-                activityElement.innerHTML = `
-                    <p class="font-medium dark:text-gray-100">${status} Session</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">${activityDate} at ${activityTime}</p>
-                `;
-                recentActivityContainer.appendChild(activityElement);
-            });
+        // Load recent activity preview
+        const response = await fetch(`http://localhost:3000/get-recent-activity/${userId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch recent activity');
+        }
+
+        const activities = await response.json();
+        
+        // Update recent activity preview
+        if (activities.length > 0) {
+            const latestActivity = activities[0];
+            const formattedDate = new Date(latestActivity.date).toLocaleDateString();
+            document.getElementById('recentActivityPreview').textContent = `${latestActivity.type} on ${formattedDate}`;
         } else {
-            recentActivityContainer.innerHTML = `
-                <div class="text-center text-gray-500 dark:text-gray-400 py-4">
-                    <p>No recent activity</p>
-                </div>
-            `;
+            document.getElementById('recentActivityPreview').textContent = 'No recent activity';
         }
-        
+
+        // Load announcements in the full-width section
+        await loadAnnouncements();
+
     } catch (error) {
-        console.error("Error loading dashboard data:", error);
+        console.error('Error loading dashboard data:', error);
+        document.getElementById('recentActivityPreview').textContent = 'Error loading activity';
     }
 }
 
@@ -433,8 +388,8 @@ function updateProfilePicture(input) {
 // Function to load profile data
 async function loadProfile() {
     try {
-        // Get the current user ID
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        // Get the current user ID using consistent method
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
         
         if (!userId) {
             console.error("No user ID found for loading profile");
@@ -457,6 +412,9 @@ async function loadProfile() {
 
         const profileData = await response.json();
         
+        // Store profile data in localStorage for offline access
+        localStorage.setItem('profileData', JSON.stringify(profileData));
+        
         // Update profile form fields
         document.getElementById("idNumber").value = profileData.idNumber || '';
         document.getElementById("firstname").value = profileData.firstName || '';
@@ -471,67 +429,11 @@ async function loadProfile() {
         document.getElementById("lastnameModal").value = profileData.lastName || '';
         document.getElementById("emailModal").value = profileData.email || '';
         
-        // Set select fields if they exist
-        const yearFields = ['year', 'yearModal'];
-        yearFields.forEach(fieldId => {
-            const select = document.getElementById(fieldId);
-            if (select && profileData.year) {
-                for (let i = 0; i < select.options.length; i++) {
-                    if (select.options[i].value === profileData.year) {
-                        select.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
-        });
-        
-        const courseFields = ['course', 'courseModal'];
-        courseFields.forEach(fieldId => {
-            const select = document.getElementById(fieldId);
-            if (select && profileData.course) {
-                let found = false;
-                for (let i = 0; i < select.options.length; i++) {
-                    if (select.options[i].value === profileData.course) {
-                        select.selectedIndex = i;
-                        found = true;
-                        break;
-                    }
-                }
-                
-                // If course is not in options, select "Other"
-                if (!found && profileData.course) {
-                    for (let i = 0; i < select.options.length; i++) {
-                        if (select.options[i].value === "Other") {
-                            select.selectedIndex = i;
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-
-        // Update profile picture if it exists
-        const storedImagePath = localStorage.getItem("profileImagePath");
-        const profilePicUrl = storedImagePath || profileData.profilePicture || '/uploads/default-profile.png';
-        
-        // Update sidebar profile picture
-        document.getElementById("sidebarProfilePic").src = profilePicUrl;
-
-        // Save to localStorage for persistence
-        localStorage.setItem('profileData', JSON.stringify(profileData));
-
         // Update sidebar profile
         updateSidebarProfile();
-
+        
     } catch (error) {
         console.error("Error loading profile:", error);
-        // Try to load from localStorage if server request fails
-        const storedData = localStorage.getItem('profileData');
-        if (storedData) {
-            const profileData = JSON.parse(storedData);
-            updateBothForms(profileData);
-            updateSidebarProfile();
-        }
     }
 }
 
@@ -569,9 +471,14 @@ function initializeProfile() {
                 localStorage.setItem('profileName', fullName);
                 localStorage.setItem('profileCourse', data.course || '');
                 
-                // Update profile picture if exists
-                if (data.profilePicture) {
-                    document.getElementById('sidebarProfilePic').src = data.profilePicture;
+                // Update all profile pictures if exists
+                if (data.profileImage) {
+                    const profileImageWithTimestamp = `${data.profileImage}?t=${new Date().getTime()}`;
+                    document.getElementById('sidebarProfilePic').src = profileImageWithTimestamp;
+                    document.getElementById('profilePic').src = profileImageWithTimestamp;
+                    document.getElementById('profilePicModal').src = profileImageWithTimestamp;
+                    // Save to localStorage
+                    localStorage.setItem('profileImagePath', data.profileImage);
                 }
             }
         })
@@ -580,20 +487,17 @@ function initializeProfile() {
             // Load from localStorage as fallback
             const savedName = localStorage.getItem('profileName');
             const savedCourse = localStorage.getItem('profileCourse');
+            const savedProfileImage = localStorage.getItem('profileImagePath');
             
             if (savedName) document.getElementById('sidebarProfileName').textContent = savedName;
             if (savedCourse) document.getElementById('sidebarProfileCourse').textContent = savedCourse;
+            if (savedProfileImage) {
+                const profileImageWithTimestamp = `${savedProfileImage}?t=${new Date().getTime()}`;
+                document.getElementById('sidebarProfilePic').src = profileImageWithTimestamp;
+                document.getElementById('profilePic').src = profileImageWithTimestamp;
+                document.getElementById('profilePicModal').src = profileImageWithTimestamp;
+            }
         });
-    
-    // Load profile picture from localStorage if exists
-    const savedProfilePic = localStorage.getItem('profilePicture');
-    if (savedProfilePic) {
-        document.getElementById('sidebarProfilePic').src = savedProfilePic;
-    }
-    
-    // Initialize other settings
-    initializeDarkMode();
-    initializeNotificationSettings();
 }
 
 // Modify the existing saveProfile function to update sidebar
@@ -1340,7 +1244,6 @@ function setupReservationForm() {
 // Function to handle session reservation
 async function reserveSession() {
     try {
-        const purpose = document.getElementById("purpose").value.trim();
         const date = document.getElementById("date").value;
         const time = document.getElementById("time").value;
         const labRoom = document.getElementById("labRoom").value;
@@ -1354,8 +1257,8 @@ async function reserveSession() {
             return;
         }
 
-        if (!purpose || !date || !time || !labRoom || !programmingLanguage) {
-            alert("Please fill in all fields: purpose, lab room, programming language, date, and time.");
+        if (!date || !time || !labRoom || !programmingLanguage) {
+            alert("Please fill in all fields: lab room, programming language, date, and time.");
             return;
         }
 
@@ -1393,7 +1296,7 @@ async function reserveSession() {
             body: JSON.stringify({ 
                 email: userData.email,
                 idNumber: userData.idNumber,
-                purpose, 
+                purpose: "Programming Session", // Default purpose
                 date, 
                 time,
                 labRoom,
@@ -1421,32 +1324,30 @@ async function reserveSession() {
     } catch (error) {
         console.error("Error making reservation:", error);
         alert(`Failed to make reservation: ${error.message}`);
-    } finally {
-        // Restore button state
-        const submitButton = document.querySelector('#reservationForm button');
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Reserve Now
-            `;
-        }
+    }
+    // Restore button state
+    const submitButton = document.querySelector('#reservationForm button');
+    if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Reserve Now
+        `;
     }
 }
 
 // Function to handle quick session reservation
 async function quickReserveSession() {
     try {
-        const purpose = document.getElementById("quickPurpose").value;
         const labRoom = document.getElementById("quickLabRoom").value;
         const programmingLanguage = document.getElementById("quickProgrammingLanguage").value;
         const date = document.getElementById("quickDate").value;
         const time = document.getElementById("quickTime").value;
 
-        if (!purpose || !labRoom || !programmingLanguage || !date || !time) {
-            alert("Please fill in all fields (Purpose, Lab Room, Programming Language, Date, and Time)");
+        if (!labRoom || !programmingLanguage || !date || !time) {
+            alert("Please fill in all fields (Lab Room, Programming Language, Date, and Time)");
             return;
         }
 
@@ -1474,12 +1375,13 @@ async function quickReserveSession() {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             credentials: 'include',
             body: JSON.stringify({ 
                 email: userData.email,
                 idNumber: userData.idNumber,
-                purpose, 
+                purpose: "Programming Session", // Default purpose
                 labRoom,
                 programmingLanguage,
                 date, 
@@ -1611,49 +1513,37 @@ window.closeAnnouncementsModal = function() {
 
 // Function to load announcements into the modal
 async function loadAnnouncementsIntoModal() {
-    const contentDiv = document.getElementById('announcementsModalContent');
-    if (!contentDiv) return;
-
     try {
-        const response = await fetch('http://localhost:3000/get-announcements');
-        if (!response.ok) throw new Error('Failed to fetch announcements');
+        const response = await fetch("http://localhost:3000/get-announcements");
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const announcements = Array.isArray(data) ? data : [];
         
-        const announcements = await response.json();
-        
+        const modalContent = document.getElementById('announcementsModalContent');
+        modalContent.innerHTML = '';
+
         if (announcements.length === 0) {
-            contentDiv.innerHTML = '<p class="text-gray-500 text-center">No announcements available.</p>';
+            modalContent.innerHTML = '<p class="text-gray-500">No announcements yet.</p>';
             return;
         }
 
-        // Sort announcements by date (newest first)
-        announcements.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        const announcementsHTML = announcements.map(announcement => `
-            <div class="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
-                <div class="flex justify-between items-start">
-                    <h4 class="text-lg font-semibold text-gray-900">${announcement.title || 'Announcement'}</h4>
-                    <span class="text-sm text-gray-500">${new Date(announcement.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })}</span>
-                </div>
-                <p class="mt-2 text-gray-700">${announcement.message}</p>
-            </div>
-        `).join('');
-
-        contentDiv.innerHTML = announcementsHTML;
-        
-        // Update last seen timestamp
-        localStorage.setItem("lastSeenAnnouncement", new Date().getTime().toString());
-        
-        // Clear notification dot if present
-        clearAnnouncementNotification();
+        announcements.forEach(announcement => {
+            const announcementElement = document.createElement('div');
+            announcementElement.className = 'p-4 bg-white rounded-lg shadow mb-4';
+            announcementElement.innerHTML = `
+                <p class="text-blue-600 font-medium mb-1">CCS | Admin</p>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">${announcement.title}</h3>
+                <p class="text-gray-600 mb-2">${announcement.message}</p>
+                <p class="text-sm text-gray-500">${new Date(announcement.date).toLocaleString()}</p>
+            `;
+            modalContent.appendChild(announcementElement);
+        });
     } catch (error) {
-        console.error('Error loading announcements:', error);
-        contentDiv.innerHTML = '<p class="text-red-500 text-center">Failed to load announcements. Please try again later.</p>';
+        console.error("Error loading announcements:", error);
+        const modalContent = document.getElementById('announcementsModalContent');
+        modalContent.innerHTML = '<p class="text-red-500">Error loading announcements.</p>';
     }
 }
 
@@ -2065,4 +1955,80 @@ style.textContent = `
         opacity: 0.7;
     }
 `;
-document.head.appendChild(style); 
+document.head.appendChild(style);
+
+// Function to open recent activity modal
+window.openRecentActivityModal = function() {
+    const modal = document.getElementById('recentActivityModal');
+    if (modal) {
+        modal.style.display = 'block';
+        setTimeout(() => {
+            modal.classList.remove('hidden', 'opacity-0');
+            modal.classList.add('opacity-100');
+        }, 10);
+        document.body.style.overflow = 'hidden';
+        loadRecentActivityIntoModal();
+    }
+}
+
+// Function to close recent activity modal
+window.closeRecentActivityModal = function() {
+    const modal = document.getElementById('recentActivityModal');
+    if (modal) {
+        modal.classList.remove('opacity-100');
+        modal.classList.add('opacity-0');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }, 300);
+    }
+}
+
+// Function to load recent activity into modal
+async function loadRecentActivityIntoModal() {
+    try {
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
+        if (!userId) {
+            throw new Error('User ID not found');
+        }
+
+        const response = await fetch(`http://localhost:3000/get-recent-activity/${userId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch recent activity');
+        }
+
+        const activities = await response.json();
+        const modalContent = document.getElementById('recentActivityModalContent');
+        modalContent.innerHTML = '';
+
+        if (activities.length === 0) {
+            modalContent.innerHTML = '<p class="text-gray-500 text-center">No recent activity found.</p>';
+            return;
+        }
+
+        activities.forEach(activity => {
+            const activityElement = document.createElement('div');
+            activityElement.className = 'p-4 bg-white rounded-lg shadow-md mb-4 dark:bg-gray-800';
+            const formattedDate = new Date(activity.date).toLocaleString();
+            activityElement.innerHTML = `
+                <div class="flex items-center">
+                    <div class="p-2 rounded-full bg-blue-100 mr-3 dark:bg-blue-900">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 dark:text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-800 dark:text-gray-200">${activity.type}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${formattedDate}</p>
+                    </div>
+                </div>
+            `;
+            modalContent.appendChild(activityElement);
+        });
+    } catch (error) {
+        console.error('Error loading recent activity:', error);
+        const modalContent = document.getElementById('recentActivityModalContent');
+        modalContent.innerHTML = '<p class="text-red-500 text-center">Error loading recent activity.</p>';
+    }
+} 

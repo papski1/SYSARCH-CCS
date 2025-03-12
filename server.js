@@ -113,185 +113,163 @@ app.get("/admin.html", (req, res) => {
     res.sendFile(path.join(__dirname, "dist2", "admin.html"));
 });
 
-// Route: Make a reservation
-app.post("/reserve", async (req, res) => {
-    console.log("=== START RESERVATION PROCESS ===");
-    console.log("Received reservation request body:", req.body);
-    const { email, idNumber, purpose, date, time, labRoom, programmingLanguage } = req.body;
-
-    // Validate required fields
-    if (!email || !idNumber || !purpose || !date || !time || !labRoom || !programmingLanguage) {
-        console.error("Missing required fields:", { email, idNumber, purpose, date, time, labRoom, programmingLanguage });
-        return res.status(400).json({ 
-            message: "Missing required fields", 
-            details: { email, idNumber, purpose, date, time, labRoom, programmingLanguage } 
-        });
-    }
-
+// Route: Create new reservation
+app.post("/reserve", (req, res) => {
     try {
-        // Load users from data.json
-        console.log("Reading users from data.json...");
-        const users = JSON.parse(fs.readFileSync("data.json", "utf-8"));
-        console.log("Loaded users from database");
+        const { email, idNumber, purpose, date, time, labRoom, programmingLanguage } = req.body;
 
-        // Find the user by email or idNumber
-        const user = users.find((u) => u.email === email || u.idNumber === idNumber);
-        if (!user) {
-            console.error("User not found with email:", email, "or idNumber:", idNumber);
-            return res.status(404).json({ 
-                message: "User not found!", 
-                details: { email, idNumber } 
-            });
+        // Validate required fields
+        if (!email || !idNumber || !purpose || !date || !time || !labRoom || !programmingLanguage) {
+            return res.status(400).json({ error: "All fields are required" });
         }
 
-        console.log("User found:", user.firstName, user.lastName);
-
-        // Load existing reservations or create new array
-        let reservations = [];
-        const reservationsPath = path.join(__dirname, "reservations.json");
-        console.log("Reservations file path:", reservationsPath);
-        
-        if (fs.existsSync(reservationsPath)) {
-            console.log("Reading existing reservations...");
-            try {
-                const fileContent = fs.readFileSync(reservationsPath, "utf-8");
-                console.log("Raw file content:", fileContent);
-                reservations = JSON.parse(fileContent);
-                console.log("Loaded existing reservations:", reservations.length, "found");
-            } catch (readError) {
-                console.error("Error reading reservations file:", readError);
-                // If file is corrupt, create a new empty array
-                reservations = [];
-            }
-        } else {
-            console.log("No existing reservations file, creating new one");
-        }
-
-        // Create new reservation with unique ID and status
+        const reservations = readReservations();
         const newReservation = {
-            id: Date.now(), // Unique ID for the reservation
-            idNumber: user.idNumber,
-            name: `${user.firstName} ${user.lastName}`,
-            email: user.email,
-            course: user.course,
-            year: user.year,
+            id: Date.now(),
+            email,
+            idNumber,
             purpose,
             date,
             time,
             labRoom,
             programmingLanguage,
-            status: "pending" // Default status
+            status: 'pending',
+            createdAt: new Date().toISOString()
         };
 
-        console.log("Creating new reservation:", newReservation);
-
-        // Add new reservation
         reservations.push(newReservation);
-        console.log("Updated reservations array, now contains", reservations.length, "reservations");
+        saveReservations(reservations);
 
-        // Save updated reservations
-        console.log("Saving reservations to file...");
-        try {
-            fs.writeFileSync(reservationsPath, JSON.stringify(reservations, null, 2));
-            console.log("Saved reservation successfully");
-            
-            // Verify the file was written correctly
-            const verifyContent = fs.readFileSync(reservationsPath, "utf-8");
-            const verifyReservations = JSON.parse(verifyContent);
-            console.log("Verification: file now contains", verifyReservations.length, "reservations");
-        } catch (writeError) {
-            console.error("Error saving reservations file:", writeError);
-            return res.status(500).json({ 
-                message: "Error saving reservation", 
-                error: writeError.message 
-            });
-        }
-
-        console.log("=== END RESERVATION PROCESS ===");
-        res.json({ 
-            message: "Reservation successful!",
-            reservation: newReservation
+        // Log the reservation activity
+        logUserActivity(idNumber, 'Reservation Created', {
+            date,
+            time,
+            labRoom,
+            status: 'pending'
         });
+
+        res.json({ success: true, reservation: newReservation });
     } catch (error) {
-        console.error("Error processing reservation:", error);
-        res.status(500).json({ 
-            message: "Error processing reservation", 
-            error: error.message,
-            stack: error.stack
-        });
+        console.error("Error creating reservation:", error);
+        res.status(500).json({ error: "Failed to create reservation" });
     }
 });
 
 // Route: Update reservation status
-app.post("/update-reservation-status", (req, res) => {
-    const { reservationId, status } = req.body;
-
+app.post("/update-reservation-status", async (req, res) => {
     try {
-        // Read current reservations
-        let reservations = readReservations();
-        const reservationIndex = reservations.findIndex(r => r.id === reservationId);
+        console.log("Received update request:", req.body);
+        const { reservationId, status } = req.body;
 
+        if (!reservationId || !status) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Missing required fields: reservationId and status" 
+            });
+        }
+
+        // Read reservations
+        const reservations = readReservations();
+        const reservationIndex = reservations.findIndex(r => r.id === reservationId);
+        
         if (reservationIndex === -1) {
-            return res.status(404).json({ message: "Reservation not found" });
+            return res.status(404).json({ 
+                success: false, 
+                message: "Reservation not found" 
+            });
         }
 
         const reservation = reservations[reservationIndex];
+
+        // If approving, get user details first
+        let userData = null;
+        if (status === 'approved') {
+            const users = readData();
+            userData = users.find(u => u.idNumber === reservation.idNumber);
+            
+            if (!userData) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: `User not found with ID: ${reservation.idNumber}` 
+                });
+            }
+
+            // Check remaining sessions
+            if (userData.remainingSessions <= 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "User has no remaining sessions" 
+                });
+            }
+
+            // Update user's remaining sessions
+            userData.remainingSessions--;
+            const updatedUsers = users.map(u => 
+                u.idNumber === userData.idNumber ? userData : u
+            );
+            writeData(updatedUsers);
+        }
+
+        // Update reservation status
         reservation.status = status;
-        
-        // Save updated reservations
+        reservations[reservationIndex] = reservation;
         saveReservations(reservations);
 
-        // If the reservation is approved
-        if (status === 'approved') {
-            // Update user's remaining sessions
-            let users = readData();
-            const userIndex = users.findIndex(u => u.idNumber === reservation.idNumber);
-            
-            if (userIndex === -1) {
-                return res.status(404).json({ message: "User not found" });
-            }
-
-            // Deduct one session from remaining sessions
-            if (users[userIndex].remainingSessions > 0) {
-                users[userIndex].remainingSessions--;
-                writeData(users);
-            } else {
-                return res.status(400).json({ message: "User has no remaining sessions" });
-            }
-
-            // Create a sit-in record
+        let newSitIn = null;
+        // If the reservation is approved, create sit-in record
+        if (status === 'approved' && userData) {
+            // Create a sit-in record with auto-logout time
             let sitIns = readSitIns();
             
-            const newSitIn = {
+            // Calculate end time (2 hours after start time)
+            const [hours, minutes] = reservation.time.split(':');
+            const startTime = new Date();
+            startTime.setHours(parseInt(hours), parseInt(minutes), 0);
+            const endTime = new Date(startTime.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
+            
+            newSitIn = {
                 id: Date.now(),
-                reservationId: reservation.id,
                 idNumber: reservation.idNumber,
-                name: reservation.name,
-                course: reservation.course,
-                year: reservation.year,
-                purpose: reservation.purpose,
+                name: `${userData.firstName} ${userData.lastName}`,
+                course: userData.course,
+                year: userData.year,
                 date: reservation.date,
                 timeIn: reservation.time,
-                status: 'active',
-                timeOut: null,
+                timeOut: `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`,
                 labRoom: reservation.labRoom,
-                programmingLanguage: reservation.programmingLanguage
+                programmingLanguage: reservation.programmingLanguage,
+                purpose: reservation.purpose,
+                status: 'active',
+                autoLogoutTime: endTime.toISOString()
             };
-
             sitIns.push(newSitIn);
             saveSitIns(sitIns);
+
+            // Log the sit-in creation
+            logUserActivity(reservation.idNumber, 'Sit-in Started', {
+                date: reservation.date,
+                timeIn: reservation.time,
+                timeOut: newSitIn.timeOut,
+                labRoom: reservation.labRoom,
+                status: 'active',
+                autoLogout: true
+            });
         }
 
         res.json({ 
-            success: true,
-            message: status === 'approved' 
-                ? "Reservation approved and sit-in session created successfully" 
-                : "Reservation status updated successfully",
-            status: status
+            success: true, 
+            message: status === 'approved' ? 
+                "Reservation approved and sit-in session created successfully" : 
+                "Reservation status updated successfully",
+            autoLogoutTime: status === 'approved' ? newSitIn?.autoLogoutTime : null
         });
     } catch (error) {
         console.error("Error updating reservation status:", error);
-        res.status(500).json({ message: "Error updating reservation status" });
+        res.status(500).json({ 
+            success: false, 
+            message: "Error updating reservation status",
+            error: error.message || "Unknown error occurred"
+        });
     }
 });
 
@@ -731,6 +709,14 @@ app.post("/update-sit-in-status", (req, res) => {
         // If completing the sit-in, add the timeOut
         if (status === 'completed') {
             sitIns[sitInIndex].timeOut = timeOut || new Date().toISOString();
+            
+            // Log the sit-in completion
+            logUserActivity(sitIns[sitInIndex].idNumber, 'Sit-in Completed', {
+                date: sitIns[sitInIndex].date,
+                timeIn: sitIns[sitInIndex].timeIn,
+                timeOut: sitIns[sitInIndex].timeOut,
+                labRoom: sitIns[sitInIndex].labRoom
+            });
         }
 
         // Save the updated sit-ins
@@ -874,14 +860,18 @@ app.get("/get-announcements", (req, res) => {
 // Route: Post new announcement
 app.post("/post-announcement", (req, res) => {
     try {
-        const { message } = req.body;
+        const { title, message } = req.body;
         if (!message) {
             return res.status(400).json({ error: "Message is required" });
+        }
+        if (!title) {
+            return res.status(400).json({ error: "Title is required" });
         }
 
         const announcements = readAnnouncements();
         const newAnnouncement = {
             id: Date.now(),
+            title,
             message,
             date: new Date().toISOString()
         };
@@ -944,13 +934,17 @@ router.put("/update-announcement/:id", (req, res) => {
             return res.status(404).json({ error: "Announcement not found" });
         }
         
-        const { message } = req.body;
+        const { title, message } = req.body;
         if (!message) {
             return res.status(400).json({ error: "Message is required" });
+        }
+        if (!title) {
+            return res.status(400).json({ error: "Title is required" });
         }
         
         announcements[index] = {
             ...announcements[index],
+            title,
             message,
             date: new Date().toISOString()
         };
@@ -978,6 +972,79 @@ router.delete("/delete-announcement/:id", (req, res) => {
     } catch (error) {
         console.error("Error deleting announcement:", error);
         res.status(500).json({ error: "Error deleting announcement" });
+    }
+});
+
+// Function to read activity data
+function readActivityData() {
+    try {
+        if (!fs.existsSync('data/activity.json')) {
+            fs.writeFileSync('data/activity.json', '[]', 'utf8');
+            return [];
+        }
+        const data = fs.readFileSync('data/activity.json', 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading activity data:', error);
+        return [];
+    }
+}
+
+// Function to write activity data
+function writeActivityData(data) {
+    try {
+        fs.writeFileSync('data/activity.json', JSON.stringify(data, null, 2), 'utf8');
+    } catch (error) {
+        console.error('Error writing activity data:', error);
+    }
+}
+
+// Function to log user activity
+function logUserActivity(userId, type, details = {}) {
+    try {
+        const activities = readActivityData();
+        const newActivity = {
+            id: Date.now(),
+            userId,
+            type,
+            details,
+            date: new Date().toISOString()
+        };
+        activities.unshift(newActivity); // Add to beginning (newest first)
+        
+        // Keep only last 100 activities per user to manage storage
+        const userActivities = activities.filter(a => a.userId === userId);
+        if (userActivities.length > 100) {
+            const keepIds = new Set(userActivities.slice(0, 100).map(a => a.id));
+            activities = activities.filter(a => a.userId !== userId || keepIds.has(a.id));
+        }
+        
+        writeActivityData(activities);
+        return newActivity;
+    } catch (error) {
+        console.error('Error logging user activity:', error);
+        return null;
+    }
+}
+
+// Route: Get user's recent activity
+app.get("/get-recent-activity/:userId", (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            return res.status(400).json({ error: "User ID is required" });
+        }
+
+        const activities = readActivityData();
+        const userActivities = activities
+            .filter(activity => activity.userId === userId)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 10); // Get 10 most recent activities
+
+        res.json(userActivities);
+    } catch (error) {
+        console.error("Error fetching user activity:", error);
+        res.status(500).json({ error: "Failed to fetch user activity" });
     }
 });
 
@@ -1193,6 +1260,50 @@ app.get("/check-admin", (req, res) => {
   } else {
     return res.json({ isAdmin: false });
   }
+});
+
+// Add new endpoint to check and handle auto-logouts
+app.get("/check-auto-logouts", (req, res) => {
+    try {
+        const sitIns = readSitIns();
+        const now = new Date();
+        let loggedOutUsers = [];
+
+        // Find and update sit-ins that need to be logged out
+        sitIns.forEach(sitIn => {
+            if (sitIn.status === 'active' && sitIn.autoLogoutTime) {
+                const logoutTime = new Date(sitIn.autoLogoutTime);
+                if (now >= logoutTime) {
+                    sitIn.status = 'completed';
+                    loggedOutUsers.push({
+                        idNumber: sitIn.idNumber,
+                        timeOut: sitIn.timeOut
+                    });
+                    
+                    // Log the automatic logout
+                    logUserActivity(sitIn.idNumber, 'Auto Logout', {
+                        date: sitIn.date,
+                        timeIn: sitIn.timeIn,
+                        timeOut: sitIn.timeOut,
+                        labRoom: sitIn.labRoom
+                    });
+                }
+            }
+        });
+
+        // Save updated sit-ins
+        if (loggedOutUsers.length > 0) {
+            saveSitIns(sitIns);
+        }
+
+        res.json({ 
+            success: true, 
+            loggedOutUsers 
+        });
+    } catch (error) {
+        console.error("Error checking auto-logouts:", error);
+        res.status(500).json({ message: "Error checking auto-logouts" });
+    }
 });
 
 // **Start the server**

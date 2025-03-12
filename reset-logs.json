@@ -1,5 +1,16 @@
 [
   {
+    "id": 1741755053295,
+    "timestamp": "2025-03-12T04:50:53.295Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "22635452",
+      "reservationsRemoved": 4,
+      "sitInsRemoved": 4
+    }
+  },
+  {
     "id": 1741580715317,
     "timestamp": "2025-03-10T04:25:15.317Z",
     "adminId": "admin",

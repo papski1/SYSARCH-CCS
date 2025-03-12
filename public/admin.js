@@ -16,15 +16,14 @@ function showSection(sectionId) {
         
         // Special handling for different sections
         if (sectionId === "sit-in") {
+            // Load unified sit-ins and reservations data
             fetchSitIns();
         } else if (sectionId === "reports") {
             // Initialize reports section
             initializeReportsCharts();
-            
-            // If feedback tab was active before, load feedback
-            if (document.getElementById('tab-user-feedback').classList.contains('text-blue-600')) {
-                loadFeedback();
-            }
+        } else if (sectionId === "dashboard") {
+            // Initialize dashboard
+            initializeDashboard();
         }
     }
 }
@@ -54,28 +53,24 @@ document.addEventListener("DOMContentLoaded", function() {
     // Get the saved section from localStorage or default to dashboard
     const savedSection = localStorage.getItem("adminActiveSection") || "dashboard";
     
-    // Show the saved section
-    showSection(savedSection);
-    
-    // Fetch initial data
-    fetchReservations();
-    fetchStudents();
-    fetchSitIns();
-
-    // Add Chart.js script
+    // Load Chart.js first, then initialize the dashboard
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-    script.async = true;
+    script.onload = function() {
+        // Initialize dashboard after Chart.js is loaded
+        showSection(savedSection);
+        
+        // Fetch initial data
+        fetchStudents();
+        fetchSitIns();
+        
+        // Set up reports tab switching
+        setupReportsTabs();
+        
+        // Set up student reports functionality
+        setupStudentReports();
+    };
     document.head.appendChild(script);
-
-    // Initialize dashboard data
-    initializeDashboard();
-    
-    // Set up reports tab switching
-    setupReportsTabs();
-    
-    // Set up student reports functionality
-    setupStudentReports();
 
     // Reset Sessions functionality
     const resetSessionLink = document.querySelector('a[href="#reset-session"]');
@@ -191,7 +186,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 );
                 
                 // Refresh data but keep modal open
-                fetchReservations();
                 fetchSitIns();
                 
                 // Clear the semester select
@@ -234,7 +228,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 );
                 
                 // Refresh data but keep modal open
-                fetchReservations();
                 fetchSitIns();
                 
                 // Clear the input
@@ -246,123 +239,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
-
-// Fetch and display reservations
-async function fetchReservations() {
-    try {
-        console.log("Fetching reservations for admin panel...");
-        const response = await fetch("http://localhost:3000/reservations");
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch reservations: ${response.status} ${response.statusText}`);
-        }
-        
-        const responseText = await response.text();
-        console.log("Raw response:", responseText);
-        
-        let reservations;
-        try {
-            reservations = JSON.parse(responseText);
-            console.log("Parsed reservations:", reservations);
-        } catch (parseError) {
-            console.error("Error parsing reservations response:", parseError);
-            throw new Error(`Invalid JSON in reservations response: ${parseError.message}`);
-        }
-
-        // Store reservations globally for search functionality
-        window.allReservations = reservations;
-
-        // Initial display of all reservations
-        displayReservations(reservations);
-
-        // Update pending reservations count
-        const pendingCount = reservations.filter(r => r.status === 'pending').length;
-        document.getElementById('pending-reservations').textContent = pendingCount;
-
-        // Add search functionality
-        const searchBar = document.getElementById('reservation-search');
-        if (searchBar) {
-            // Remove previous event listeners to prevent duplicates
-            const newSearchBar = searchBar.cloneNode(true);
-            searchBar.parentNode.replaceChild(newSearchBar, searchBar);
-            
-            newSearchBar.addEventListener('input', function(e) {
-                const searchTerm = e.target.value.toLowerCase();
-                const filteredReservations = reservations.filter(reservation => 
-                    reservation.idNumber.toLowerCase().includes(searchTerm) ||
-                    reservation.name.toLowerCase().includes(searchTerm) ||
-                    reservation.course.toLowerCase().includes(searchTerm)
-                );
-                displayReservations(filteredReservations);
-            });
-        }
-
-    } catch (error) {
-        console.error("Error fetching reservations:", error);
-        
-        // Display error message in the reservations table
-        const tableBody = document.getElementById("reservations-table");
-        if (tableBody) {
-            tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-red-600">Error loading reservations: ${error.message}</td></tr>`;
-        }
-        
-        // Update pending reservations count to show error
-        const pendingCountElement = document.getElementById('pending-reservations');
-        if (pendingCountElement) {
-            pendingCountElement.textContent = "Error";
-            pendingCountElement.classList.add("text-red-600");
-        }
-    }
-}
-
-// Function to display reservations in the table
-function displayReservations(reservations) {
-    const tableBody = document.getElementById("reservations-table");
-    tableBody.innerHTML = ""; // Clear previous data
-
-    if (reservations.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='9' class='text-center py-4'>No reservations found</td></tr>";
-        return;
-    }
-
-    reservations.forEach((reservation) => {
-        const row = document.createElement("tr");
-        row.setAttribute('data-reservation-id', reservation.id);
-        row.innerHTML = `
-            <td class="border px-4 py-2">${reservation.idNumber}</td>
-            <td class="border px-4 py-2">${reservation.name}</td>
-            <td class="border px-4 py-2">${reservation.course}</td>
-            <td class="border px-4 py-2">${reservation.year}</td>
-            <td class="border px-4 py-2">${reservation.purpose}</td>
-            <td class="border px-4 py-2">${reservation.date}</td>
-            <td class="border px-4 py-2">${reservation.time}</td>
-            <td class="border px-4 py-2">
-                <span class="px-2 py-1 rounded text-sm ${
-                    reservation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    reservation.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                }">
-                    ${reservation.status}
-                </span>
-            </td>
-            <td class="border px-4 py-2">
-                <div class="flex space-x-2">
-                    ${reservation.status === 'pending' ? `
-                        <button onclick="updateReservationStatus(${reservation.id}, 'approved')" 
-                            class="bg-green-500 text-white px-2 py-1 rounded text-sm">
-                            Approve
-                        </button>
-                        <button onclick="updateReservationStatus(${reservation.id}, 'rejected')" 
-                            class="bg-red-500 text-white px-2 py-1 rounded text-sm">
-                            Reject
-                        </button>
-                    ` : ''}
-                </div>
-            </td>
-        `;
-        tableBody.appendChild(row);
-    });
-}
 
 // Fetch and display students
 async function fetchStudents() {
@@ -442,10 +318,18 @@ function displayStudents(students) {
 
 async function updateReservationStatus(reservationId, status) {
     try {
+        console.log("Updating reservation status:", { reservationId, status });
+        
         const response = await fetch("http://localhost:3000/update-reservation-status", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reservationId, status })
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ 
+                reservationId: parseInt(reservationId), 
+                status 
+            })
         });
 
         if (!response.ok) {
@@ -504,116 +388,132 @@ function logout() {
         .catch(error => console.error("Logout error:", error));
 }
 
-// Add this to your existing JavaScript section
+// Function to fetch and display sit-ins and reservations in a unified table
 async function fetchSitIns() {
     try {
-        console.log("Fetching sit-ins...");
-        const response = await fetch("http://localhost:3000/sit-ins");
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const responseText = await response.text();
-        console.log("Raw sit-ins response:", responseText);
+        console.log("Fetching sit-ins and reservations...");
         
-        const sitIns = JSON.parse(responseText);
-        console.log("Parsed sit-ins:", sitIns);
+        // Fetch both sit-ins and reservations
+        const [sitInsResponse, reservationsResponse] = await Promise.all([
+            fetch("http://localhost:3000/sit-ins"),
+            fetch("http://localhost:3000/reservations")
+        ]);
 
-        // Separate active and completed sit-ins
-        const activeSitIns = sitIns.filter(sitIn => sitIn.status === 'active');
-        const completedSitIns = sitIns.filter(sitIn => sitIn.status === 'completed');
-
-        console.log("Active sit-ins:", activeSitIns);
-        console.log("Completed sit-ins:", completedSitIns);
-
-        // Update active sit-ins table
-        const activeTableBody = document.getElementById("active-sit-ins-table");
-        if (!activeTableBody) {
-            console.error("Active sit-ins table body not found!");
-            return;
-        }
-        
-        activeTableBody.innerHTML = "";
-
-        if (activeSitIns.length === 0) {
-            activeTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-gray-500">No active sit-ins</td></tr>';
-        } else {
-            activeSitIns.forEach(sitIn => {
-                const row = document.createElement("tr");
-                row.dataset.sitInId = sitIn.id;
-                row.innerHTML = `
-                    <td class="border px-4 py-2">${sitIn.idNumber || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.name || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.course || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.year || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.purpose || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.date || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.timeIn || 'N/A'}</td>
-                    <td class="border px-4 py-2">
-                        <span class="px-2 py-1 rounded text-sm bg-green-100 text-green-800">
-                            ${sitIn.status || 'N/A'}
-                        </span>
-                    </td>
-                    <td class="border px-4 py-2">
-                        <button onclick="completeSitIn('${sitIn.id}')" 
-                            class="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Mark as Completed
-                        </button>
-                    </td>
-                `;
-                activeTableBody.appendChild(row);
-            });
+        if (!sitInsResponse.ok || !reservationsResponse.ok) {
+            throw new Error("Failed to fetch data");
         }
 
-        // Update completed sit-ins table
-        const completedTableBody = document.getElementById("completed-sit-ins-table");
-        if (!completedTableBody) {
-            console.error("Completed sit-ins table body not found!");
-            return;
-        }
-        
-        completedTableBody.innerHTML = "";
+        const sitIns = await sitInsResponse.json();
+        const reservations = await reservationsResponse.json();
 
-        if (completedSitIns.length === 0) {
-            completedTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-gray-500">No completed sit-ins</td></tr>';
-        } else {
-            completedSitIns.forEach(sitIn => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td class="border px-4 py-2">${sitIn.idNumber || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.name || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.course || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.year || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.purpose || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.date || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.timeIn || 'N/A'}</td>
-                    <td class="border px-4 py-2">${sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A'}</td>
-                    <td class="border px-4 py-2">
-                        <span class="px-2 py-1 rounded text-sm bg-gray-100 text-gray-800">
-                            ${sitIn.status || 'N/A'}
-                        </span>
-                    </td>
-                `;
-                completedTableBody.appendChild(row);
-            });
-        }
+        // Get pending reservations and active sit-ins
+        const pendingReservations = reservations.filter(res => res.status === 'pending');
+        const activeSitIns = sitIns.filter(sit => sit.status === 'active');
+        const completedSitIns = sitIns.filter(sit => sit.status === 'completed');
 
-        // Update current sit-in count in dashboard
-        const currentSitInElement = document.getElementById('current-sit-in');
-        if (currentSitInElement) {
-            currentSitInElement.textContent = activeSitIns.length;
-        }
+        // Update dashboard counts
+        document.getElementById('current-sit-in').textContent = activeSitIns.length;
+        document.getElementById('pending-reservations').textContent = pendingReservations.length;
+
+        // Display in unified table
+        displayUnifiedTable(pendingReservations, activeSitIns, completedSitIns);
+
     } catch (error) {
-        console.error("Error fetching sit-ins:", error);
-        const activeTableBody = document.getElementById("active-sit-ins-table");
-        const completedTableBody = document.getElementById("completed-sit-ins-table");
-        
-        if (activeTableBody) {
-            activeTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-red-500">Error loading active sit-ins: ' + error.message + '</td></tr>';
-        }
-        if (completedTableBody) {
-            completedTableBody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-red-500">Error loading completed sit-ins: ' + error.message + '</td></tr>';
+        console.error("Error fetching data:", error);
+        const tableBody = document.getElementById("unified-sit-ins-table");
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center py-4 text-red-500">
+                        Error loading data: ${error.message}
+                    </td>
+                </tr>
+            `;
         }
     }
+}
+
+// Function to display unified table
+function displayUnifiedTable(pendingReservations, activeSitIns, completedSitIns) {
+    const tableBody = document.getElementById("unified-sit-ins-table");
+    if (!tableBody) return;
+
+    tableBody.innerHTML = "";
+
+    // Combine and sort all entries by date and time
+    const allEntries = [
+        ...pendingReservations.map(r => ({...r, entryType: 'reservation'})),
+        ...activeSitIns.map(s => ({...s, entryType: 'active'})),
+        ...completedSitIns.map(s => ({...s, entryType: 'completed'}))
+    ].sort((a, b) => {
+        const dateA = new Date(a.date + ' ' + (a.timeIn || '00:00'));
+        const dateB = new Date(b.date + ' ' + (b.timeIn || '00:00'));
+        return dateB - dateA;
+    });
+
+    if (allEntries.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-4 text-gray-500">
+                    No entries found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    allEntries.forEach(entry => {
+        const row = document.createElement("tr");
+        row.className = entry.entryType === 'reservation' ? 'bg-yellow-50' : 
+                       entry.entryType === 'active' ? 'bg-green-50' : 'bg-gray-50';
+        
+        row.innerHTML = `
+            <td class="border px-4 py-2">${entry.idNumber || 'N/A'}</td>
+            <td class="border px-4 py-2">${entry.name || 'N/A'}</td>
+            <td class="border px-4 py-2">${entry.course || 'N/A'}</td>
+            <td class="border px-4 py-2">${entry.year || 'N/A'}</td>
+            <td class="border px-4 py-2">${entry.purpose || 'N/A'}</td>
+            <td class="border px-4 py-2">${entry.date || 'N/A'}</td>
+            <td class="border px-4 py-2">${entry.timeIn || 'N/A'}</td>
+            <td class="border px-4 py-2">
+                ${entry.timeOut ? new Date(entry.timeOut).toLocaleTimeString() : 'N/A'}
+            </td>
+            <td class="border px-4 py-2">
+                <span class="px-2 py-1 rounded text-sm ${
+                    entry.entryType === 'reservation' ? 'bg-yellow-100 text-yellow-800' :
+                    entry.entryType === 'active' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                }">
+                    ${entry.entryType === 'reservation' ? 'Pending' :
+                      entry.entryType === 'active' ? 'Active' : 'Completed'}
+                </span>
+            </td>
+            <td class="border px-4 py-2">
+                ${entry.entryType === 'reservation' ? `
+                    <div class="flex space-x-2">
+                        <button onclick="updateReservationStatus('${entry.id}', 'approved')" 
+                            class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600">
+                            Approve
+                        </button>
+                        <button onclick="updateReservationStatus('${entry.id}', 'rejected')" 
+                            class="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600">
+                            Reject
+                        </button>
+                    </div>
+                ` : entry.entryType === 'active' ? `
+                    <button onclick="completeSitIn('${entry.id}')" 
+                        class="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600">
+                        Mark as Completed
+                    </button>
+                ` : `
+                    <span class="text-sm text-gray-500">Completed at ${
+                        entry.timeOut ? new Date(entry.timeOut).toLocaleTimeString() : 'N/A'
+                    }</span>
+                `}
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
 }
 
 async function completeSitIn(sitInId) {
@@ -678,8 +578,77 @@ async function initializeDashboard() {
         const pendingReservations = reservations.filter(res => res.status === 'pending');
         document.getElementById('pending-reservations').textContent = pendingReservations.length;
 
-        // Create statistics chart
-        createStudentStatsChart(students);
+        // Get the chart context
+        const ctx = document.getElementById('studentStatsChart');
+        if (!ctx) {
+            console.warn('Chart canvas not found');
+            return;
+        }
+
+        // Safely destroy existing chart if it exists
+        if (window.studentStatsChart && typeof window.studentStatsChart.destroy === 'function') {
+            window.studentStatsChart.destroy();
+        }
+        
+        // Count programming language usage
+        const languageStats = {};
+        reservations.forEach(reservation => {
+            if (reservation.programmingLanguage) {
+                languageStats[reservation.programmingLanguage] = (languageStats[reservation.programmingLanguage] || 0) + 1;
+            }
+        });
+
+        // Prepare data for chart
+        const labels = Object.keys(languageStats);
+        const data = Object.values(languageStats);
+
+        // Create new chart only if Chart.js is loaded
+        if (typeof Chart !== 'undefined') {
+            window.studentStatsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Programming Language Usage',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(255, 206, 86, 0.5)',
+                            'rgba(153, 102, 255, 0.5)',
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(153, 102, 255, 1)',
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Programming Language Distribution'
+                        }
+                    }
+                }
+            });
+        } else {
+            console.warn('Chart.js is not loaded yet');
+        }
 
         // Load recent announcements
         loadRecentAnnouncements();
@@ -698,49 +667,15 @@ async function initializeDashboard() {
     }
 }
 
-// Function to create student statistics chart
-function createStudentStatsChart(students) {
-    // Group students by course
-    const courseStats = {};
-    students.forEach(student => {
-        courseStats[student.course] = (courseStats[student.course] || 0) + 1;
-    });
-
-    // Create chart data
-    const chartData = {
-        labels: Object.keys(courseStats),
-        datasets: [{
-            data: Object.values(courseStats),
-            backgroundColor: [
-                '#FF6384',
-                '#36A2EB',
-                '#FFCE56',
-                '#4BC0C0',
-                '#9966FF',
-                '#FF9F40'
-            ]
-        }]
-    };
-
-    // Create chart
-    const ctx = document.getElementById('studentStatsChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'pie',
-        data: chartData,
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'right'
-                }
-            }
-        }
-    });
-}
-
 // Function to post announcement
 async function postAnnouncement() {
+    const announcementTitle = document.getElementById('announcementTitle').value.trim();
     const announcementText = document.getElementById('announcementText').value.trim();
+    
+    if (!announcementTitle) {
+        alert("Please enter an announcement title.");
+        return;
+    }
     if (!announcementText) {
         alert("Please enter an announcement message.");
         return;
@@ -753,6 +688,7 @@ async function postAnnouncement() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
+                title: announcementTitle,
                 message: announcementText
             })
         });
@@ -760,6 +696,7 @@ async function postAnnouncement() {
         const data = await response.json();
         if (response.ok) {
             alert("Announcement posted successfully!");
+            document.getElementById('announcementTitle').value = '';
             document.getElementById('announcementText').value = '';
             await loadRecentAnnouncements();
         } else {
@@ -796,6 +733,7 @@ async function loadRecentAnnouncements() {
                 <div class="flex justify-between items-start">
                     <div>
                         <p class="text-sm text-gray-600">${new Date(announcement.date).toLocaleString()}</p>
+                        <h4 class="font-semibold text-gray-800 mb-1">${announcement.title}</h4>
                         <p class="mt-1">${announcement.message}</p>
                     </div>
                     <div class="flex space-x-2">
@@ -838,7 +776,8 @@ async function editAnnouncement(id) {
         modal.innerHTML = `
             <div class="bg-white p-6 rounded-lg w-96">
                 <h2 class="text-xl font-bold mb-4">Edit Announcement</h2>
-                <textarea id="editAnnouncementText" class="w-full p-2 border rounded mb-4" rows="4">${announcement.message}</textarea>
+                <input type="text" id="editAnnouncementTitle" class="w-full p-2 border rounded mb-2" value="${announcement.title || ''}" placeholder="Enter announcement title...">
+                <textarea id="editAnnouncementText" class="w-full p-2 border rounded mb-4" rows="4" placeholder="Enter announcement message...">${announcement.message}</textarea>
                 <div class="flex justify-end space-x-2">
                     <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
                     <button onclick="updateAnnouncement(${id})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Update</button>
@@ -854,7 +793,13 @@ async function editAnnouncement(id) {
 
 // Function to update announcement
 async function updateAnnouncement(id) {
+    const title = document.getElementById('editAnnouncementTitle').value.trim();
     const message = document.getElementById('editAnnouncementText').value.trim();
+    
+    if (!title) {
+        alert("Please enter an announcement title.");
+        return;
+    }
     if (!message) {
         alert("Please enter an announcement message.");
         return;
@@ -866,7 +811,7 @@ async function updateAnnouncement(id) {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ title, message })
         });
 
         if (response.ok) {
@@ -1430,115 +1375,63 @@ async function fetchStudentById(studentId) {
     }
 }
 
+// Function to export report
+async function exportReport(student, sitIns, startDate, endDate) {
+    // Implementation of export functionality
+    console.log('Exporting report...');
+}
+
 // Function to fetch sit-ins data
 async function fetchSitInsData() {
-    try {
-        const response = await fetch('http://localhost:3000/sit-ins');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching sit-ins:', error);
-        return [];
-    }
+    // Implementation of fetching sit-ins data
+    console.log('Fetching sit-ins data...');
+    return [];
 }
 
-// Function to export report as CSV
-function exportReport(student, sitIns, startDate, endDate) {
-    // Create CSV content
-    let csv = 'data:text/csv;charset=utf-8,';
-    
-    // Add report header
-    csv += 'Student Sit-In Report\r\n';
-    if (student) {
-        csv += `Student ID,${student.idNumber}\r\n`;
-        csv += `Student Name,${student.firstName} ${student.lastName}\r\n`;
-        csv += `Course,${student.course}\r\n`;
-        csv += `Year,${student.year}\r\n`;
-    }
-    
-    // Add date range
-    csv += `Date Range,${startDate || 'All'} to ${endDate || 'All'}\r\n\r\n`;
-    
-    // Add table headers
-    csv += 'Date,Time In,Time Out,Purpose,Status\r\n';
-    
-    // Add sit-ins data
-    sitIns.forEach(sitIn => {
-        const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
-        csv += `${sitIn.date},${sitIn.timeIn},${timeOut},"${sitIn.purpose}",${sitIn.status}\r\n`;
-    });
-    
-    // Create download link
-    const encodedUri = encodeURI(csv);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'student-report.csv');
-    document.body.appendChild(link);
-    
-    // Trigger download
-    link.click();
-    
-    // Clean up
-    document.body.removeChild(link);
-}
-
-// Function to load feedback - update to indicate it's now in the reports section
-async function loadFeedback() {
+// Function to check for auto-logouts
+async function checkAutoLogouts() {
     try {
-        const response = await fetch("http://localhost:3000/feedback");
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const feedback = await response.json();
+        const response = await fetch("http://localhost:3000/check-auto-logouts");
+        const data = await response.json();
         
-        const tableBody = document.getElementById("feedbackTableBody");
-        if (!tableBody) {
-            console.error("Feedback table body not found");
-            return;
-        }
-        
-        tableBody.innerHTML = '';
-
-        if (feedback.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No feedback received yet</td></tr>';
-            return;
-        }
-
-        feedback.forEach(item => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td class="border px-4 py-2">${new Date(item.date).toLocaleString()}</td>
-                <td class="border px-4 py-2">${item.userName || item.userId}</td>
-                <td class="border px-4 py-2">${item.message}</td>
-                <td class="border px-4 py-2">
-                    <span class="px-2 py-1 rounded text-sm ${
-                        item.type === 'complaint' ? 'bg-red-100 text-red-800' :
-                        item.type === 'suggestion' ? 'bg-green-100 text-green-800' :
-                        item.type === 'bug' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                    }">
-                        ${item.type}
-                    </span>
-                </td>
-                <td class="border px-4 py-2">
-                    <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-2 py-1 rounded text-sm feedback-reply-btn" data-id="${item.id}">
-                        Reply
-                    </button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
-        
-        // Add event listeners to reply buttons
-        document.querySelectorAll('.feedback-reply-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert('Reply functionality to be implemented');
-                // TODO: Implement reply functionality
+        if (data.success && data.loggedOutUsers.length > 0) {
+            // Refresh the sit-ins table if any users were logged out
+            fetchSitIns();
+            
+            // Show notification
+            data.loggedOutUsers.forEach(user => {
+                showNotification(`User ${user.idNumber} was automatically logged out at ${user.timeOut}`);
             });
-        });
+        }
     } catch (error) {
-        console.error("Error loading feedback:", error);
+        console.error("Error checking auto-logouts:", error);
     }
 }
+
+// Function to show notifications
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    // Remove notification after 5 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Start auto-logout checker
+setInterval(checkAutoLogouts, 60000); // Check every minute
+
+// Add search functionality for unified table
+document.getElementById('unified-search')?.addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const tableBody = document.getElementById('unified-sit-ins-table');
+    const rows = tableBody.getElementsByTagName('tr');
+
+    for (let row of rows) {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    }
+});
