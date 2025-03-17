@@ -911,21 +911,24 @@ async function loadReservationHistory() {
 // Function to submit feedback
 async function submitFeedback(sitInId) {
     try {
-        const feedbackTextarea = document.querySelector(`textarea[data-sit-in-id="${sitInId}"]`);
-        if (!feedbackTextarea) {
-            throw new Error('Feedback textarea not found');
-        }
-
-        const comments = feedbackTextarea.value.trim();
-        if (!comments) {
-            alert('Please enter your feedback comments');
+        const textarea = document.querySelector(`textarea[data-sit-in-id="${sitInId}"]`);
+        const message = textarea.value.trim();
+        
+        if (!message) {
+            alert('Please enter your feedback before submitting.');
             return;
         }
 
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const userId = userData?.idNumber || localStorage.getItem('currentUserId');
+
         if (!userId) {
-            throw new Error('User ID not found');
+            alert('User ID not found. Please log in again.');
+            return;
         }
+
+        const sitInRow = textarea.closest('tr').previousElementSibling;
+        const laboratory = sitInRow.querySelector('td:first-child').textContent;
 
         const response = await fetch('http://localhost:3000/submit-feedback', {
             method: 'POST',
@@ -933,27 +936,30 @@ async function submitFeedback(sitInId) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                userId,
                 sitInId,
-                comments,
+                userId,
+                message,
+                laboratory,
+                type: 'general',
                 date: new Date().toISOString()
             })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to submit feedback');
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to submit feedback');
         }
 
-        const data = await response.json();
-        if (data.success) {
-            alert('Feedback submitted successfully!');
-            feedbackTextarea.value = '';
-        } else {
-            throw new Error(data.message || 'Failed to submit feedback');
-        }
+        // Remove the feedback form
+        textarea.closest('tr').remove();
+        
+        alert('Feedback submitted successfully!');
+        
+        // Reload sit-in history to reflect changes
+        await loadSitInHistory();
     } catch (error) {
         console.error('Error submitting feedback:', error);
-        alert('Error submitting feedback: ' + error.message);
+        alert('Failed to submit feedback. Please try again.');
     }
 }
 
@@ -1029,6 +1035,21 @@ async function viewDetails(sitInId) {
     }
 }
 
+// Function to generate star rating HTML
+function generateStarRating(rating) {
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+        stars += `
+            <button class="star ${i <= rating ? 'text-yellow-400' : 'text-gray-300'}" data-rating="${i}">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+            </button>
+        `;
+    }
+    return stars;
+}
+
 // Function to load sit-in history
 async function loadSitInHistory() {
     try {
@@ -1060,7 +1081,6 @@ async function loadSitInHistory() {
             return;
         }
 
-        // Create main table for sit-in details
         userSitIns.forEach(sitIn => {
             const row = document.createElement('tr');
             row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
@@ -1069,6 +1089,9 @@ async function loadSitInHistory() {
             const dateTime = new Date(sitIn.date);
             const formattedDate = dateTime.toLocaleDateString();
             const formattedTime = dateTime.toLocaleTimeString();
+
+            // Generate star rating HTML
+            const starRating = sitIn.rating ? generateStarRating(sitIn.rating) : generateStarRating(0);
 
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.labRoom || 'N/A'}</td>
@@ -1081,57 +1104,50 @@ async function loadSitInHistory() {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    <button onclick="viewDetails('${sitIn._id}')" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                        View Details
-                    </button>
+                    <div class="flex items-center space-x-1" data-sit-in-id="${sitIn._id}">
+                        ${starRating}
+                    </div>
                 </td>
             `;
             tableBody.appendChild(row);
 
-            // Create feedback section for this sit-in
-            const feedbackRow = document.createElement('tr');
-            feedbackRow.className = 'bg-gray-50 dark:bg-gray-800';
-            
-            // Create star rating HTML
-            const starRating = sitIn.rating ? generateStarRating(sitIn.rating) : generateStarRating(0);
-
-            feedbackRow.innerHTML = `
-                <td colspan="6" class="px-6 py-4">
-                    <div class="space-y-4">
-                        <h4 class="font-medium text-gray-900 dark:text-gray-100">Feedback</h4>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Rating:</span>
-                            <div class="flex items-center space-x-1" data-sit-in-id="${sitIn._id}">
-                                ${starRating}
+            // Only show feedback form for completed sit-ins that haven't been rated
+            if (sitIn.status === 'completed' && !sitIn.feedback) {
+                const feedbackRow = document.createElement('tr');
+                feedbackRow.className = 'bg-gray-50 dark:bg-gray-800';
+                feedbackRow.innerHTML = `
+                    <td colspan="6" class="px-6 py-4">
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="block text-sm text-gray-600 dark:text-gray-400">Comments:</label>
+                                <div class="flex items-center space-x-2">
+                                    <textarea 
+                                        class="w-full px-2 py-1 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600" 
+                                        rows="2" 
+                                        placeholder="Add your comments..."
+                                        data-sit-in-id="${sitIn._id}"
+                                    ></textarea>
+                                    <button 
+                                        onclick="submitFeedback('${sitIn._id}')" 
+                                        class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    >
+                                        Submit
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="space-y-2">
-                            <label class="block text-sm text-gray-600 dark:text-gray-400">Comments:</label>
-                            <div class="flex items-center space-x-2">
-                                <textarea 
-                                    class="w-full px-2 py-1 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600" 
-                                    rows="2" 
-                                    placeholder="Add your comments..."
-                                    data-sit-in-id="${sitIn._id}"
-                                >${sitIn.comments || ''}</textarea>
-                                <button 
-                                    onclick="submitFeedback('${sitIn._id}')" 
-                                    class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                >
-                                    Submit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </td>
-            `;
-            tableBody.appendChild(feedbackRow);
+                    </td>
+                `;
+                tableBody.appendChild(feedbackRow);
+            }
 
             // Add event listeners for star rating
-            const stars = feedbackRow.querySelectorAll('.star');
-            stars.forEach((star, index) => {
-                star.addEventListener('click', () => updateRating(sitIn._id, index + 1));
-            });
+            if (sitIn.status === 'completed') {
+                const stars = row.querySelectorAll('.star');
+                stars.forEach((star, index) => {
+                    star.addEventListener('click', () => updateRating(sitIn._id, index + 1));
+                });
+            }
         });
     } catch (error) {
         console.error('Error loading sit-in history:', error);
@@ -1143,7 +1159,7 @@ async function loadSitInHistory() {
 // Function to update rating
 async function updateRating(sitInId, rating) {
     try {
-        const response = await fetch(`http://localhost:3000/update-sit-in-rating`, {
+        const response = await fetch(`http://localhost:3000/update-rating`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1154,34 +1170,15 @@ async function updateRating(sitInId, rating) {
             })
         });
 
-        if (response.status === 404) {
-            throw new Error('Rating update service is currently unavailable');
-        }
-
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to update rating');
+            throw new Error('Failed to update rating');
         }
 
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.message || 'Failed to update rating');
-        }
-
-        // Update the star rating display immediately
-        const starsContainer = document.querySelector(`div[data-sit-in-id="${sitInId}"]`);
-        if (starsContainer) {
-            starsContainer.innerHTML = generateStarRating(rating);
-            // Reattach event listeners to stars
-            const stars = starsContainer.querySelectorAll('.star');
-            stars.forEach((star, index) => {
-                star.addEventListener('click', () => updateRating(sitInId, index + 1));
-            });
-        }
-
+        // Reload sit-in history to reflect changes
+        await loadSitInHistory();
     } catch (error) {
         console.error('Error updating rating:', error);
-        alert(error.message);
+        alert('Failed to update rating. Please try again.');
     }
 }
 

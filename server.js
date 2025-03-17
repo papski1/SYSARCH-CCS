@@ -377,7 +377,7 @@ app.post("/register", async (req, res) => {
         const isComputerCourse = course.toLowerCase().includes('computer') || 
                                 course.toLowerCase().includes('information') || 
                                 course.toLowerCase().includes('software');
-        const initialSessions = isComputerCourse ? 15 : 10;
+        const initialSessions = isComputerCourse ? 30 : 15;
 
         const newUser = { 
             idNumber, 
@@ -740,11 +740,15 @@ app.post("/update-sit-in-status", (req, res) => {
 // Helper functions for feedback
 function readFeedback() {
     try {
-        if (!fs.existsSync("feedback.json")) {
-            fs.writeFileSync("feedback.json", JSON.stringify([], null, 2), "utf8");
+        const feedbackPath = "data/feedback.json";
+        if (!fs.existsSync("data")) {
+            fs.mkdirSync("data");
+        }
+        if (!fs.existsSync(feedbackPath)) {
+            fs.writeFileSync(feedbackPath, JSON.stringify([], null, 2), "utf8");
             return [];
         }
-        const data = fs.readFileSync("feedback.json", "utf8");
+        const data = fs.readFileSync(feedbackPath, "utf8");
         return JSON.parse(data) || [];
     } catch (error) {
         console.error("Error reading feedback:", error);
@@ -754,7 +758,10 @@ function readFeedback() {
 
 function writeFeedback(feedback) {
     try {
-        fs.writeFileSync("feedback.json", JSON.stringify(feedback || [], null, 2), "utf8");
+        if (!fs.existsSync("data")) {
+            fs.mkdirSync("data");
+        }
+        fs.writeFileSync("data/feedback.json", JSON.stringify(feedback || [], null, 2), "utf8");
     } catch (error) {
         console.error("Error writing feedback:", error);
         throw error;
@@ -764,9 +771,9 @@ function writeFeedback(feedback) {
 // Route: Submit feedback
 app.post("/submit-feedback", async (req, res) => {
     try {
-        const { userId, sitInId, type, message, date } = req.body;
+        const { userId, sitInId, type, message, laboratory, date } = req.body;
 
-        if (!userId || !sitInId || !type || !message) {
+        if (!userId || !message) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields'
@@ -779,23 +786,18 @@ app.post("/submit-feedback", async (req, res) => {
             sitInId,
             type,
             message,
-            date
+            laboratory,
+            date: date || new Date().toISOString()
         };
 
         // Read existing feedback
-        let feedbackData = [];
-        try {
-            feedbackData = JSON.parse(fs.readFileSync('data/feedback.json', 'utf8'));
-        } catch (error) {
-            // If file doesn't exist, create it with empty array
-            fs.writeFileSync('data/feedback.json', '[]');
-        }
+        let feedbackData = readFeedback();
 
         // Add new feedback
         feedbackData.push(feedback);
 
         // Save updated feedback data
-        fs.writeFileSync('data/feedback.json', JSON.stringify(feedbackData, null, 2));
+        writeFeedback(feedbackData);
 
         res.json({
             success: true,

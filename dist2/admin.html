@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 text-gray-900">
     <div class="flex h-screen">
@@ -16,7 +17,8 @@
             <ul class="space-y-2">
                 <li><a href="#dashboard" class="block py-2 px-4 rounded hover:bg-gray-200">Dashboard</a></li>
                 <li><a href="#students" class="block py-2 px-4 rounded hover:bg-gray-200">Students</a></li>
-                <li><a href="#sit-in" class="block py-2 px-4 rounded hover:bg-gray-200">Sit-in Management</a></li>
+                <li><a href="#sit-in" class="block py-2 px-4 rounded hover:bg-gray-200">Sit-in</a></li>
+                <li><a href="#sit-in-records" class="block py-2 px-4 rounded hover:bg-gray-200">View Sit-in Records</a></li>
                 <li><a href="#reports" class="block py-2 px-4 rounded hover:bg-gray-200">Reports</a></li>
                 <li><a href="#reset-session" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Reset Sessions</a></li>
                 <li><a href="#logout" class="block py-2 px-4 rounded hover:bg-red-200 text-red-600">Logout</a></li>
@@ -127,6 +129,21 @@
                 </div>
             </section>
 
+            <!-- Sit-in Records Section -->
+            <section id="sit-in-records" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">Today's Sit-in Records</h2>
+                
+                <!-- Charts Section -->
+                <div class="space-y-4">
+                    <div class="bg-white p-6 rounded shadow w-full">
+                        <canvas id="programmingLanguageChart" height="300"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow w-full">
+                        <canvas id="labRoomChart" height="300"></canvas>
+                    </div>
+                </div>
+            </section>
+
             <section id="reports" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Reports</h2>
                 
@@ -182,11 +199,10 @@
                     <table class="w-full border-collapse border border-gray-300">
                         <thead>
                             <tr class="bg-gray-200">
+                                <th class="border border-gray-300 px-4 py-2">ID Number</th>
+                                <th class="border border-gray-300 px-4 py-2">Laboratory</th>
                                 <th class="border border-gray-300 px-4 py-2">Date</th>
-                                <th class="border border-gray-300 px-4 py-2">User</th>
                                 <th class="border border-gray-300 px-4 py-2">Message</th>
-                                <th class="border border-gray-300 px-4 py-2">Type</th>
-                                <th class="border border-gray-300 px-4 py-2">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="feedbackTableBody">

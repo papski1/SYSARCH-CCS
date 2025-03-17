@@ -1,5 +1,43 @@
 [
   {
+    "id": 1742186295890,
+    "userId": "22635452",
+    "type": "Sit-in Completed",
+    "details": {
+      "date": "2025-03-17",
+      "timeIn": "11:35",
+      "timeOut": "2025-03-17T04:38:15.881Z",
+      "labRoom": "544"
+    },
+    "date": "2025-03-17T04:38:15.890Z"
+  },
+  {
+    "id": 1742182560549,
+    "userId": "22635452",
+    "type": "Sit-in Started",
+    "details": {
+      "date": "2025-03-17",
+      "timeIn": "11:35",
+      "timeOut": "13:35",
+      "labRoom": "544",
+      "status": "active",
+      "autoLogout": true
+    },
+    "date": "2025-03-17T03:36:00.549Z"
+  },
+  {
+    "id": 1742182540618,
+    "userId": "22635452",
+    "type": "Reservation Created",
+    "details": {
+      "date": "2025-03-17",
+      "time": "11:35",
+      "labRoom": "544",
+      "status": "pending"
+    },
+    "date": "2025-03-17T03:35:40.618Z"
+  },
+  {
     "id": 1741755245070,
     "userId": "22635452",
     "type": "Sit-in Completed",

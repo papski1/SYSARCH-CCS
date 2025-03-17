@@ -1,0 +1,44 @@
+[
+  {
+    "id": "d42c4507-1035-40f7-b05e-895b5058503f",
+    "userId": "22635452",
+    "sitInId": "undefined",
+    "type": "general",
+    "message": "dasdasd",
+    "date": "2025-03-17T03:53:43.182Z"
+  },
+  {
+    "id": "4f0110fe-1fb3-4305-97e2-d920a8045e5c",
+    "userId": "22635452",
+    "sitInId": "undefined",
+    "type": "general",
+    "message": "asdasdas",
+    "date": "2025-03-17T03:55:49.904Z"
+  },
+  {
+    "id": "94bfbf19-34c8-4bdf-a507-69d8a0772993",
+    "userId": "22635452",
+    "sitInId": "undefined",
+    "type": "general",
+    "message": "asdasdas",
+    "date": "2025-03-17T04:12:19.265Z"
+  },
+  {
+    "id": "9edc8d09-6f86-4612-9caa-040e2f501d32",
+    "userId": "22635452",
+    "sitInId": "undefined",
+    "type": "general",
+    "message": "skrt skrt",
+    "laboratory": "526",
+    "date": "2025-03-17T04:17:44.784Z"
+  },
+  {
+    "id": "e5f09ed8-89f9-4248-9985-ddffe73ea777",
+    "userId": "22635452",
+    "sitInId": "undefined",
+    "type": "general",
+    "message": "owaha",
+    "laboratory": "526",
+    "date": "2025-03-17T04:17:55.057Z"
+  }
+]

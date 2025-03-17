@@ -16,13 +16,12 @@ function showSection(sectionId) {
         
         // Special handling for different sections
         if (sectionId === "sit-in") {
-            // Load unified sit-ins and reservations data
             fetchSitIns();
+        } else if (sectionId === "sit-in-records") {
+            loadTodaysSitInRecords();
         } else if (sectionId === "reports") {
-            // Initialize reports section
             initializeReportsCharts();
         } else if (sectionId === "dashboard") {
-            // Initialize dashboard
             initializeDashboard();
         }
     }
@@ -467,12 +466,17 @@ function displayUnifiedTable(pendingReservations, activeSitIns, completedSitIns)
         row.className = entry.entryType === 'reservation' ? 'bg-yellow-50' : 
                        entry.entryType === 'active' ? 'bg-green-50' : 'bg-gray-50';
         
+        // For sit-ins (active or completed), use programming language as purpose
+        const displayPurpose = entry.entryType === 'reservation' ? 
+            (entry.purpose || 'N/A') : 
+            (entry.programmingLanguage ? `${entry.programmingLanguage}` : 'N/A');
+        
         row.innerHTML = `
             <td class="border px-4 py-2">${entry.idNumber || 'N/A'}</td>
             <td class="border px-4 py-2">${entry.name || 'N/A'}</td>
             <td class="border px-4 py-2">${entry.course || 'N/A'}</td>
             <td class="border px-4 py-2">${entry.year || 'N/A'}</td>
-            <td class="border px-4 py-2">${entry.purpose || 'N/A'}</td>
+            <td class="border px-4 py-2">${displayPurpose}</td>
             <td class="border px-4 py-2">${entry.date || 'N/A'}</td>
             <td class="border px-4 py-2">${entry.timeIn || 'N/A'}</td>
             <td class="border px-4 py-2">
@@ -541,11 +545,26 @@ async function completeSitIn(sitInId) {
         }
 
         if (data.success) {
+            // Log out the student
+            const logoutResponse = await fetch("http://localhost:3000/logout-student", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    sitInId: parseInt(sitInId)
+                })
+            });
+
+            if (!logoutResponse.ok) {
+                console.error("Failed to logout student");
+            }
+
             // Refresh the sit-ins tables
             await fetchSitIns();
             
             // Show success message
-            alert("Sit-in marked as completed successfully!");
+            alert("Sit-in marked as completed and student logged out successfully!");
         } else {
             throw new Error(data.message || 'Failed to update sit-in status');
         }
@@ -1435,3 +1454,347 @@ document.getElementById('unified-search')?.addEventListener('input', function(e)
         row.style.display = text.includes(searchTerm) ? '' : 'none';
     }
 });
+
+// Function to fetch reservations
+async function fetchReservations() {
+    try {
+        const response = await fetch("http://localhost:3000/reservations");
+        if (!response.ok) {
+            throw new Error("Failed to fetch reservations");
+        }
+        const reservations = await response.json();
+        return reservations;
+    } catch (error) {
+        console.error("Error fetching reservations:", error);
+        throw error;
+    }
+}
+
+// Function to load feedback
+async function loadFeedback() {
+    try {
+        const response = await fetch('http://localhost:3000/feedback');
+        if (!response.ok) {
+            throw new Error('Failed to fetch feedback');
+        }
+
+        const feedback = await response.json();
+        const tableBody = document.getElementById('feedbackTableBody');
+        
+        if (!tableBody) {
+            console.error('Feedback table body not found');
+            return;
+        }
+
+        tableBody.innerHTML = '';
+
+        if (feedback.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4 text-gray-500">No feedback available</td>
+                </tr>
+            `;
+            return;
+        }
+
+        // Sort feedback by date (newest first)
+        feedback.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        feedback.forEach(item => {
+            const row = document.createElement('tr');
+            const date = new Date(item.date).toLocaleString();
+            
+            row.innerHTML = `
+                <td class="border px-4 py-2">${item.userId || 'N/A'}</td>
+                <td class="border px-4 py-2">${item.laboratory || 'N/A'}</td>
+                <td class="border px-4 py-2">${date}</td>
+                <td class="border px-4 py-2">${item.message || 'N/A'}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        // Clear the notification dot after loading feedback
+        clearFeedbackNotification();
+        
+    } catch (error) {
+        console.error('Error loading feedback:', error);
+        const tableBody = document.getElementById('feedbackTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4 text-red-500">
+                        Error loading feedback: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// Function to load today's sit-in records
+async function loadTodaysSitInRecords() {
+    try {
+        const response = await fetch("http://localhost:3000/sit-ins");
+        if (!response.ok) {
+            throw new Error("Failed to fetch sit-in records");
+        }
+
+        const sitIns = await response.json();
+        
+        // Filter for today's records
+        const today = new Date().toISOString().split('T')[0];
+        const todaysSitIns = sitIns.filter(sitIn => sitIn.date === today);
+
+        // Display records in table
+        displaySitInRecords(todaysSitIns);
+        
+        // Update charts
+        updateProgrammingLanguageChart(todaysSitIns);
+        updateLabRoomChart(todaysSitIns);
+    } catch (error) {
+        console.error("Error loading sit-in records:", error);
+        const tableBody = document.getElementById("sit-in-records-table");
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center py-4 text-red-500">
+                        Error loading records: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// Function to display sit-in records
+function displaySitInRecords(records) {
+    const tableBody = document.getElementById("sit-in-records-table");
+    if (!tableBody) return;
+
+    if (records.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-4 text-gray-500">
+                    No records found for today
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tableBody.innerHTML = "";
+    records.forEach(record => {
+        const timeIn = record.timeIn || 'N/A';
+        const timeOut = record.timeOut ? new Date(record.timeOut).toLocaleTimeString() : 'N/A';
+        let duration = 'N/A';
+        
+        if (record.timeIn && record.timeOut) {
+            const start = new Date(record.date + ' ' + record.timeIn);
+            const end = new Date(record.timeOut);
+            const diff = Math.round((end - start) / (1000 * 60)); // Duration in minutes
+            duration = `${diff} mins`;
+        }
+
+        const row = document.createElement("tr");
+        row.className = record.status === 'active' ? 'bg-green-50' : 'bg-gray-50';
+        row.innerHTML = `
+            <td class="border px-4 py-2">${record.idNumber || 'N/A'}</td>
+            <td class="border px-4 py-2">${record.name || 'N/A'}</td>
+            <td class="border px-4 py-2">${record.course || 'N/A'}</td>
+            <td class="border px-4 py-2">${record.year || 'N/A'}</td>
+            <td class="border px-4 py-2">${record.programmingLanguage || 'N/A'}</td>
+            <td class="border px-4 py-2">${record.laboratory || 'N/A'}</td>
+            <td class="border px-4 py-2">${timeIn}</td>
+            <td class="border px-4 py-2">${timeOut}</td>
+            <td class="border px-4 py-2">${duration}</td>
+            <td class="border px-4 py-2">
+                <span class="px-2 py-1 rounded text-sm ${
+                    record.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }">
+                    ${record.status}
+                </span>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// Add search functionality for records
+document.getElementById('records-search')?.addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const tableBody = document.getElementById('sit-in-records-table');
+    const rows = tableBody.getElementsByTagName('tr');
+
+    for (let row of rows) {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    }
+});
+
+// Function to update programming language distribution chart
+function updateProgrammingLanguageChart(records) {
+    const canvas = document.getElementById('programmingLanguageChart');
+    if (!canvas) return;
+
+    // Count programming languages
+    const languageStats = {};
+    records.forEach(record => {
+        const lang = record.programmingLanguage || 'Not Specified';
+        languageStats[lang] = (languageStats[lang] || 0) + 1;
+    });
+
+    // Prepare data for chart
+    const labels = Object.keys(languageStats);
+    const data = Object.values(languageStats);
+
+    // Define colors
+    const backgroundColors = [
+        'rgba(255, 99, 132, 0.7)',
+        'rgba(54, 162, 235, 0.7)',
+        'rgba(255, 206, 86, 0.7)',
+        'rgba(75, 192, 192, 0.7)',
+        'rgba(153, 102, 255, 0.7)',
+        'rgba(255, 159, 64, 0.7)',
+        'rgba(199, 199, 199, 0.7)'
+    ];
+
+    // Get the chart instance if it exists
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    // Create new chart
+    new Chart(canvas, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors.slice(0, labels.length),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: 20
+            },
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 12
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                title: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+// Function to update lab room distribution chart
+function updateLabRoomChart(records) {
+    const canvas = document.getElementById('labRoomChart');
+    if (!canvas) return;
+
+    // Count lab room usage
+    const labStats = {};
+    records.forEach(record => {
+        const lab = record.laboratory || 'Not Specified';
+        labStats[lab] = (labStats[lab] || 0) + 1;
+    });
+
+    // Prepare data for chart
+    const labels = Object.keys(labStats);
+    const data = Object.values(labStats);
+
+    // Define colors
+    const backgroundColors = [
+        'rgba(75, 192, 192, 0.7)',
+        'rgba(255, 159, 64, 0.7)',
+        'rgba(54, 162, 235, 0.7)',
+        'rgba(255, 99, 132, 0.7)',
+        'rgba(153, 102, 255, 0.7)',
+        'rgba(255, 206, 86, 0.7)',
+        'rgba(199, 199, 199, 0.7)'
+    ];
+
+    // Get the chart instance if it exists
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    // Create new chart
+    new Chart(canvas, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors.slice(0, labels.length),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: 20
+            },
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 12
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                title: {
+                    display: false
+                }
+            }
+        }
+    });
+}
