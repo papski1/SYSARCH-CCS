@@ -1,5 +1,87 @@
 [
   {
+    "id": 1742204009514,
+    "timestamp": "2025-03-17T09:33:29.514Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "dateRange": {
+        "start": "2025-01-01",
+        "end": "2025-05-31"
+      },
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 1
+    }
+  },
+  {
+    "id": 1742203803815,
+    "timestamp": "2025-03-17T09:30:03.815Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "dateRange": {
+        "start": "2025-01-01",
+        "end": "2025-05-31"
+      },
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 1
+    }
+  },
+  {
+    "id": 1742203555499,
+    "timestamp": "2025-03-17T09:25:55.499Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "dateRange": {
+        "start": "2025-01-01",
+        "end": "2025-05-31"
+      },
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0
+    }
+  },
+  {
+    "id": 1742203545227,
+    "timestamp": "2025-03-17T09:25:45.227Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "22635452",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0
+    }
+  },
+  {
+    "id": 1742203403814,
+    "timestamp": "2025-03-17T09:23:23.814Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "dateRange": {
+        "start": "2025-01-01",
+        "end": "2025-05-31"
+      },
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 2
+    }
+  },
+  {
+    "id": 1742203297074,
+    "timestamp": "2025-03-17T09:21:37.074Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "22635452",
+      "reservationsRemoved": 2,
+      "sitInsRemoved": 2
+    }
+  },
+  {
     "id": 1741755053295,
     "timestamp": "2025-03-12T04:50:53.295Z",
     "adminId": "admin",
