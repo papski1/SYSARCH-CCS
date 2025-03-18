@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animation for fade-in effect */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        
+        /* Additional styles for reset session */
+        #reset-status-container {
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 text-gray-900">
     <div class="flex h-screen">
@@ -96,6 +111,82 @@
             <!-- Combined Sit-in Management Section -->
             <section id="sit-in" class="hidden">
                 <h2 class="text-xl font-semibold mb-4">Sit-in Management</h2>
+                
+                <!-- Walk-in Form -->
+                <div class="bg-white p-4 rounded shadow mb-6">
+                    <h3 class="text-lg font-semibold mb-4 border-b pb-2">Add Walk-in Student</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Student Search and Info -->
+                        <div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                                <div class="flex">
+                                    <input type="text" 
+                                           id="walkin-student-id" 
+                                           placeholder="Enter student ID..." 
+                                           class="flex-1 p-2 border rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button id="search-student-btn" 
+                                            class="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600">
+                                        Search
+                                    </button>
+                                </div>
+                                <p id="student-search-status" class="mt-1 text-sm text-gray-500"></p>
+                            </div>
+                            
+                            <div id="student-info" class="bg-gray-50 p-3 rounded mb-4 hidden">
+                                <h4 class="font-medium text-sm mb-2">Student Information</h4>
+                                <p class="text-sm"><span class="font-medium">Name:</span> <span id="walkin-student-name">-</span></p>
+                                <p class="text-sm"><span class="font-medium">Course:</span> <span id="walkin-student-course">-</span></p>
+                                <p class="text-sm"><span class="font-medium">Year:</span> <span id="walkin-student-year">-</span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Sit-in Details -->
+                        <div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
+                                <select id="walkin-purpose" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Select a purpose...</option>
+                                    <option value="Assignment">Assignment</option>
+                                    <option value="Project">Project</option>
+                                    <option value="Research">Research</option>
+                                    <option value="Browsing">Browsing</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div id="other-purpose-container" class="mb-4 hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Specify Other Purpose</label>
+                                <input type="text" id="walkin-other-purpose" placeholder="Enter purpose..." class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <div class="flex mb-4 items-center">
+                                <label class="block text-sm font-medium text-gray-700 mr-2">Programming Language:</label>
+                                <select id="walkin-prog-language" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">None</option>
+                                    <option value="C++">C++</option>
+                                    <option value="Java">Java</option>
+                                    <option value="Python">Python</option>
+                                    <option value="JavaScript">JavaScript</option>
+                                    <option value="PHP">PHP</option>
+                                    <option value="C#">C#</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div id="prog-language-other-container" class="mb-4 hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Specify Other Language</label>
+                                <input type="text" id="walkin-other-language" placeholder="Enter language..." class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button id="add-walkin-btn" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                                    Add Walk-in
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Unified Management Table -->
                 <div class="bg-white p-4 rounded shadow">
@@ -224,71 +315,148 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Reset Sessions Section -->
+            <section id="reset-session" class="hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="space-y-6">
+                        <!-- Header -->
+                        <div class="flex justify-between items-center border-b pb-4">
+                            <h2 class="text-2xl font-bold text-gray-900">Reset Sessions</h2>
+                            <div class="flex items-center gap-2">
+                                <span id="last-reset" class="text-sm text-gray-500"></span>
+                                <button id="refresh-logs" class="text-blue-600 hover:text-blue-800 flex items-center gap-1 px-3 py-1 rounded-md hover:bg-blue-50 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span>Refresh</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Status message area -->
+                        <div id="reset-status-container" class="hidden">
+                            <div id="reset-status-message" class="p-4 rounded-lg shadow-sm"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                            <!-- Left Column (2 cols) - Reset Controls -->
+                            <div class="lg:col-span-2 space-y-6">
+                                <!-- Warning Message -->
+                                <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <div class="flex items-start">
+                                        <svg class="w-5 h-5 text-yellow-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <p class="text-sm text-yellow-700">
+                                            Warning: This action will permanently delete sessions data and cannot be undone. Please double-check your selection before proceeding.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Reset by Semester -->
+                                <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Reset by Semester</h3>
+                                    <div class="space-y-4">
+                                        <select id="semester-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                            <option value="">Select a semester...</option>
+                                            <option value="First Semester">First Semester</option>
+                                            <option value="Second Semester">Second Semester</option>
+                                            <option value="Summer">Summer</option>
+                                        </select>
+                                        <button id="reset-semester-btn" class="w-full bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 transition-all font-medium">
+                                            Reset Semester
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Reset by User -->
+                                <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Reset by User</h3>
+                                    <div class="space-y-4">
+                                        <div class="relative">
+                                            <input type="text" id="user-id-input" placeholder="Enter student ID number" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                                            <div class="absolute left-3 top-3 text-gray-400">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <button id="reset-user-btn" class="w-full bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 transition-all font-medium">
+                                            Reset User Sessions
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Reset Statistics -->
+                                <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                                    <h3 class="text-lg font-semibold mb-4 text-gray-800">Reset Statistics</h3>
+                                    <div class="space-y-4">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="bg-gray-50 p-4 rounded-lg">
+                                                <p class="text-sm text-gray-600">Total Resets</p>
+                                                <p class="text-2xl font-bold text-gray-900" id="total-resets">0</p>
+                                            </div>
+                                            <div class="bg-gray-50 p-4 rounded-lg">
+                                                <p class="text-sm text-gray-600">Today's Resets</p>
+                                                <p class="text-2xl font-bold text-gray-900" id="today-resets">0</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column (3 cols) - Reset Logs -->
+                            <div class="lg:col-span-3">
+                                <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm h-full">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-800">Recent Reset Operations</h3>
+                                        <div class="flex space-x-2">
+                                            <input type="text" id="logs-search" placeholder="Search logs..." class="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                            <select id="logs-filter" class="text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                                <option value="all">All resets</option>
+                                                <option value="semester">Semester resets</option>
+                                                <option value="user">User resets</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="overflow-hidden rounded-lg border border-gray-200">
+                                        <div class="overflow-x-auto max-h-[500px]">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-50 sticky top-0">
+                                                    <tr>
+                                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="reset-logs-table" class="bg-white divide-y divide-gray-200">
+                                                    <tr>
+                                                        <td colspan="4" class="px-3 py-2 text-center text-sm text-gray-500">Loading reset history...</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 flex justify-between items-center text-sm text-gray-500">
+                                        <span id="logs-count">0 logs found</span>
+                                        <button id="export-logs" class="text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <span>Export Logs</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 
-    <!-- Reset Sessions Section -->
-    <section id="reset-session" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 class="text-xl font-semibold mb-4 text-red-600">Reset Sessions</h2>
-            
-            <!-- Status message area -->
-            <div id="reset-status-container" class="mb-4 hidden">
-                <div id="reset-status-message" class="p-3 rounded text-center"></div>
-            </div>
-            
-            <div class="mb-6">
-                <p class="mb-4 text-gray-700">Be careful! This action will permanently delete sessions data and cannot be undone.</p>
-                
-                <div class="mb-4">
-                    <h3 class="font-medium mb-2">Reset by Semester</h3>
-                    <select id="semester-select" class="w-full p-2 border rounded mb-2">
-                        <option value="">Select a semester...</option>
-                        <option value="First Semester">First Semester</option>
-                        <option value="Second Semester">Second Semester</option>
-                        <option value="Summer">Summer</option>
-                    </select>
-                    <button id="reset-semester-btn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Reset Semester</button>
-                </div>
-                
-                <div class="my-4 border-t border-gray-300"></div>
-                
-                <div>
-                    <h3 class="font-medium mb-2">Reset by User</h3>
-                    <input type="text" id="user-id-input" placeholder="Enter student ID number" class="w-full p-2 border rounded mb-2">
-                    <button id="reset-user-btn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Reset User Sessions</button>
-                </div>
-            </div>
-            
-            <div class="my-4 border-t border-gray-300"></div>
-            
-            <div class="mb-4">
-                <h3 class="font-medium mb-2">Recent Reset Operations</h3>
-                <div class="max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
-                    <table class="min-w-full border-collapse">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="p-2 text-left">Date</th>
-                                <th class="p-2 text-left">Type</th>
-                                <th class="p-2 text-left">Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reset-logs-table">
-                            <!-- Reset logs will be loaded here -->
-                            <tr>
-                                <td colspan="3" class="p-2 text-center text-gray-500">Loading reset history...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div class="flex justify-end">
-                <button id="close-reset-modal" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Close</button>
-            </div>
-        </div>
-    </section>
-    
     <script src="/public/admin.js"></script>
 </body>
 </html>

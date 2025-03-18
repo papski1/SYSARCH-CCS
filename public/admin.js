@@ -24,220 +24,101 @@ function showSection(sectionId) {
         } else if (sectionId === "dashboard") {
             // Initialize dashboard
             initializeDashboard();
+        } else if (sectionId === "reset-session") {
+            // Initialize reset session section
+            initResetSession();
         }
     }
 }
 
-// Handle navigation
+// Handle navigation and initialize admin dashboard
 document.addEventListener("DOMContentLoaded", function() {
-    // Get all menu links
-    const menuLinks = document.querySelectorAll(".w-64 ul li a");
-    
-    // Add click event listeners to menu links
-    menuLinks.forEach(link => {
-        link.addEventListener("click", function(event) {
-            event.preventDefault();
-            const targetId = this.getAttribute("href").substring(1);
+    try {
+        console.log("Initializing admin dashboard...");
+        
+        // Get all menu links
+        const menuLinks = document.querySelectorAll(".w-64 ul li a");
+        
+        if (menuLinks && menuLinks.length > 0) {
+            console.log(`Found ${menuLinks.length} menu links`);
             
-            // Special handling for logout
-            if (targetId === "logout") {
-                logout();
-                return;
-            }
-            
-            // Show the selected section
-            showSection(targetId);
-        });
-    });
-
-    // Get the saved section from localStorage or default to dashboard
-    const savedSection = localStorage.getItem("adminActiveSection") || "dashboard";
-    
-    // Load Chart.js first, then initialize the dashboard
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-    script.onload = function() {
-        // Initialize dashboard after Chart.js is loaded
-        showSection(savedSection);
-        
-        // Fetch initial data
-        fetchStudents();
-        fetchSitIns();
-        
-        // Set up reports tab switching
-        setupReportsTabs();
-        
-        // Set up student reports functionality
-        setupStudentReports();
-    };
-    document.head.appendChild(script);
-
-    // Reset Sessions functionality
-    const resetSessionLink = document.querySelector('a[href="#reset-session"]');
-    const resetSessionModal = document.getElementById('reset-session');
-    const closeResetModalBtn = document.getElementById('close-reset-modal');
-    const resetSemesterBtn = document.getElementById('reset-semester-btn');
-    const resetUserBtn = document.getElementById('reset-user-btn');
-    const semesterSelect = document.getElementById('semester-select');
-    const userIdInput = document.getElementById('user-id-input');
-
-    // Handle modal opening
-    resetSessionLink.addEventListener('click', function(e) {
-        e.preventDefault();
-        resetSessionModal.classList.remove('hidden');
-        loadResetLogs(); // Load reset logs when opening the modal
-    });
-
-    // Handle modal closing
-    closeResetModalBtn.addEventListener('click', function() {
-        resetSessionModal.classList.add('hidden');
-        document.getElementById('reset-status-container').classList.add('hidden');
-    });
-
-    // Click outside to close
-    resetSessionModal.addEventListener('click', function(e) {
-        if (e.target === resetSessionModal) {
-            resetSessionModal.classList.add('hidden');
-            document.getElementById('reset-status-container').classList.add('hidden');
-        }
-    });
-
-    // Function to check if the current user is logged in as admin
-    async function checkAdminAuth() {
-        try {
-            const response = await fetch('http://localhost:3000/check-admin', {
-                method: 'GET',
-                credentials: 'include' // Important for session cookies
+            // Add click event listeners to menu links
+            menuLinks.forEach(link => {
+                if (link) {
+                    link.addEventListener("click", function(event) {
+                        event.preventDefault();
+                        const targetId = this.getAttribute("href").substring(1);
+                        
+                        // Special handling for logout
+                        if (targetId === "logout") {
+                            logout();
+                            return;
+                        }
+                        
+                        // Show the selected section
+                        showSection(targetId);
+                    });
+                }
             });
-            
-            if (!response.ok) {
-                return false;
-            }
-            
-            const data = await response.json();
-            return data.isAdmin === true;
-        } catch (error) {
-            console.error('Error checking admin status:', error);
-            return false;
-        }
-    }
-
-    // Function to show status message in reset modal
-    function showResetStatusMessage(message, type = 'info') {
-        const statusContainer = document.getElementById('reset-status-container');
-        const statusMessage = document.getElementById('reset-status-message');
-        
-        if (!statusContainer || !statusMessage) return;
-        
-        // Set message
-        statusMessage.innerHTML = message;
-        
-        // Set color based on type
-        statusMessage.className = 'p-3 rounded text-center';
-        if (type === 'success') {
-            statusMessage.classList.add('bg-green-100', 'text-green-800');
-        } else if (type === 'error') {
-            statusMessage.classList.add('bg-red-100', 'text-red-800');
-        } else if (type === 'warning') {
-            statusMessage.classList.add('bg-yellow-100', 'text-yellow-800');
         } else {
-            statusMessage.classList.add('bg-blue-100', 'text-blue-800');
+            console.warn("Menu links not found. Navigation may not work properly.");
         }
+
+        // Get the saved section from localStorage or default to dashboard
+        const savedSection = localStorage.getItem("adminActiveSection") || "dashboard";
         
-        // Show the container
-        statusContainer.classList.remove('hidden');
+        // Load Chart.js first, then initialize the dashboard
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = function() {
+            // Initialize dashboard after Chart.js is loaded
+            showSection(savedSection);
+            
+            // Fetch initial data
+            fetchStudents();
+            fetchSitIns();
+            
+            // Set up reports tab switching
+            setupReportsTabs();
+            
+            // Set up student reports functionality
+            setupStudentReports();
+            
+            // Initialize reset session section if we're on that page
+            if (savedSection === "reset-session") {
+                initResetSession();
+            }
+            
+            console.log("Admin dashboard initialized successfully");
+        };
+        script.onerror = function() {
+            console.error("Failed to load Chart.js. Some dashboard features may not work correctly.");
+            // Still try to initialize what we can
+            showSection(savedSection);
+            fetchStudents();
+            fetchSitIns();
+            
+            // Initialize reset session section if we're on that page
+            if (savedSection === "reset-session") {
+                initResetSession();
+            }
+        };
+        document.head.appendChild(script);
         
-        // Optional: Auto-hide after some time
-        if (type !== 'error') {
-            setTimeout(() => {
-                statusContainer.classList.add('hidden');
-            }, 8000);
+    } catch (error) {
+        console.error("Error initializing admin dashboard:", error);
+        // Display a user-friendly error message
+        const mainContent = document.querySelector('.flex-1');
+        if (mainContent) {
+            mainContent.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <strong class="font-bold">Error!</strong>
+                    <span class="block sm:inline"> Failed to initialize admin dashboard. Please try refreshing the page.</span>
+                    <span class="block mt-2">Error details: ${error.message}</span>
+                </div>
+            `;
         }
     }
-
-    // Reset by semester
-    resetSemesterBtn.addEventListener('click', async function() {
-        const semester = semesterSelect.value;
-        if (!semester) {
-            alert('Please select a semester');
-            return;
-        }
-
-        // Check admin auth first
-        const isAdmin = await checkAdminAuth();
-        if (!isAdmin) {
-            alert('You must be logged in as an administrator to reset sessions. Please log in again.');
-            window.location.href = '/'; // Redirect to login
-            return;
-        }
-
-        if (confirm(`Are you sure you want to reset all sessions for ${semester}? This action cannot be undone.`)) {
-            try {
-                // Show processing message
-                showResetStatusMessage(`<div class="animate-pulse">Resetting sessions for ${semester}...</div>`, 'info');
-                
-                const result = await resetSessions({ semester });
-                
-                // Show success message with details
-                showResetStatusMessage(
-                    `<div class="font-medium">${result.message}</div>
-                    <div class="text-sm mt-1">Removed: ${result.details.reservationsRemoved} reservations, ${result.details.sitInsRemoved} sit-ins</div>`, 
-                    'success'
-                );
-                
-                // Refresh data but keep modal open
-                fetchSitIns();
-                
-                // Clear the semester select
-                semesterSelect.value = '';
-                
-            } catch (error) {
-                showResetStatusMessage(`Error: ${error.message}`, 'error');
-            }
-        }
-    });
-
-    // Reset by user
-    resetUserBtn.addEventListener('click', async function() {
-        const idNumber = userIdInput.value.trim();
-        if (!idNumber) {
-            alert('Please enter a student ID');
-            return;
-        }
-
-        // Check admin auth first
-        const isAdmin = await checkAdminAuth();
-        if (!isAdmin) {
-            alert('You must be logged in as an administrator to reset sessions. Please log in again.');
-            window.location.href = '/'; // Redirect to login
-            return;
-        }
-
-        if (confirm(`Are you sure you want to reset all sessions for student with ID ${idNumber}? This action cannot be undone.`)) {
-            try {
-                // Show processing message
-                showResetStatusMessage(`<div class="animate-pulse">Resetting sessions for user ${idNumber}...</div>`, 'info');
-                
-                const result = await resetSessions({ idNumber });
-                
-                // Show success message with details
-                showResetStatusMessage(
-                    `<div class="font-medium">${result.message}</div>
-                    <div class="text-sm mt-1">Removed: ${result.details.reservationsRemoved} reservations, ${result.details.sitInsRemoved} sit-ins</div>`, 
-                    'success'
-                );
-                
-                // Refresh data but keep modal open
-                fetchSitIns();
-                
-                // Clear the input
-                userIdInput.value = '';
-                
-            } catch (error) {
-                showResetStatusMessage(`Error: ${error.message}`, 'error');
-            }
-        }
-    });
 });
 
 // Fetch and display students
@@ -909,26 +790,83 @@ async function resetSessions(params) {
 // Function to fetch reset logs
 async function loadResetLogs() {
     try {
+        // Check admin auth first to ensure we're authenticated
+        const isAdmin = await checkAdminAuth();
+        if (!isAdmin) {
+            console.warn("Not authenticated as admin. Cannot load reset logs.");
+            const logsTable = document.getElementById('reset-logs-table');
+            if (logsTable) {
+                logsTable.innerHTML = `
+                    <tr class="no-logs">
+                        <td colspan="4" class="px-4 py-3 text-center text-sm text-red-500">Authentication error. Please log in again as administrator.</td>
+                    </tr>
+                `;
+            }
+            
+            // Update logs count
+            const logsCount = document.getElementById('logs-count');
+            if (logsCount) {
+                logsCount.textContent = '0 logs found';
+            }
+            
+            // Redirect to login after a delay
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
+            
+            return;
+        }
+        
+        // Proceed with fetch if authenticated
         const response = await fetch('http://localhost:3000/reset-logs', {
             method: 'GET',
-            credentials: 'include' // Important for session cookies
+            credentials: 'include', // Important for session cookies
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch reset logs');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to fetch reset logs');
         }
 
         const data = await response.json();
         if (data.success && data.logs) {
             displayResetLogs(data.logs);
+            
+            // Update logs count
+            const logsCount = document.getElementById('logs-count');
+            if (logsCount) {
+                const count = data.logs.length;
+                logsCount.textContent = `${count} log${count !== 1 ? 's' : ''} found`;
+            }
+            
+            // Reset filter to "all"
+            const logsFilter = document.getElementById('logs-filter');
+            if (logsFilter) {
+                logsFilter.value = 'all';
+            }
+        } else {
+            throw new Error(data.message || 'No logs data returned');
         }
     } catch (error) {
         console.error('Error fetching reset logs:', error);
-        document.getElementById('reset-logs-table').innerHTML = `
-            <tr>
-                <td colspan="3" class="p-2 text-center text-red-500">Error loading reset history</td>
-            </tr>
-        `;
+        const logsTable = document.getElementById('reset-logs-table');
+        if (logsTable) {
+            logsTable.innerHTML = `
+                <tr class="no-logs">
+                    <td colspan="4" class="px-4 py-3 text-center text-sm text-red-500">Error: ${error.message || 'Unknown error loading reset history'}</td>
+                </tr>
+            `;
+        }
+        
+        // Update logs count
+        const logsCount = document.getElementById('logs-count');
+        if (logsCount) {
+            logsCount.textContent = '0 logs found';
+        }
     }
 }
 
@@ -938,8 +876,8 @@ function displayResetLogs(logs) {
     
     if (!logs || logs.length === 0) {
         logsTable.innerHTML = `
-            <tr>
-                <td colspan="3" class="p-2 text-center text-gray-500">No reset operations found</td>
+            <tr class="no-logs">
+                <td colspan="4" class="px-4 py-3 text-center text-sm text-gray-500">No reset operations found</td>
             </tr>
         `;
         return;
@@ -952,20 +890,33 @@ function displayResetLogs(logs) {
         let details = '';
         
         if (log.resetType === 'user') {
-            details = `User ID: ${log.details.userId}<br>
-                     Removed: ${log.details.reservationsRemoved} reservations, 
-                     ${log.details.sitInsRemoved} sit-ins`;
+            details = `
+                <div class="space-y-1">
+                    <div class="font-medium">User ID: ${log.details.userId}</div>
+                    <div class="text-sm text-gray-500">
+                        Removed: ${log.details.reservationsRemoved} reservations,
+                        ${log.details.sitInsRemoved} sit-ins
+                    </div>
+                </div>
+            `;
         } else if (log.resetType === 'semester') {
-            details = `Semester: ${log.details.semester}<br>
-                     Removed: ${log.details.reservationsRemoved} reservations, 
-                     ${log.details.sitInsRemoved} sit-ins`;
+            details = `
+                <div class="space-y-1">
+                    <div class="font-medium">Semester: ${log.details.semester}</div>
+                    <div class="text-sm text-gray-500">
+                        Removed: ${log.details.reservationsRemoved} reservations,
+                        ${log.details.sitInsRemoved} sit-ins
+                    </div>
+                </div>
+            `;
         }
         
         html += `
-            <tr class="border-t">
-                <td class="p-2">${date}</td>
-                <td class="p-2">${log.resetType === 'user' ? 'User' : 'Semester'}</td>
-                <td class="p-2">${details}</td>
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-sm text-gray-900">${date}</td>
+                <td class="px-4 py-3 text-sm text-gray-900">${log.resetType === 'user' ? 'User' : 'Semester'}</td>
+                <td class="px-4 py-3 text-sm">${details}</td>
+                <td class="px-4 py-3 text-sm text-gray-900">${log.adminId || 'Unknown'}</td>
             </tr>
         `;
     });
@@ -1435,3 +1386,711 @@ document.getElementById('unified-search')?.addEventListener('input', function(e)
         row.style.display = text.includes(searchTerm) ? '' : 'none';
     }
 });
+
+// Function to initialize the reset session section
+function initResetSession() {
+    try {
+        console.log("Initializing reset session section...");
+        
+        // Get elements with null checks
+        const resetSemesterBtn = document.getElementById('reset-semester-btn');
+        const resetUserBtn = document.getElementById('reset-user-btn');
+        const semesterSelect = document.getElementById('semester-select');
+        const userIdInput = document.getElementById('user-id-input');
+        const refreshLogsBtn = document.getElementById('refresh-logs');
+        const logsFilter = document.getElementById('logs-filter');
+        const exportLogsBtn = document.getElementById('export-logs');
+        
+        // Check if required elements exist
+        if (!resetSemesterBtn || !resetUserBtn || !semesterSelect || !userIdInput) {
+            console.warn("Some reset session elements not found. Functionality may be limited.");
+        }
+        
+        // Initialize reset statistics
+        updateResetStatistics();
+        
+        // Load reset logs
+        loadResetLogs();
+        
+        // Filter logs event handler
+        if (logsFilter) {
+            logsFilter.addEventListener('change', function() {
+                filterLogs(this.value);
+            });
+        }
+        
+        // Export logs event handler
+        if (exportLogsBtn) {
+            exportLogsBtn.addEventListener('click', function() {
+                exportResetLogs();
+            });
+        }
+
+        // Handle refresh logs button click
+        if (refreshLogsBtn) {
+            refreshLogsBtn.addEventListener('click', async function() {
+                this.disabled = true;
+                const originalHTML = this.innerHTML;
+                this.innerHTML = `
+                    <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Refreshing...</span>
+                `;
+                
+                try {
+                    await loadResetLogs();
+                    await updateResetStatistics();
+                } catch (error) {
+                    console.error("Error refreshing reset session data:", error);
+                }
+                
+                this.disabled = false;
+                this.innerHTML = originalHTML;
+            });
+        }
+
+        // Reset by semester
+        if (resetSemesterBtn) {
+            resetSemesterBtn.addEventListener('click', async function() {
+                const semester = semesterSelect.value;
+                if (!semester) {
+                    showResetStatusMessage('Please select a semester', 'error');
+                    semesterSelect.focus();
+                    return;
+                }
+
+                try {
+                    // Check admin auth first
+                    const isAdmin = await checkAdminAuth();
+                    if (!isAdmin) {
+                        showResetStatusMessage('Authentication failed. Please log in again as administrator.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Show confirmation dialog
+                    const confirmed = await showConfirmationDialog('semester', semester);
+                    if (!confirmed) return;
+
+                    // Show processing message
+                    showResetStatusMessage(`<div class="flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Resetting sessions for ${semester}...</div>`, 'info');
+                    
+                    const result = await resetSessions({ semester });
+                    
+                    // Show success message with details
+                    showResetStatusMessage(
+                        `<div class="space-y-2">
+                            <div class="font-medium">${result.message}</div>
+                            <div class="text-sm">
+                                <span class="font-medium">Removed:</span> 
+                                ${result.details.reservationsRemoved} reservations, 
+                                ${result.details.sitInsRemoved} sit-ins
+                            </div>
+                        </div>`, 
+                        'success'
+                    );
+                    
+                    // Refresh data
+                    fetchSitIns();
+                    
+                    // Clear the semester select
+                    semesterSelect.value = '';
+                    
+                    // Refresh logs and statistics
+                    await Promise.all([
+                        loadResetLogs(),
+                        updateResetStatistics()
+                    ]);
+                    
+                } catch (error) {
+                    console.error('Error resetting semester sessions:', error);
+                    showResetStatusMessage(
+                        `<div class="space-y-2">
+                            <div class="font-medium">Failed to reset sessions</div>
+                            <div class="text-sm">${error.message}</div>
+                        </div>`, 
+                        'error'
+                    );
+                }
+            });
+        }
+
+        // Reset by user
+        if (resetUserBtn) {
+            resetUserBtn.addEventListener('click', async function() {
+                const idNumber = userIdInput.value.trim();
+                if (!idNumber) {
+                    showResetStatusMessage('Please enter a student ID', 'error');
+                    userIdInput.focus();
+                    return;
+                }
+
+                try {
+                    // Check admin auth first
+                    const isAdmin = await checkAdminAuth();
+                    if (!isAdmin) {
+                        showResetStatusMessage('Authentication failed. Please log in again as administrator.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Show confirmation dialog
+                    const confirmed = await showConfirmationDialog('user', `Student ID: ${idNumber}`);
+                    if (!confirmed) return;
+
+                    // Show processing message
+                    showResetStatusMessage(`<div class="flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Resetting sessions for user ${idNumber}...</div>`, 'info');
+                    
+                    const result = await resetSessions({ idNumber });
+                    
+                    // Show success message with details
+                    showResetStatusMessage(
+                        `<div class="space-y-2">
+                            <div class="font-medium">${result.message}</div>
+                            <div class="text-sm">
+                                <span class="font-medium">Removed:</span> 
+                                ${result.details.reservationsRemoved} reservations, 
+                                ${result.details.sitInsRemoved} sit-ins
+                            </div>
+                        </div>`, 
+                        'success'
+                    );
+                    
+                    // Refresh data
+                    fetchSitIns();
+                    
+                    // Clear the input
+                    userIdInput.value = '';
+                    
+                    // Refresh logs and statistics
+                    await Promise.all([
+                        loadResetLogs(),
+                        updateResetStatistics()
+                    ]);
+                    
+                } catch (error) {
+                    console.error('Error resetting user sessions:', error);
+                    showResetStatusMessage(
+                        `<div class="space-y-2">
+                            <div class="font-medium">Failed to reset sessions</div>
+                            <div class="text-sm">${error.message}</div>
+                        </div>`, 
+                        'error'
+                    );
+                }
+            });
+        }
+        
+        console.log("Reset session section initialized successfully");
+        
+    } catch (error) {
+        console.error("Error initializing reset session section:", error);
+        const resetSection = document.getElementById('reset-session');
+        if (resetSection) {
+            resetSection.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <strong class="font-bold">Error!</strong>
+                    <span class="block sm:inline"> Failed to initialize reset session functionality. Please try refreshing the page.</span>
+                    <span class="block mt-2">Error details: ${error.message}</span>
+                </div>
+            `;
+        }
+    }
+}
+
+// Function to check if the current user is logged in as admin
+async function checkAdminAuth() {
+    try {
+        const response = await fetch('http://localhost:3000/check-admin', {
+            method: 'GET',
+            credentials: 'include', // Important for session cookies
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            }
+        });
+        
+        if (!response.ok) {
+            console.error('Admin check failed with status:', response.status);
+            return false;
+        }
+        
+        const data = await response.json();
+        console.log('Admin check result:', data);
+        return data.isAdmin === true;
+    } catch (error) {
+        console.error('Error checking admin status:', error);
+        return false;
+    }
+}
+
+// Function to update reset statistics
+async function updateResetStatistics() {
+    try {
+        // Check if elements exist before trying to update them
+        const totalResets = document.getElementById('total-resets');
+        const todayResets = document.getElementById('today-resets');
+        const lastResetSpan = document.getElementById('last-reset');
+        
+        if (!totalResets && !todayResets && !lastResetSpan) {
+            // No elements to update, so return early
+            console.log('Reset statistics elements not found in the DOM');
+            return;
+        }
+        
+        // Check admin auth first
+        const isAdmin = await checkAdminAuth();
+        if (!isAdmin) {
+            console.warn('Not authenticated as admin. Cannot load reset statistics.');
+            // Still update the UI to show zeros
+            if (totalResets) totalResets.textContent = 0;
+            if (todayResets) todayResets.textContent = 0;
+            if (lastResetSpan) lastResetSpan.textContent = 'Authentication required';
+            return;
+        }
+        
+        const response = await fetch('http://localhost:3000/reset-stats', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch reset statistics: ${response.status} ${response.statusText}`);
+        }
+        
+        const stats = await response.json();
+        
+        if (!stats.success) {
+            throw new Error(stats.message || 'Failed to fetch reset statistics');
+        }
+        
+        // Update UI with fetched data
+        if (totalResets) totalResets.textContent = stats.total || 0;
+        if (todayResets) todayResets.textContent = stats.today || 0;
+        
+        // Update last reset time
+        if (stats.lastReset && lastResetSpan) {
+            const lastResetDate = new Date(stats.lastReset);
+            lastResetSpan.textContent = `Last reset: ${lastResetDate.toLocaleString()}`;
+        } else if (lastResetSpan) {
+            lastResetSpan.textContent = 'No recent resets';
+        }
+        
+    } catch (error) {
+        console.error('Error updating reset statistics:', error);
+        
+        // Still update the UI
+        const totalResets = document.getElementById('total-resets');
+        const todayResets = document.getElementById('today-resets');
+        const lastResetSpan = document.getElementById('last-reset');
+        
+        if (totalResets) totalResets.textContent = '-';
+        if (todayResets) todayResets.textContent = '-';
+        if (lastResetSpan) lastResetSpan.textContent = `Error: ${error.message}`;
+    }
+}
+
+// Function to show confirmation dialog
+function showConfirmationDialog(type, details) {
+    return new Promise((resolve) => {
+        const confirmationHTML = `
+            <div id="reset-confirmation-modal" class="fixed inset-0 flex items-center justify-center z-[60] bg-black bg-opacity-50">
+                <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Confirm Reset</h3>
+                    <div class="mb-6">
+                        <p class="text-gray-700 mb-4">Are you sure you want to reset ${type === 'semester' ? 'all sessions for' : 'sessions for user'}:</p>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-lg font-medium text-gray-900">${details}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancel-reset" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                            Cancel
+                        </button>
+                        <button id="confirm-reset" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                            Confirm Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add confirmation modal to body
+        document.body.insertAdjacentHTML('beforeend', confirmationHTML);
+        
+        const confirmationModal = document.getElementById('reset-confirmation-modal');
+        const confirmBtn = document.getElementById('confirm-reset');
+        const cancelBtn = document.getElementById('cancel-reset');
+
+        // Handle confirmation
+        confirmBtn.addEventListener('click', () => {
+            confirmationModal.remove();
+            resolve(true);
+        });
+
+        // Handle cancellation
+        cancelBtn.addEventListener('click', () => {
+            confirmationModal.remove();
+            resolve(false);
+        });
+
+        // Handle click outside
+        confirmationModal.addEventListener('click', (e) => {
+            if (e.target === confirmationModal) {
+                confirmationModal.remove();
+                resolve(false);
+            }
+        });
+    });
+}
+
+// Function to show status message in reset modal
+function showResetStatusMessage(message, type = 'info') {
+    const statusContainer = document.getElementById('reset-status-container');
+    const statusMessage = document.getElementById('reset-status-message');
+    
+    if (!statusContainer || !statusMessage) return;
+    
+    // Set message
+    statusMessage.innerHTML = message;
+    
+    // Reset classes
+    statusMessage.className = 'p-4 rounded-lg shadow-sm';
+    
+    // Set color based on type
+    switch(type) {
+        case 'success':
+            statusMessage.classList.add('bg-green-50', 'text-green-800', 'border', 'border-green-200');
+            break;
+        case 'error':
+            statusMessage.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
+            break;
+        case 'warning':
+            statusMessage.classList.add('bg-yellow-50', 'text-yellow-800', 'border', 'border-yellow-200');
+            break;
+        default:
+            statusMessage.classList.add('bg-blue-50', 'text-blue-800', 'border', 'border-blue-200');
+    }
+    
+    // Show the container with fade-in effect
+    statusContainer.classList.remove('hidden');
+    statusContainer.classList.add('animate-fade-in');
+    
+    // Auto-hide success and info messages after 8 seconds
+    if (type !== 'error') {
+        setTimeout(() => {
+            statusContainer.classList.add('hidden');
+            statusContainer.classList.remove('animate-fade-in');
+        }, 8000);
+    }
+}
+
+// Filter logs based on type
+function filterLogs(filterType) {
+    const allRows = document.querySelectorAll('#reset-logs-table tr:not(.no-logs)');
+    let visibleCount = 0;
+    
+    allRows.forEach(row => {
+        const typeCell = row.querySelector('td:nth-child(2)');
+        if (!typeCell) return;
+        
+        const type = typeCell.textContent.trim().toLowerCase();
+        
+        if (filterType === 'all' || 
+            (filterType === 'semester' && type === 'semester') || 
+            (filterType === 'user' && type === 'user')) {
+            row.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+    
+    // Update logs count
+    const logsCount = document.getElementById('logs-count');
+    if (logsCount) {
+        logsCount.textContent = `${visibleCount} log${visibleCount !== 1 ? 's' : ''} found`;
+    }
+}
+
+// Export logs as CSV
+function exportResetLogs() {
+    const table = document.getElementById('reset-logs-table');
+    if (!table) return;
+    
+    const rows = Array.from(table.querySelectorAll('tr:not(.hidden)'));
+    if (rows.length === 0) {
+        alert('No logs to export');
+        return;
+    }
+    
+    let csvContent = 'Date,Type,Details,Admin\n';
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length < 4) return;
+        
+        const date = cells[0].textContent.trim();
+        const type = cells[1].textContent.trim();
+        
+        // Get the text without HTML tags for details
+        const detailsDiv = cells[2].querySelector('div');
+        const details = detailsDiv ? detailsDiv.textContent.trim().replace(/\s+/g, ' ') : '';
+        
+        const admin = cells[3].textContent.trim();
+        
+        csvContent += `"${date}","${type}","${details}","${admin}"\n`;
+    });
+    
+    // Create a download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    // Set date for filename
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `reset-logs-${dateStr}.csv`);
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Document Ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Admin JS initialized");
+
+    // Initialize dashboard stats and charts
+    initializeDashboard();
+
+    // Setup section switching
+    setupSectionSwitching();
+
+    // Setup reports tabs
+    setupReportsTabs();
+    
+    // Setup student reports functionality
+    setupStudentReports();
+
+    // Initialize reset session functionality
+    initResetSession();
+
+    // Initialize walk-in sit-in form
+    initWalkinForm();
+    
+    // Initialize first fetch
+    fetchSitIns();
+    
+    // Fetch initial student data
+    fetchStudents();
+});
+
+// Function to initialize walk-in sit-in form
+function initWalkinForm() {
+    const walkinStudentIdInput = document.getElementById('walkin-student-id');
+    const searchStudentBtn = document.getElementById('search-student-btn');
+    const studentInfo = document.getElementById('student-info');
+    const studentSearchStatus = document.getElementById('student-search-status');
+    const walkinPurpose = document.getElementById('walkin-purpose');
+    const otherPurposeContainer = document.getElementById('other-purpose-container');
+    const otherPurposeInput = document.getElementById('walkin-other-purpose');
+    const progLanguage = document.getElementById('walkin-prog-language');
+    const progLanguageOtherContainer = document.getElementById('prog-language-other-container');
+    const otherLanguageInput = document.getElementById('walkin-other-language');
+    const addWalkinBtn = document.getElementById('add-walkin-btn');
+    
+    // Check if all elements exist
+    if (!walkinStudentIdInput || !searchStudentBtn || !studentInfo || 
+        !studentSearchStatus || !walkinPurpose || !addWalkinBtn) {
+        console.warn("Some walk-in form elements not found");
+        return;
+    }
+    
+    // Disable add button until student is found
+    addWalkinBtn.disabled = true;
+    
+    // Handle purpose selection change
+    walkinPurpose.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            otherPurposeContainer.classList.remove('hidden');
+            otherPurposeInput.focus();
+        } else {
+            otherPurposeContainer.classList.add('hidden');
+        }
+    });
+    
+    // Handle programming language selection change
+    progLanguage.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            progLanguageOtherContainer.classList.remove('hidden');
+            otherLanguageInput.focus();
+        } else {
+            progLanguageOtherContainer.classList.add('hidden');
+        }
+    });
+    
+    // Handle search button click
+    searchStudentBtn.addEventListener('click', async function() {
+        const studentId = walkinStudentIdInput.value.trim();
+        if (!studentId) {
+            studentSearchStatus.textContent = "Please enter a student ID";
+            studentSearchStatus.classList.add('text-red-500');
+            studentSearchStatus.classList.remove('text-green-500');
+            studentInfo.classList.add('hidden');
+            addWalkinBtn.disabled = true;
+            return;
+        }
+        
+        // Show loading state
+        studentSearchStatus.textContent = "Searching...";
+        studentSearchStatus.classList.remove('text-red-500', 'text-green-500');
+        
+        try {
+            const response = await fetch(`http://localhost:3000/get-profile?id=${studentId}`);
+            
+            if (!response.ok) {
+                throw new Error(`Status: ${response.status}`);
+            }
+            
+            const student = await response.json();
+            
+            // Update student info
+            document.getElementById('walkin-student-name').textContent = `${student.firstName} ${student.lastName}`;
+            document.getElementById('walkin-student-course').textContent = student.course;
+            document.getElementById('walkin-student-year').textContent = student.year;
+            
+            // Show success message and student info
+            studentSearchStatus.textContent = "Student found! You can now add a sit-in session.";
+            studentSearchStatus.classList.add('text-green-500');
+            studentSearchStatus.classList.remove('text-red-500');
+            studentInfo.classList.remove('hidden');
+            
+            // Enable add button
+            addWalkinBtn.disabled = false;
+            
+        } catch (error) {
+            console.error("Error searching for student:", error);
+            studentSearchStatus.textContent = "Student not found. Please check the ID.";
+            studentSearchStatus.classList.add('text-red-500');
+            studentSearchStatus.classList.remove('text-green-500');
+            studentInfo.classList.add('hidden');
+            addWalkinBtn.disabled = true;
+        }
+    });
+    
+    // Allow searching on Enter key press
+    walkinStudentIdInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchStudentBtn.click();
+        }
+    });
+    
+    // Handle add walk-in button click
+    addWalkinBtn.addEventListener('click', async function() {
+        const studentId = walkinStudentIdInput.value.trim();
+        const purpose = walkinPurpose.value;
+        const otherPurpose = otherPurposeInput ? otherPurposeInput.value.trim() : '';
+        const programmingLanguage = progLanguage.value;
+        const otherLanguage = otherLanguageInput ? otherLanguageInput.value.trim() : '';
+        
+        // Validate inputs
+        if (!studentId) {
+            alert("Please search for a student first");
+            return;
+        }
+        
+        if (!purpose) {
+            alert("Please select a purpose");
+            walkinPurpose.focus();
+            return;
+        }
+        
+        if (purpose === 'Other' && !otherPurpose) {
+            alert("Please specify the purpose");
+            otherPurposeInput.focus();
+            return;
+        }
+        
+        if (programmingLanguage === 'Other' && !otherLanguage) {
+            alert("Please specify the programming language");
+            otherLanguageInput.focus();
+            return;
+        }
+        
+        // Disable button and show loading state
+        addWalkinBtn.disabled = true;
+        addWalkinBtn.textContent = "Adding...";
+        
+        try {
+            // Get student info from displayed data
+            const name = document.getElementById('walkin-student-name').textContent;
+            const course = document.getElementById('walkin-student-course').textContent;
+            const year = document.getElementById('walkin-student-year').textContent;
+            
+            // Create walk-in sit-in
+            const response = await fetch('http://localhost:3000/create-walkin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    idNumber: studentId,
+                    name: name,
+                    course: course,
+                    year: year,
+                    purpose: purpose,
+                    otherPurpose: otherPurpose,
+                    programmingLanguage: programmingLanguage,
+                    otherLanguage: otherLanguage
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.message || "Failed to create walk-in sit-in");
+            }
+            
+            // Show success message
+            alert("Walk-in sit-in created successfully!");
+            
+            // Reset form
+            walkinStudentIdInput.value = '';
+            studentInfo.classList.add('hidden');
+            studentSearchStatus.textContent = '';
+            walkinPurpose.value = '';
+            if (otherPurposeInput) otherPurposeInput.value = '';
+            if (otherPurposeContainer) otherPurposeContainer.classList.add('hidden');
+            progLanguage.value = '';
+            if (otherLanguageInput) otherLanguageInput.value = '';
+            if (progLanguageOtherContainer) progLanguageOtherContainer.classList.add('hidden');
+            
+            // Refresh sit-ins table
+            fetchSitIns();
+            
+        } catch (error) {
+            console.error("Error creating walk-in sit-in:", error);
+            alert(`Error creating walk-in sit-in: ${error.message}`);
+        } finally {
+            // Reset button state
+            addWalkinBtn.disabled = false;
+            addWalkinBtn.textContent = "Add Walk-in";
+        }
+    });
+}

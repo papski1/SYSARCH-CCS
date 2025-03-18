@@ -1306,6 +1306,133 @@ app.get("/check-auto-logouts", (req, res) => {
     }
 });
 
+// Route to get reset statistics
+app.get("/reset-stats", (req, res) => {
+  // Check if user is authenticated and is an admin
+  if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+    return res.status(403).json({ 
+      success: false, 
+      message: "Unauthorized. Only administrators can access reset statistics." 
+    });
+  }
+  
+  try {
+    // Get all reset logs
+    const resetLogs = readResetLogs();
+    
+    // Calculate total number of resets
+    const total = resetLogs.length;
+    
+    // Calculate today's resets
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayResets = resetLogs.filter(log => {
+      const logDate = new Date(log.timestamp);
+      return logDate >= today;
+    }).length;
+    
+    // Get last reset time (most recent log)
+    const lastReset = resetLogs.length > 0 ? 
+      resetLogs[0].timestamp : null;
+    
+    return res.status(200).json({
+      success: true,
+      total,
+      today: todayResets,
+      lastReset
+    });
+    
+  } catch (error) {
+    console.error("Error getting reset statistics:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get reset statistics"
+    });
+  }
+});
+
+// Route to create sit-in without reservation (for admin walk-ins)
+app.post("/create-walkin", (req, res) => {
+    try {
+        console.log("Creating walk-in sit-in:", req.body);
+        const { 
+            idNumber, name, course, year, 
+            purpose, programmingLanguage,
+            otherPurpose, otherLanguage
+        } = req.body;
+        
+        if (!idNumber || !purpose) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Student ID and purpose are required" 
+            });
+        }
+
+        // Get current sit-ins
+        let sitIns = readSitIns();
+        
+        // Check if student already has an active sit-in
+        const existingSitIn = sitIns.find(s => 
+            s.idNumber === idNumber && s.status === 'active'
+        );
+        
+        if (existingSitIn) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Student already has an active sit-in session" 
+            });
+        }
+        
+        // Create new sit-in
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0];
+        const timeString = `${today.getHours().toString().padStart(2, '0')}:${today.getMinutes().toString().padStart(2, '0')}`;
+        
+        // Create a sit-in record
+        const newSitIn = {
+            id: Date.now(),
+            idNumber: idNumber,
+            name: name,
+            course: course,
+            year: year,
+            date: dateString,
+            timeIn: timeString,
+            timeOut: null,
+            labRoom: "Walk-in",
+            programmingLanguage: programmingLanguage === "Other" ? otherLanguage : programmingLanguage,
+            purpose: purpose === "Other" ? otherPurpose : purpose,
+            status: 'active',
+            autoLogoutTime: null,
+            isWalkIn: true
+        };
+        
+        sitIns.push(newSitIn);
+        saveSitIns(sitIns);
+        
+        // Log the walk-in sit-in creation
+        logUserActivity(idNumber, 'Walk-in Sit-in Started', {
+            date: dateString,
+            timeIn: timeString,
+            labRoom: "Walk-in",
+            status: 'active',
+            isWalkIn: true
+        });
+        
+        res.json({ 
+            success: true, 
+            message: "Walk-in sit-in created successfully",
+            sitIn: newSitIn
+        });
+    } catch (error) {
+        console.error("Error creating walk-in sit-in:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Error creating walk-in sit-in",
+            error: error.message || "Unknown error occurred"
+        });
+    }
+});
+
 // **Start the server**
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
