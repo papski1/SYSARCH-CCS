@@ -20,103 +20,93 @@ function showSection(sectionId) {
         } else if (sectionId === "sit-in-records") {
             loadTodaysSitInRecords();
         } else if (sectionId === "reports") {
+            // Initialize reports section and show default tab
             initializeReportsCharts();
+            setupReportsTabs();
+            // Show sit-in statistics tab by default
+            const tabSitInStats = document.getElementById('tab-sit-in-stats');
+            const contentSitInStats = document.getElementById('content-sit-in-stats');
+            if (tabSitInStats && contentSitInStats) {
+                tabSitInStats.classList.remove('text-gray-500');
+                tabSitInStats.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+                contentSitInStats.classList.remove('hidden');
+            }
         } else if (sectionId === "dashboard") {
             initializeDashboard();
         } else if (sectionId === "reset-session") {
             // Initialize reset session section
             initResetSession();
+        } else if (sectionId === "students") {
+            // Load students when students section is shown
+            fetchStudents();
         }
     }
 }
 
+// Function to check admin authentication
+async function checkAdminAuth() {
+    try {
+        const response = await fetch('http://localhost:3000/check-admin', {
+            method: 'GET',
+            credentials: 'include', // Important for session cookies
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Authentication check failed');
+        }
+        
+        const data = await response.json();
+        return data.isAdmin === true;
+    } catch (error) {
+        console.error('Error checking admin auth:', error);
+        return false;
+    }
+}
+
+// Function to verify admin authentication and redirect if needed
+async function verifyAdminAuth() {
+    const isAdmin = await checkAdminAuth();
+    if (!isAdmin) {
+        console.warn("Not authenticated as admin. Redirecting to login...");
+        window.location.href = "login.html";
+        return false;
+    }
+    return true;
+}
+
 // Handle navigation and initialize admin dashboard
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", async function() {
     try {
         console.log("Initializing admin dashboard...");
         
-        // Get all menu links
-        const menuLinks = document.querySelectorAll(".w-64 ul li a");
-        
-        if (menuLinks && menuLinks.length > 0) {
-            console.log(`Found ${menuLinks.length} menu links`);
-            
-            // Add click event listeners to menu links
-            menuLinks.forEach(link => {
-                if (link) {
-                    link.addEventListener("click", function(event) {
-                        event.preventDefault();
-                        const targetId = this.getAttribute("href").substring(1);
-                        
-                        // Special handling for logout
-                        if (targetId === "logout") {
-                            logout();
-                            return;
-                        }
-                        
-                        // Show the selected section
-                        showSection(targetId);
-                    });
-                }
-            });
-        } else {
-            console.warn("Menu links not found. Navigation may not work properly.");
+        // Verify admin authentication first
+        const isAuthenticated = await verifyAdminAuth();
+        if (!isAuthenticated) {
+            return; // Stop initialization if not authenticated
         }
 
-        // Get the saved section from localStorage or default to dashboard
-        const savedSection = localStorage.getItem("adminActiveSection") || "dashboard";
-        
-        // Load Chart.js first, then initialize the dashboard
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-        script.onload = function() {
-            // Initialize dashboard after Chart.js is loaded
-            showSection(savedSection);
-            
-            // Fetch initial data
-            fetchStudents();
-            fetchSitIns();
-            
-            // Set up reports tab switching
-            setupReportsTabs();
-            
-            // Set up student reports functionality
-            setupStudentReports();
-            
-            // Initialize reset session section if we're on that page
-            if (savedSection === "reset-session") {
-                initResetSession();
-            }
-            
-            console.log("Admin dashboard initialized successfully");
-        };
-        script.onerror = function() {
-            console.error("Failed to load Chart.js. Some dashboard features may not work correctly.");
-            // Still try to initialize what we can
-            showSection(savedSection);
-            fetchStudents();
-            fetchSitIns();
-            
-            // Initialize reset session section if we're on that page
-            if (savedSection === "reset-session") {
-                initResetSession();
-            }
-        };
-        document.head.appendChild(script);
-        
+        // Show the last active section or default to dashboard
+        const lastActiveSection = localStorage.getItem("adminActiveSection") || "dashboard";
+        showSection(lastActiveSection);
+
+        // Add click event listeners to sidebar links
+        document.querySelectorAll('a[href^="#"]').forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                const sectionId = this.getAttribute('href').substring(1);
+                showSection(sectionId);
+            });
+        });
+
+        // Initialize dashboard data
+        initializeDashboard();
     } catch (error) {
         console.error("Error initializing admin dashboard:", error);
-        // Display a user-friendly error message
-        const mainContent = document.querySelector('.flex-1');
-        if (mainContent) {
-            mainContent.innerHTML = `
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <strong class="font-bold">Error!</strong>
-                    <span class="block sm:inline"> Failed to initialize admin dashboard. Please try refreshing the page.</span>
-                    <span class="block mt-2">Error details: ${error.message}</span>
-                </div>
-            `;
-        }
+        alert("Failed to initialize dashboard. Please try again.");
     }
 });
 
@@ -196,6 +186,29 @@ function displayStudents(students) {
     });
 }
 
+// Function to fetch reservations
+async function fetchReservations() {
+    try {
+        const response = await fetch("http://localhost:3000/reservations");
+        if (!response.ok) {
+            throw new Error("Failed to fetch reservations");
+        }
+        const reservations = await response.json();
+        
+        // Update dashboard counts
+        const pendingReservations = reservations.filter(res => res.status === 'pending');
+        const pendingCount = document.getElementById('pending-reservations');
+        if (pendingCount) {
+            pendingCount.textContent = pendingReservations.length;
+        }
+        
+        return reservations;
+    } catch (error) {
+        console.error("Error fetching reservations:", error);
+        throw error;
+    }
+}
+
 async function updateReservationStatus(reservationId, status) {
     try {
         console.log("Updating reservation status:", { reservationId, status });
@@ -236,6 +249,147 @@ async function updateReservationStatus(reservationId, status) {
                 const currentCount = parseInt(dashboardSitInCount.textContent || '0');
                 dashboardSitInCount.textContent = currentCount + 1;
             }
+
+            // Fetch current sit-ins for charts
+            const sitInsResponse = await fetch("http://localhost:3000/sit-ins");
+            if (!sitInsResponse.ok) {
+                throw new Error("Failed to fetch sit-ins");
+            }
+            const sitIns = await sitInsResponse.json();
+            
+            // Filter for today's records
+            const today = new Date().toISOString().split('T')[0];
+            const todaysSitIns = sitIns.filter(sitIn => sitIn.date === today);
+
+            // Update records section if visible
+            const recordsSection = document.getElementById('sit-in-records');
+            if (recordsSection && !recordsSection.classList.contains('hidden')) {
+                // Get chart canvases
+                const programmingLanguageCanvas = document.getElementById('programmingLanguageChart');
+                const labRoomCanvas = document.getElementById('labRoomChart');
+
+                // Destroy existing charts if they exist
+                if (window.programmingLanguageChart) {
+                    window.programmingLanguageChart.destroy();
+                }
+                if (window.labRoomChart) {
+                    window.labRoomChart.destroy();
+                }
+
+                // Count programming languages
+                const languageStats = {};
+                todaysSitIns.forEach(record => {
+                    const lang = record.programmingLanguage || 'Not Specified';
+                    languageStats[lang] = (languageStats[lang] || 0) + 1;
+                });
+
+                // Count lab rooms
+                const labStats = {};
+                todaysSitIns.forEach(record => {
+                    const lab = record.laboratory || 'Not Specified';
+                    labStats[lab] = (labStats[lab] || 0) + 1;
+                });
+
+                // Create programming language chart
+                if (programmingLanguageCanvas) {
+                    window.programmingLanguageChart = new Chart(programmingLanguageCanvas, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(languageStats),
+                            datasets: [{
+                                data: Object.values(languageStats),
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.7)',
+                                    'rgba(54, 162, 235, 0.7)',
+                                    'rgba(255, 206, 86, 0.7)',
+                                    'rgba(75, 192, 192, 0.7)',
+                                    'rgba(153, 102, 255, 0.7)',
+                                    'rgba(255, 159, 64, 0.7)',
+                                    'rgba(199, 199, 199, 0.7)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        padding: 20,
+                                        font: {
+                                            size: 12
+                                        }
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    font: {
+                                        size: 16
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Create lab room chart
+                if (labRoomCanvas) {
+                    window.labRoomChart = new Chart(labRoomCanvas, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(labStats),
+                            datasets: [{
+                                data: Object.values(labStats),
+                                backgroundColor: [
+                                    'rgba(75, 192, 192, 0.7)',
+                                    'rgba(255, 159, 64, 0.7)',
+                                    'rgba(54, 162, 235, 0.7)',
+                                    'rgba(255, 99, 132, 0.7)',
+                                    'rgba(153, 102, 255, 0.7)',
+                                    'rgba(255, 206, 86, 0.7)',
+                                    'rgba(199, 199, 199, 0.7)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        padding: 20,
+                                        font: {
+                                            size: 12
+                                        }
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    font: {
+                                        size: 16
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update records table
+                displaySitInRecords(todaysSitIns);
+            }
+
+            // Update dashboard chart
+            updateDashboardChart(sitIns);
+
+            // Update total sessions count for today
+            const totalSessionsToday = document.getElementById('total-sessions-today');
+            if (totalSessionsToday) {
+                totalSessionsToday.textContent = todaysSitIns.length;
+            }
         } else if (status === 'rejected') {
             message = "Reservation rejected successfully.";
             // Only refresh reservations for rejected status
@@ -249,6 +403,73 @@ async function updateReservationStatus(reservationId, status) {
         console.error("Error updating reservation status:", error);
         alert("Error: " + (error.message || "Failed to update reservation status"));
     }
+}
+
+// Function to update dashboard chart
+function updateDashboardChart(sitIns) {
+    const ctx = document.getElementById('studentStatsChart');
+    if (!ctx) return;
+
+    // Count programming language usage
+    const languageStats = {};
+    sitIns.forEach(sitIn => {
+        if (sitIn.programmingLanguage) {
+            languageStats[sitIn.programmingLanguage] = (languageStats[sitIn.programmingLanguage] || 0) + 1;
+        }
+    });
+
+    // Prepare data for chart
+    const labels = Object.keys(languageStats);
+    const data = Object.values(languageStats);
+
+    // Safely destroy existing chart if it exists
+    if (window.studentStatsChart && typeof window.studentStatsChart.destroy === 'function') {
+        window.studentStatsChart.destroy();
+    }
+
+    // Create new chart
+    window.studentStatsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Programming Language Usage',
+                data: data,
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(255, 206, 86, 0.5)',
+                    'rgba(153, 102, 255, 0.5)',
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(153, 102, 255, 1)',
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Programming Language Distribution'
+                }
+            }
+        }
+    });
 }
 
 function viewStudentDetails(idNumber) {
@@ -426,26 +647,11 @@ async function completeSitIn(sitInId) {
         }
 
         if (data.success) {
-            // Log out the student
-            const logoutResponse = await fetch("http://localhost:3000/logout-student", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    sitInId: parseInt(sitInId)
-                })
-            });
-
-            if (!logoutResponse.ok) {
-                console.error("Failed to logout student");
-            }
-
             // Refresh the sit-ins tables
             await fetchSitIns();
             
             // Show success message
-            alert("Sit-in marked as completed and student logged out successfully!");
+            alert("Sit-in marked as completed successfully!");
         } else {
             throw new Error(data.message || 'Failed to update sit-in status');
         }
@@ -778,14 +984,14 @@ function clearFeedbackNotification() {
 }
 
 // Function to make the API call to reset sessions
-async function resetSessions(params) {
+async function resetSessions(idNumber = null, semester = null) {
     try {
         const response = await fetch('http://localhost:3000/reset-sessions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(params),
+            body: JSON.stringify({ idNumber, semester }),
             credentials: 'include' // Important for session cookies
         });
 
@@ -809,7 +1015,7 @@ async function resetSessions(params) {
 // Function to fetch reset logs
 async function loadResetLogs() {
     try {
-        // Check admin auth first to ensure we're authenticated
+        // Check admin auth first
         const isAdmin = await checkAdminAuth();
         if (!isAdmin) {
             console.warn("Not authenticated as admin. Cannot load reset logs.");
@@ -817,7 +1023,7 @@ async function loadResetLogs() {
             if (logsTable) {
                 logsTable.innerHTML = `
                     <tr class="no-logs">
-                        <td colspan="4" class="px-4 py-3 text-center text-sm text-red-500">Authentication error. Please log in again as administrator.</td>
+                        <td colspan="4" class="px-4 py-3 text-center text-sm text-red-500">Please log in as administrator to view reset logs.</td>
                     </tr>
                 `;
             }
@@ -827,11 +1033,6 @@ async function loadResetLogs() {
             if (logsCount) {
                 logsCount.textContent = '0 logs found';
             }
-            
-            // Redirect to login after a delay
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 3000);
             
             return;
         }
@@ -953,7 +1154,10 @@ function setupReportsTabs() {
     const contentUserFeedback = document.getElementById('content-user-feedback');
     const contentStudentReports = document.getElementById('content-student-reports');
     
-    if (!tabSitInStats || !tabUserFeedback || !tabStudentReports) return;
+    if (!tabSitInStats || !tabUserFeedback || !tabStudentReports) {
+        console.error('Report tabs not found');
+        return;
+    }
     
     // Function to switch tabs
     function switchTab(activeTab, activeContent) {
@@ -974,6 +1178,13 @@ function setupReportsTabs() {
         
         // Show selected content
         activeContent.classList.remove('hidden');
+        
+        // Load data for the selected tab
+        if (activeTab === tabUserFeedback) {
+            loadFeedback();
+        } else if (activeTab === tabStudentReports) {
+            setupStudentReports();
+        }
     }
     
     // Add event listeners to tabs
@@ -984,28 +1195,31 @@ function setupReportsTabs() {
     
     tabUserFeedback.addEventListener('click', () => {
         switchTab(tabUserFeedback, contentUserFeedback);
-        loadFeedback();
     });
     
     tabStudentReports.addEventListener('click', () => {
         switchTab(tabStudentReports, contentStudentReports);
-    });
-    
-    // Initialize sit-in statistics when reports section is shown
-    document.querySelector('a[href="#reports"]').addEventListener('click', () => {
-        // This will run after showSection() is called
-        setTimeout(() => {
-            initializeReportsCharts();
-        }, 100);
     });
 }
 
 // Function to setup student reports functionality
 function setupStudentReports() {
     const generateReportBtn = document.getElementById('generate-report-btn');
-    if (!generateReportBtn) return;
+    if (!generateReportBtn) {
+        console.error('Generate report button not found');
+        return;
+    }
     
+    // Add event listener for report generation
     generateReportBtn.addEventListener('click', generateStudentReport);
+    
+    // Initialize date inputs with today's date
+    const today = new Date().toISOString().split('T')[0];
+    const startDateInput = document.getElementById('report-date-start');
+    const endDateInput = document.getElementById('report-date-end');
+    
+    if (startDateInput) startDateInput.value = today;
+    if (endDateInput) endDateInput.value = today;
 }
 
 // Function to initialize reports charts
@@ -1178,7 +1392,10 @@ async function generateStudentReport() {
     const endDate = document.getElementById('report-date-end').value;
     const resultsContainer = document.getElementById('student-report-results');
     
-    if (!resultsContainer) return;
+    if (!resultsContainer) {
+        console.error('Results container not found');
+        return;
+    }
     
     // Show loading state
     resultsContainer.innerHTML = '<p class="text-center py-4">Loading report data...</p>';
@@ -1347,15 +1564,259 @@ async function fetchStudentById(studentId) {
 
 // Function to export report
 async function exportReport(student, sitIns, startDate, endDate) {
-    // Implementation of export functionality
-    console.log('Exporting report...');
+    try {
+        // Create export options modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white p-6 rounded-lg w-96">
+                <h2 class="text-xl font-bold mb-4">Export Report</h2>
+                <div class="space-y-3">
+                    <button onclick="exportToCSV(${JSON.stringify(sitIns).replace(/"/g, '&quot;')})" 
+                        class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Export as CSV
+                    </button>
+                    <button onclick="exportToExcel(${JSON.stringify(sitIns).replace(/"/g, '&quot;')})" 
+                        class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Export as Excel
+                    </button>
+                    <button onclick="exportToPDF(${JSON.stringify(sitIns).replace(/"/g, '&quot;')})" 
+                        class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Export as PDF
+                    </button>
+                    <button onclick="this.closest('.fixed').remove()" 
+                        class="w-full bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    } catch (error) {
+        console.error('Error showing export options:', error);
+        alert('Error preparing export options. Please try again.');
+    }
+}
+
+// Function to export to CSV
+function exportToCSV(sitIns) {
+    try {
+        // Define CSV headers
+        const headers = [
+            'ID Number',
+            'Name',
+            'Course',
+            'Year',
+            'Programming Language',
+            'Laboratory',
+            'Date',
+            'Time In',
+            'Time Out',
+            'Duration (mins)',
+            'Status'
+        ];
+
+        // Convert sit-ins to CSV rows
+        const rows = sitIns.map(sitIn => {
+            const timeIn = sitIn.timeIn || 'N/A';
+            const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
+            let duration = 'N/A';
+            
+            if (sitIn.timeIn && sitIn.timeOut) {
+                const start = new Date(sitIn.date + ' ' + sitIn.timeIn);
+                const end = new Date(sitIn.timeOut);
+                const diff = Math.round((end - start) / (1000 * 60));
+                duration = diff;
+            }
+
+            return [
+                sitIn.idNumber || 'N/A',
+                sitIn.name || 'N/A',
+                sitIn.course || 'N/A',
+                sitIn.year || 'N/A',
+                sitIn.programmingLanguage || 'N/A',
+                sitIn.laboratory || 'N/A',
+                sitIn.date || 'N/A',
+                timeIn,
+                timeOut,
+                duration,
+                sitIn.status || 'N/A'
+            ];
+        });
+
+        // Combine headers and rows
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `student_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Error exporting to CSV:', error);
+        alert('Error exporting to CSV. Please try again.');
+    }
+}
+
+// Function to export to Excel
+function exportToExcel(sitIns) {
+    try {
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        
+        // Prepare data for Excel
+        const excelData = sitIns.map(sitIn => {
+            const timeIn = sitIn.timeIn || 'N/A';
+            const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
+            let duration = 'N/A';
+            
+            if (sitIn.timeIn && sitIn.timeOut) {
+                const start = new Date(sitIn.date + ' ' + sitIn.timeIn);
+                const end = new Date(sitIn.timeOut);
+                const diff = Math.round((end - start) / (1000 * 60));
+                duration = diff;
+            }
+
+            return {
+                'ID Number': sitIn.idNumber || 'N/A',
+                'Name': sitIn.name || 'N/A',
+                'Course': sitIn.course || 'N/A',
+                'Year': sitIn.year || 'N/A',
+                'Programming Language': sitIn.programmingLanguage || 'N/A',
+                'Laboratory': sitIn.laboratory || 'N/A',
+                'Date': sitIn.date || 'N/A',
+                'Time In': timeIn,
+                'Time Out': timeOut,
+                'Duration (mins)': duration,
+                'Status': sitIn.status || 'N/A'
+            };
+        });
+
+        // Create worksheet
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Student Report');
+        
+        // Generate Excel file
+        XLSX.writeFile(wb, `student_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        alert('Error exporting to Excel. Please try again.');
+    }
+}
+
+// Function to export to PDF
+function exportToPDF(sitIns) {
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Add title
+        doc.setFontSize(16);
+        doc.text('Student Report', 20, 20);
+        doc.setFontSize(12);
+        
+        // Add date range
+        const dateRange = `Generated on: ${new Date().toLocaleDateString()}`;
+        doc.text(dateRange, 20, 30);
+        
+        // Add table headers
+        const headers = [
+            'ID Number',
+            'Name',
+            'Course',
+            'Year',
+            'Programming Language',
+            'Laboratory',
+            'Date',
+            'Time In',
+            'Time Out',
+            'Duration',
+            'Status'
+        ];
+        
+        // Calculate column widths
+        const pageWidth = doc.internal.pageSize.width;
+        const margin = 20;
+        const availableWidth = pageWidth - (margin * 2);
+        const columnWidth = availableWidth / headers.length;
+        
+        // Draw headers
+        headers.forEach((header, i) => {
+            doc.text(header, margin + (i * columnWidth), 40);
+        });
+        
+        // Draw data rows
+        let y = 50;
+        sitIns.forEach(sitIn => {
+            // Check if we need a new page
+            if (y > 280) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            const timeIn = sitIn.timeIn || 'N/A';
+            const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
+            let duration = 'N/A';
+            
+            if (sitIn.timeIn && sitIn.timeOut) {
+                const start = new Date(sitIn.date + ' ' + sitIn.timeIn);
+                const end = new Date(sitIn.timeOut);
+                const diff = Math.round((end - start) / (1000 * 60));
+                duration = `${diff} mins`;
+            }
+            
+            const row = [
+                sitIn.idNumber || 'N/A',
+                sitIn.name || 'N/A',
+                sitIn.course || 'N/A',
+                sitIn.year || 'N/A',
+                sitIn.programmingLanguage || 'N/A',
+                sitIn.laboratory || 'N/A',
+                sitIn.date || 'N/A',
+                timeIn,
+                timeOut,
+                duration,
+                sitIn.status || 'N/A'
+            ];
+            
+            row.forEach((cell, i) => {
+                doc.text(cell, margin + (i * columnWidth), y);
+            });
+            
+            y += 10;
+        });
+        
+        // Save the PDF
+        doc.save(`student_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+        console.error('Error exporting to PDF:', error);
+        alert('Error exporting to PDF. Please try again.');
+    }
 }
 
 // Function to fetch sit-ins data
 async function fetchSitInsData() {
-    // Implementation of fetching sit-ins data
-    console.log('Fetching sit-ins data...');
-    return [];
+    try {
+        const response = await fetch("http://localhost:3000/sit-ins");
+        if (!response.ok) {
+            throw new Error("Failed to fetch sit-in records");
+        }
+        const sitIns = await response.json();
+        return sitIns;
+    } catch (error) {
+        console.error("Error fetching sit-ins data:", error);
+        return [];
+    }
 }
 
 // Function to check for auto-logouts
@@ -1406,7 +1867,85 @@ document.getElementById('unified-search')?.addEventListener('input', function(e)
     }
 });
 
-<<<<<<< HEAD
+// Function to check admin authentication
+async function checkAdminAuth() {
+    try {
+        const response = await fetch('http://localhost:3000/check-admin', {
+            method: 'GET',
+            credentials: 'include', // Important for session cookies
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Authentication check failed');
+        }
+        
+        const data = await response.json();
+        return data.isAdmin === true;
+    } catch (error) {
+        console.error('Error checking admin auth:', error);
+        return false;
+    }
+}
+
+// Function to update reset statistics
+async function updateResetStatistics() {
+    try {
+        // Check admin auth first
+        const isAdmin = await checkAdminAuth();
+        if (!isAdmin) {
+            console.warn("Not authenticated as admin. Cannot fetch reset statistics.");
+            const statsContainer = document.getElementById('reset-stats-container');
+            if (statsContainer) {
+                statsContainer.innerHTML = `
+                    <div class="text-center text-sm text-red-500">
+                        Please log in as administrator to view reset statistics.
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        const response = await fetch('http://localhost:3000/reset-stats', {
+            method: 'GET',
+            credentials: 'include', // Important for session cookies
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch reset statistics');
+        }
+
+        const stats = await response.json();
+        
+        // Update statistics display
+        const totalResets = document.getElementById('total-resets');
+        const totalReservationsRemoved = document.getElementById('total-reservations-removed');
+        const totalSitInsRemoved = document.getElementById('total-sit-ins-removed');
+        
+        if (totalResets) totalResets.textContent = stats.totalResets || 0;
+        if (totalReservationsRemoved) totalReservationsRemoved.textContent = stats.totalReservationsRemoved || 0;
+        if (totalSitInsRemoved) totalSitInsRemoved.textContent = stats.totalSitInsRemoved || 0;
+        
+    } catch (error) {
+        console.error('Error updating reset statistics:', error);
+        const statsContainer = document.getElementById('reset-stats-container');
+        if (statsContainer) {
+            statsContainer.innerHTML = `
+                <div class="text-center text-sm text-red-500">
+                    Error loading reset statistics. Please try again later.
+                </div>
+            `;
+        }
+    }
+}
+
 // Function to initialize the reset session section
 function initResetSession() {
     try {
@@ -1432,6 +1971,100 @@ function initResetSession() {
         // Load reset logs
         loadResetLogs();
         
+        // Reset Semester Button Event Listener
+        if (resetSemesterBtn) {
+            resetSemesterBtn.addEventListener('click', async function() {
+                const semester = semesterSelect.value;
+                if (!semester) {
+                    alert('Please select a semester first');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to reset all sessions for ${semester}? This action cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    // Disable button and show loading state
+                    this.disabled = true;
+                    this.innerHTML = `
+                        <svg class="animate-spin h-5 w-5 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Resetting...
+                    `;
+
+                    const result = await resetSessions(null, semester);
+                    
+                    if (result.success) {
+                        alert(`Successfully reset sessions for ${semester}`);
+                        // Reset the select
+                        semesterSelect.value = '';
+                        // Refresh logs and statistics
+                        await loadResetLogs();
+                        await updateResetStatistics();
+                    } else {
+                        throw new Error(result.message || 'Failed to reset sessions');
+                    }
+                } catch (error) {
+                    console.error('Error resetting semester:', error);
+                    alert(`Failed to reset semester: ${error.message}`);
+                } finally {
+                    // Restore button state
+                    this.disabled = false;
+                    this.innerHTML = 'Reset Semester';
+                }
+            });
+        }
+        
+        // Reset User Button Event Listener
+        if (resetUserBtn) {
+            resetUserBtn.addEventListener('click', async function() {
+                const userId = userIdInput.value.trim();
+                if (!userId) {
+                    alert('Please enter a student ID number');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to reset sessions for student ${userId}? This action cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    // Disable button and show loading state
+                    this.disabled = true;
+                    this.innerHTML = `
+                        <svg class="animate-spin h-5 w-5 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Resetting...
+                    `;
+
+                    const result = await resetSessions(userId);
+                    
+                    if (result.success) {
+                        alert(`Successfully reset sessions for student ${userId}`);
+                        // Clear the input
+                        userIdInput.value = '';
+                        // Refresh logs and statistics
+                        await loadResetLogs();
+                        await updateResetStatistics();
+                    } else {
+                        throw new Error(result.message || 'Failed to reset user sessions');
+                    }
+                } catch (error) {
+                    console.error('Error resetting user:', error);
+                    alert(`Failed to reset user sessions: ${error.message}`);
+                } finally {
+                    // Restore button state
+                    this.disabled = false;
+                    this.innerHTML = 'Reset User Sessions';
+                }
+            });
+        }
+        
         // Filter logs event handler
         if (logsFilter) {
             logsFilter.addEventListener('change', function() {
@@ -1446,749 +2079,43 @@ function initResetSession() {
             });
         }
 
-        // Handle refresh logs button click
+        // Refresh logs button event handler
         if (refreshLogsBtn) {
             refreshLogsBtn.addEventListener('click', async function() {
-                this.disabled = true;
-                const originalHTML = this.innerHTML;
-                this.innerHTML = `
-                    <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Refreshing...</span>
-                `;
-                
                 try {
+                    this.disabled = true;
+                    this.innerHTML = `
+                        <svg class="animate-spin h-4 w-4 mr-1 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Refreshing...
+                    `;
                     await loadResetLogs();
                     await updateResetStatistics();
-                } catch (error) {
-                    console.error("Error refreshing reset session data:", error);
-                }
-                
-                this.disabled = false;
-                this.innerHTML = originalHTML;
-            });
-        }
-
-        // Reset by semester
-        if (resetSemesterBtn) {
-            resetSemesterBtn.addEventListener('click', async function() {
-                const semester = semesterSelect.value;
-                if (!semester) {
-                    showResetStatusMessage('Please select a semester', 'error');
-                    semesterSelect.focus();
-                    return;
-                }
-
-                try {
-                    // Check admin auth first
-                    const isAdmin = await checkAdminAuth();
-                    if (!isAdmin) {
-                        showResetStatusMessage('Authentication failed. Please log in again as administrator.', 'error');
-                        setTimeout(() => {
-                            window.location.href = '/';
-                        }, 2000);
-                        return;
-                    }
-
-                    // Show confirmation dialog
-                    const confirmed = await showConfirmationDialog('semester', semester);
-                    if (!confirmed) return;
-
-                    // Show processing message
-                    showResetStatusMessage(`<div class="flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Resetting sessions for ${semester}...</div>`, 'info');
-                    
-                    const result = await resetSessions({ semester });
-                    
-                    // Show success message with details
-                    showResetStatusMessage(
-                        `<div class="space-y-2">
-                            <div class="font-medium">${result.message}</div>
-                            <div class="text-sm">
-                                <span class="font-medium">Removed:</span> 
-                                ${result.details.reservationsRemoved} reservations, 
-                                ${result.details.sitInsRemoved} sit-ins
-                            </div>
-                        </div>`, 
-                        'success'
-                    );
-                    
-                    // Refresh data
-                    fetchSitIns();
-                    
-                    // Clear the semester select
-                    semesterSelect.value = '';
-                    
-                    // Refresh logs and statistics
-                    await Promise.all([
-                        loadResetLogs(),
-                        updateResetStatistics()
-                    ]);
-                    
-                } catch (error) {
-                    console.error('Error resetting semester sessions:', error);
-                    showResetStatusMessage(
-                        `<div class="space-y-2">
-                            <div class="font-medium">Failed to reset sessions</div>
-                            <div class="text-sm">${error.message}</div>
-                        </div>`, 
-                        'error'
-                    );
+                } finally {
+                    this.disabled = false;
+                    this.innerHTML = `
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span>Refresh</span>
+                    `;
                 }
             });
         }
 
-        // Reset by user
-        if (resetUserBtn) {
-            resetUserBtn.addEventListener('click', async function() {
-                const idNumber = userIdInput.value.trim();
-                if (!idNumber) {
-                    showResetStatusMessage('Please enter a student ID', 'error');
-                    userIdInput.focus();
-                    return;
-                }
-
-                try {
-                    // Check admin auth first
-                    const isAdmin = await checkAdminAuth();
-                    if (!isAdmin) {
-                        showResetStatusMessage('Authentication failed. Please log in again as administrator.', 'error');
-                        setTimeout(() => {
-                            window.location.href = '/';
-                        }, 2000);
-                        return;
-                    }
-
-                    // Show confirmation dialog
-                    const confirmed = await showConfirmationDialog('user', `Student ID: ${idNumber}`);
-                    if (!confirmed) return;
-
-                    // Show processing message
-                    showResetStatusMessage(`<div class="flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Resetting sessions for user ${idNumber}...</div>`, 'info');
-                    
-                    const result = await resetSessions({ idNumber });
-                    
-                    // Show success message with details
-                    showResetStatusMessage(
-                        `<div class="space-y-2">
-                            <div class="font-medium">${result.message}</div>
-                            <div class="text-sm">
-                                <span class="font-medium">Removed:</span> 
-                                ${result.details.reservationsRemoved} reservations, 
-                                ${result.details.sitInsRemoved} sit-ins
-                            </div>
-                        </div>`, 
-                        'success'
-                    );
-                    
-                    // Refresh data
-                    fetchSitIns();
-                    
-                    // Clear the input
-                    userIdInput.value = '';
-                    
-                    // Refresh logs and statistics
-                    await Promise.all([
-                        loadResetLogs(),
-                        updateResetStatistics()
-                    ]);
-                    
-                } catch (error) {
-                    console.error('Error resetting user sessions:', error);
-                    showResetStatusMessage(
-                        `<div class="space-y-2">
-                            <div class="font-medium">Failed to reset sessions</div>
-                            <div class="text-sm">${error.message}</div>
-                        </div>`, 
-                        'error'
-                    );
-                }
-            });
-        }
-        
         console.log("Reset session section initialized successfully");
         
     } catch (error) {
         console.error("Error initializing reset session section:", error);
-        const resetSection = document.getElementById('reset-session');
-        if (resetSection) {
-            resetSection.innerHTML = `
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <strong class="font-bold">Error!</strong>
-                    <span class="block sm:inline"> Failed to initialize reset session functionality. Please try refreshing the page.</span>
-                    <span class="block mt-2">Error details: ${error.message}</span>
-                </div>
-=======
-// Function to fetch reservations
-async function fetchReservations() {
-    try {
-        const response = await fetch("http://localhost:3000/reservations");
-        if (!response.ok) {
-            throw new Error("Failed to fetch reservations");
-        }
-        const reservations = await response.json();
-        return reservations;
-    } catch (error) {
-        console.error("Error fetching reservations:", error);
-        throw error;
     }
 }
 
-// Function to load feedback
-async function loadFeedback() {
-    try {
-        const response = await fetch('http://localhost:3000/feedback');
-        if (!response.ok) {
-            throw new Error('Failed to fetch feedback');
-        }
-
-        const feedback = await response.json();
-        const tableBody = document.getElementById('feedbackTableBody');
-        
-        if (!tableBody) {
-            console.error('Feedback table body not found');
-            return;
-        }
-
-        tableBody.innerHTML = '';
-
-        if (feedback.length === 0) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center py-4 text-gray-500">No feedback available</td>
-                </tr>
-            `;
-            return;
-        }
-
-        // Sort feedback by date (newest first)
-        feedback.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        feedback.forEach(item => {
-            const row = document.createElement('tr');
-            const date = new Date(item.date).toLocaleString();
-            
-            row.innerHTML = `
-                <td class="border px-4 py-2">${item.userId || 'N/A'}</td>
-                <td class="border px-4 py-2">${item.laboratory || 'N/A'}</td>
-                <td class="border px-4 py-2">${date}</td>
-                <td class="border px-4 py-2">${item.message || 'N/A'}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-
-        // Clear the notification dot after loading feedback
-        clearFeedbackNotification();
-        
-    } catch (error) {
-        console.error('Error loading feedback:', error);
-        const tableBody = document.getElementById('feedbackTableBody');
-        if (tableBody) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center py-4 text-red-500">
-                        Error loading feedback: ${error.message}
-                    </td>
-                </tr>
->>>>>>> 194cb39d88748533609b99ab0d09160d55245390
-            `;
-        }
-    }
-}
-
-<<<<<<< HEAD
-// Function to check if the current user is logged in as admin
-async function checkAdminAuth() {
-    try {
-        const response = await fetch('http://localhost:3000/check-admin', {
-            method: 'GET',
-            credentials: 'include', // Important for session cookies
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache, no-store, must-revalidate'
-            }
-        });
-        
-        if (!response.ok) {
-            console.error('Admin check failed with status:', response.status);
-            return false;
-        }
-        
-        const data = await response.json();
-        console.log('Admin check result:', data);
-        return data.isAdmin === true;
-    } catch (error) {
-        console.error('Error checking admin status:', error);
-        return false;
-    }
-}
-
-// Function to update reset statistics
-async function updateResetStatistics() {
-    try {
-        // Check if elements exist before trying to update them
-        const totalResets = document.getElementById('total-resets');
-        const todayResets = document.getElementById('today-resets');
-        const lastResetSpan = document.getElementById('last-reset');
-        
-        if (!totalResets && !todayResets && !lastResetSpan) {
-            // No elements to update, so return early
-            console.log('Reset statistics elements not found in the DOM');
-            return;
-        }
-        
-        // Check admin auth first
-        const isAdmin = await checkAdminAuth();
-        if (!isAdmin) {
-            console.warn('Not authenticated as admin. Cannot load reset statistics.');
-            // Still update the UI to show zeros
-            if (totalResets) totalResets.textContent = 0;
-            if (todayResets) todayResets.textContent = 0;
-            if (lastResetSpan) lastResetSpan.textContent = 'Authentication required';
-            return;
-        }
-        
-        const response = await fetch('http://localhost:3000/reset-stats', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache, no-store, must-revalidate'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch reset statistics: ${response.status} ${response.statusText}`);
-        }
-        
-        const stats = await response.json();
-        
-        if (!stats.success) {
-            throw new Error(stats.message || 'Failed to fetch reset statistics');
-        }
-        
-        // Update UI with fetched data
-        if (totalResets) totalResets.textContent = stats.total || 0;
-        if (todayResets) todayResets.textContent = stats.today || 0;
-        
-        // Update last reset time
-        if (stats.lastReset && lastResetSpan) {
-            const lastResetDate = new Date(stats.lastReset);
-            lastResetSpan.textContent = `Last reset: ${lastResetDate.toLocaleString()}`;
-        } else if (lastResetSpan) {
-            lastResetSpan.textContent = 'No recent resets';
-        }
-        
-    } catch (error) {
-        console.error('Error updating reset statistics:', error);
-        
-        // Still update the UI
-        const totalResets = document.getElementById('total-resets');
-        const todayResets = document.getElementById('today-resets');
-        const lastResetSpan = document.getElementById('last-reset');
-        
-        if (totalResets) totalResets.textContent = '-';
-        if (todayResets) todayResets.textContent = '-';
-        if (lastResetSpan) lastResetSpan.textContent = `Error: ${error.message}`;
-    }
-}
-
-// Function to show confirmation dialog
-function showConfirmationDialog(type, details) {
-    return new Promise((resolve) => {
-        const confirmationHTML = `
-            <div id="reset-confirmation-modal" class="fixed inset-0 flex items-center justify-center z-[60] bg-black bg-opacity-50">
-                <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">Confirm Reset</h3>
-                    <div class="mb-6">
-                        <p class="text-gray-700 mb-4">Are you sure you want to reset ${type === 'semester' ? 'all sessions for' : 'sessions for user'}:</p>
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-lg font-medium text-gray-900">${details}</p>
-                        </div>
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button id="cancel-reset" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
-                            Cancel
-                        </button>
-                        <button id="confirm-reset" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                            Confirm Reset
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Add confirmation modal to body
-        document.body.insertAdjacentHTML('beforeend', confirmationHTML);
-        
-        const confirmationModal = document.getElementById('reset-confirmation-modal');
-        const confirmBtn = document.getElementById('confirm-reset');
-        const cancelBtn = document.getElementById('cancel-reset');
-
-        // Handle confirmation
-        confirmBtn.addEventListener('click', () => {
-            confirmationModal.remove();
-            resolve(true);
-        });
-
-        // Handle cancellation
-        cancelBtn.addEventListener('click', () => {
-            confirmationModal.remove();
-            resolve(false);
-        });
-
-        // Handle click outside
-        confirmationModal.addEventListener('click', (e) => {
-            if (e.target === confirmationModal) {
-                confirmationModal.remove();
-                resolve(false);
-            }
-        });
-    });
-}
-
-// Function to show status message in reset modal
-function showResetStatusMessage(message, type = 'info') {
-    const statusContainer = document.getElementById('reset-status-container');
-    const statusMessage = document.getElementById('reset-status-message');
-    
-    if (!statusContainer || !statusMessage) return;
-    
-    // Set message
-    statusMessage.innerHTML = message;
-    
-    // Reset classes
-    statusMessage.className = 'p-4 rounded-lg shadow-sm';
-    
-    // Set color based on type
-    switch(type) {
-        case 'success':
-            statusMessage.classList.add('bg-green-50', 'text-green-800', 'border', 'border-green-200');
-            break;
-        case 'error':
-            statusMessage.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
-            break;
-        case 'warning':
-            statusMessage.classList.add('bg-yellow-50', 'text-yellow-800', 'border', 'border-yellow-200');
-            break;
-        default:
-            statusMessage.classList.add('bg-blue-50', 'text-blue-800', 'border', 'border-blue-200');
-    }
-    
-    // Show the container with fade-in effect
-    statusContainer.classList.remove('hidden');
-    statusContainer.classList.add('animate-fade-in');
-    
-    // Auto-hide success and info messages after 8 seconds
-    if (type !== 'error') {
-        setTimeout(() => {
-            statusContainer.classList.add('hidden');
-            statusContainer.classList.remove('animate-fade-in');
-        }, 8000);
-    }
-}
-
-// Filter logs based on type
-function filterLogs(filterType) {
-    const allRows = document.querySelectorAll('#reset-logs-table tr:not(.no-logs)');
-    let visibleCount = 0;
-    
-    allRows.forEach(row => {
-        const typeCell = row.querySelector('td:nth-child(2)');
-        if (!typeCell) return;
-        
-        const type = typeCell.textContent.trim().toLowerCase();
-        
-        if (filterType === 'all' || 
-            (filterType === 'semester' && type === 'semester') || 
-            (filterType === 'user' && type === 'user')) {
-            row.classList.remove('hidden');
-            visibleCount++;
-        } else {
-            row.classList.add('hidden');
-        }
-    });
-    
-    // Update logs count
-    const logsCount = document.getElementById('logs-count');
-    if (logsCount) {
-        logsCount.textContent = `${visibleCount} log${visibleCount !== 1 ? 's' : ''} found`;
-    }
-}
-
-// Export logs as CSV
-function exportResetLogs() {
-    const table = document.getElementById('reset-logs-table');
-    if (!table) return;
-    
-    const rows = Array.from(table.querySelectorAll('tr:not(.hidden)'));
-    if (rows.length === 0) {
-        alert('No logs to export');
-        return;
-    }
-    
-    let csvContent = 'Date,Type,Details,Admin\n';
-    
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length < 4) return;
-        
-        const date = cells[0].textContent.trim();
-        const type = cells[1].textContent.trim();
-        
-        // Get the text without HTML tags for details
-        const detailsDiv = cells[2].querySelector('div');
-        const details = detailsDiv ? detailsDiv.textContent.trim().replace(/\s+/g, ' ') : '';
-        
-        const admin = cells[3].textContent.trim();
-        
-        csvContent += `"${date}","${type}","${details}","${admin}"\n`;
-    });
-    
-    // Create a download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    
-    // Set date for filename
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `reset-logs-${dateStr}.csv`);
-    link.style.display = 'none';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// Document Ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("Admin JS initialized");
-
-    // Initialize dashboard stats and charts
-    initializeDashboard();
-
-    // Setup section switching
-    setupSectionSwitching();
-
-    // Setup reports tabs
-    setupReportsTabs();
-    
-    // Setup student reports functionality
-    setupStudentReports();
-
-    // Initialize reset session functionality
-    initResetSession();
-
-    // Initialize walk-in sit-in form
-    initWalkinForm();
-    
-    // Initialize first fetch
-    fetchSitIns();
-    
-    // Fetch initial student data
-    fetchStudents();
-});
-
-// Function to initialize walk-in sit-in form
-function initWalkinForm() {
-    const walkinStudentIdInput = document.getElementById('walkin-student-id');
-    const searchStudentBtn = document.getElementById('search-student-btn');
-    const studentInfo = document.getElementById('student-info');
-    const studentSearchStatus = document.getElementById('student-search-status');
-    const walkinPurpose = document.getElementById('walkin-purpose');
-    const otherPurposeContainer = document.getElementById('other-purpose-container');
-    const otherPurposeInput = document.getElementById('walkin-other-purpose');
-    const progLanguage = document.getElementById('walkin-prog-language');
-    const progLanguageOtherContainer = document.getElementById('prog-language-other-container');
-    const otherLanguageInput = document.getElementById('walkin-other-language');
-    const addWalkinBtn = document.getElementById('add-walkin-btn');
-    
-    // Check if all elements exist
-    if (!walkinStudentIdInput || !searchStudentBtn || !studentInfo || 
-        !studentSearchStatus || !walkinPurpose || !addWalkinBtn) {
-        console.warn("Some walk-in form elements not found");
-        return;
-    }
-    
-    // Disable add button until student is found
-    addWalkinBtn.disabled = true;
-    
-    // Handle purpose selection change
-    walkinPurpose.addEventListener('change', function() {
-        if (this.value === 'Other') {
-            otherPurposeContainer.classList.remove('hidden');
-            otherPurposeInput.focus();
-        } else {
-            otherPurposeContainer.classList.add('hidden');
-        }
-    });
-    
-    // Handle programming language selection change
-    progLanguage.addEventListener('change', function() {
-        if (this.value === 'Other') {
-            progLanguageOtherContainer.classList.remove('hidden');
-            otherLanguageInput.focus();
-        } else {
-            progLanguageOtherContainer.classList.add('hidden');
-        }
-    });
-    
-    // Handle search button click
-    searchStudentBtn.addEventListener('click', async function() {
-        const studentId = walkinStudentIdInput.value.trim();
-        if (!studentId) {
-            studentSearchStatus.textContent = "Please enter a student ID";
-            studentSearchStatus.classList.add('text-red-500');
-            studentSearchStatus.classList.remove('text-green-500');
-            studentInfo.classList.add('hidden');
-            addWalkinBtn.disabled = true;
-            return;
-        }
-        
-        // Show loading state
-        studentSearchStatus.textContent = "Searching...";
-        studentSearchStatus.classList.remove('text-red-500', 'text-green-500');
-        
-        try {
-            const response = await fetch(`http://localhost:3000/get-profile?id=${studentId}`);
-            
-            if (!response.ok) {
-                throw new Error(`Status: ${response.status}`);
-            }
-            
-            const student = await response.json();
-            
-            // Update student info
-            document.getElementById('walkin-student-name').textContent = `${student.firstName} ${student.lastName}`;
-            document.getElementById('walkin-student-course').textContent = student.course;
-            document.getElementById('walkin-student-year').textContent = student.year;
-            
-            // Show success message and student info
-            studentSearchStatus.textContent = "Student found! You can now add a sit-in session.";
-            studentSearchStatus.classList.add('text-green-500');
-            studentSearchStatus.classList.remove('text-red-500');
-            studentInfo.classList.remove('hidden');
-            
-            // Enable add button
-            addWalkinBtn.disabled = false;
-            
-        } catch (error) {
-            console.error("Error searching for student:", error);
-            studentSearchStatus.textContent = "Student not found. Please check the ID.";
-            studentSearchStatus.classList.add('text-red-500');
-            studentSearchStatus.classList.remove('text-green-500');
-            studentInfo.classList.add('hidden');
-            addWalkinBtn.disabled = true;
-        }
-    });
-    
-    // Allow searching on Enter key press
-    walkinStudentIdInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            searchStudentBtn.click();
-        }
-    });
-    
-    // Handle add walk-in button click
-    addWalkinBtn.addEventListener('click', async function() {
-        const studentId = walkinStudentIdInput.value.trim();
-        const purpose = walkinPurpose.value;
-        const otherPurpose = otherPurposeInput ? otherPurposeInput.value.trim() : '';
-        const programmingLanguage = progLanguage.value;
-        const otherLanguage = otherLanguageInput ? otherLanguageInput.value.trim() : '';
-        
-        // Validate inputs
-        if (!studentId) {
-            alert("Please search for a student first");
-            return;
-        }
-        
-        if (!purpose) {
-            alert("Please select a purpose");
-            walkinPurpose.focus();
-            return;
-        }
-        
-        if (purpose === 'Other' && !otherPurpose) {
-            alert("Please specify the purpose");
-            otherPurposeInput.focus();
-            return;
-        }
-        
-        if (programmingLanguage === 'Other' && !otherLanguage) {
-            alert("Please specify the programming language");
-            otherLanguageInput.focus();
-            return;
-        }
-        
-        // Disable button and show loading state
-        addWalkinBtn.disabled = true;
-        addWalkinBtn.textContent = "Adding...";
-        
-        try {
-            // Get student info from displayed data
-            const name = document.getElementById('walkin-student-name').textContent;
-            const course = document.getElementById('walkin-student-course').textContent;
-            const year = document.getElementById('walkin-student-year').textContent;
-            
-            // Create walk-in sit-in
-            const response = await fetch('http://localhost:3000/create-walkin', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    idNumber: studentId,
-                    name: name,
-                    course: course,
-                    year: year,
-                    purpose: purpose,
-                    otherPurpose: otherPurpose,
-                    programmingLanguage: programmingLanguage,
-                    otherLanguage: otherLanguage
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (!result.success) {
-                throw new Error(result.message || "Failed to create walk-in sit-in");
-            }
-            
-            // Show success message
-            alert("Walk-in sit-in created successfully!");
-            
-            // Reset form
-            walkinStudentIdInput.value = '';
-            studentInfo.classList.add('hidden');
-            studentSearchStatus.textContent = '';
-            walkinPurpose.value = '';
-            if (otherPurposeInput) otherPurposeInput.value = '';
-            if (otherPurposeContainer) otherPurposeContainer.classList.add('hidden');
-            progLanguage.value = '';
-            if (otherLanguageInput) otherLanguageInput.value = '';
-            if (progLanguageOtherContainer) progLanguageOtherContainer.classList.add('hidden');
-            
-            // Refresh sit-ins table
-            fetchSitIns();
-            
-        } catch (error) {
-            console.error("Error creating walk-in sit-in:", error);
-            alert(`Error creating walk-in sit-in: ${error.message}`);
-        } finally {
-            // Reset button state
-            addWalkinBtn.disabled = false;
-            addWalkinBtn.textContent = "Add Walk-in";
-=======
 // Function to load today's sit-in records
 async function loadTodaysSitInRecords() {
     try {
+        console.log("Loading today's sit-in records...");
         const response = await fetch("http://localhost:3000/sit-ins");
         if (!response.ok) {
             throw new Error("Failed to fetch sit-in records");
@@ -2196,28 +2123,186 @@ async function loadTodaysSitInRecords() {
 
         const sitIns = await response.json();
         
-        // Filter for today's records
+        // Filter for today's records and active sit-ins
         const today = new Date().toISOString().split('T')[0];
-        const todaysSitIns = sitIns.filter(sitIn => sitIn.date === today);
+        const todaysSitIns = sitIns.filter(sitIn => 
+            sitIn.date === today && 
+            sitIn.status === 'active'
+        );
 
-        // Display records in table
-        displaySitInRecords(todaysSitIns);
+        console.log("Today's active sit-ins:", todaysSitIns);
+
+        // Get chart canvases
+        const programmingLanguageCanvas = document.getElementById('programmingLanguageChart');
+        const labRoomCanvas = document.getElementById('labRoomChart');
+
+        if (!programmingLanguageCanvas || !labRoomCanvas) {
+            console.error("Chart canvases not found");
+            return;
+        }
+
+        // Destroy existing charts if they exist
+        const existingProgrammingChart = Chart.getChart(programmingLanguageCanvas);
+        if (existingProgrammingChart) {
+            existingProgrammingChart.destroy();
+        }
         
-        // Update charts
-        updateProgrammingLanguageChart(todaysSitIns);
-        updateLabRoomChart(todaysSitIns);
+        const existingLabChart = Chart.getChart(labRoomCanvas);
+        if (existingLabChart) {
+            existingLabChart.destroy();
+        }
+
+        // Count programming languages for active sit-ins
+        const languageStats = {};
+        todaysSitIns.forEach(record => {
+            const lang = record.programmingLanguage || 'Not Specified';
+            languageStats[lang] = (languageStats[lang] || 0) + 1;
+        });
+
+        // Count lab rooms for active sit-ins
+        const labStats = {};
+        todaysSitIns.forEach(record => {
+            const lab = record.laboratory || 'Not Specified';
+            labStats[lab] = (labStats[lab] || 0) + 1;
+        });
+
+        // Add default data if no active sit-ins
+        if (Object.keys(languageStats).length === 0) {
+            languageStats['No Data'] = 1;
+        }
+        if (Object.keys(labStats).length === 0) {
+            labStats['No Data'] = 1;
+        }
+
+        // Create programming language chart
+        new Chart(programmingLanguageCanvas, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(languageStats),
+                datasets: [{
+                    data: Object.values(languageStats),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(199, 199, 199, 0.7)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 12
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return {
+                                            text: `${label} (${percentage}%)`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Programming Language Distribution',
+                        font: {
+                            size: 16
+                        }
+                    }
+                }
+            }
+        });
+
+        // Create lab room chart
+        new Chart(labRoomCanvas, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(labStats),
+                datasets: [{
+                    data: Object.values(labStats),
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(199, 199, 199, 0.7)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 12
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return {
+                                            text: `${label} (${percentage}%)`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Lab Room Distribution',
+                        font: {
+                            size: 16
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update records table with active sit-ins
+        displaySitInRecords(todaysSitIns);
+
+        // Update total sessions count for today
+        const totalSessionsToday = document.getElementById('total-sessions-today');
+        if (totalSessionsToday) {
+            totalSessionsToday.textContent = todaysSitIns.length;
+        }
+
     } catch (error) {
         console.error("Error loading sit-in records:", error);
-        const tableBody = document.getElementById("sit-in-records-table");
-        if (tableBody) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="10" class="text-center py-4 text-red-500">
-                        Error loading records: ${error.message}
-                    </td>
-                </tr>
-            `;
-        }
     }
 }
 
@@ -2274,18 +2359,6 @@ function displaySitInRecords(records) {
     });
 }
 
-// Add search functionality for records
-document.getElementById('records-search')?.addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const tableBody = document.getElementById('sit-in-records-table');
-    const rows = tableBody.getElementsByTagName('tr');
-
-    for (let row of rows) {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-    }
-});
-
 // Function to update programming language distribution chart
 function updateProgrammingLanguageChart(records) {
     const canvas = document.getElementById('programmingLanguageChart');
@@ -2313,7 +2386,7 @@ function updateProgrammingLanguageChart(records) {
         'rgba(199, 199, 199, 0.7)'
     ];
 
-    // Get the chart instance if it exists
+    // Get existing chart instance
     const existingChart = Chart.getChart(canvas);
     if (existingChart) {
         existingChart.destroy();
@@ -2332,7 +2405,7 @@ function updateProgrammingLanguageChart(records) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
             layout: {
                 padding: 20
             },
@@ -2363,7 +2436,10 @@ function updateProgrammingLanguageChart(records) {
                     }
                 },
                 title: {
-                    display: false
+                    display: true,
+                    font: {
+                        size: 16
+                    }
                 }
             }
         }
@@ -2397,7 +2473,7 @@ function updateLabRoomChart(records) {
         'rgba(199, 199, 199, 0.7)'
     ];
 
-    // Get the chart instance if it exists
+    // Get existing chart instance
     const existingChart = Chart.getChart(canvas);
     if (existingChart) {
         existingChart.destroy();
@@ -2416,7 +2492,7 @@ function updateLabRoomChart(records) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true,
             layout: {
                 padding: 20
             },
@@ -2447,10 +2523,280 @@ function updateLabRoomChart(records) {
                     }
                 },
                 title: {
-                    display: false
+                    display: true,
+                    font: {
+                        size: 16
+                    }
                 }
             }
->>>>>>> 194cb39d88748533609b99ab0d09160d55245390
         }
     });
+}
+
+// Add search functionality for records
+document.getElementById('records-search')?.addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const tableBody = document.getElementById('sit-in-records-table');
+    const rows = tableBody.getElementsByTagName('tr');
+
+    for (let row of rows) {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    }
+});
+
+// Function to load and display user feedback
+async function loadFeedback() {
+    try {
+        const response = await fetch("http://localhost:3000/feedback");
+        if (!response.ok) {
+            throw new Error("Failed to fetch feedback");
+        }
+
+        const feedback = await response.json();
+        const feedbackTableBody = document.getElementById('feedbackTableBody');
+        
+        if (!feedbackTableBody) {
+            console.error('Feedback table body not found');
+            return;
+        }
+
+        if (feedback.length === 0) {
+            feedbackTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4 text-gray-500">
+                        No feedback received yet
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // Sort feedback by date (newest first)
+        feedback.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Generate feedback HTML
+        const feedbackHTML = feedback.map(item => `
+            <tr>
+                <td class="border border-gray-300 px-4 py-2">${item.userId || 'Anonymous'}</td>
+                <td class="border border-gray-300 px-4 py-2">${item.laboratory || 'N/A'}</td>
+                <td class="border border-gray-300 px-4 py-2">${new Date(item.date).toLocaleString()}</td>
+                <td class="border border-gray-300 px-4 py-2">${item.message}</td>
+            </tr>
+        `).join('');
+
+        feedbackTableBody.innerHTML = feedbackHTML;
+
+        // Clear feedback notification after viewing
+        clearFeedbackNotification();
+        
+    } catch (error) {
+        console.error("Error loading feedback:", error);
+        const feedbackTableBody = document.getElementById('feedbackTableBody');
+        if (feedbackTableBody) {
+            feedbackTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4 text-red-500">
+                        Error loading feedback. Please try again later.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// Function to search for a student by ID
+async function searchStudentById(idNumber) {
+    try {
+        const response = await fetch(`http://localhost:3000/get-profile?id=${idNumber}`);
+        if (!response.ok) {
+            throw new Error('Student not found');
+        }
+        const student = await response.json();
+        return student;
+    } catch (error) {
+        console.error('Error searching for student:', error);
+        return null;
+    }
+}
+
+// Function to handle walk-in form display
+function setupWalkInForm() {
+    const searchBtn = document.getElementById('search-student-btn');
+    const walkinPurpose = document.getElementById('walkin-purpose');
+    const otherPurposeContainer = document.getElementById('other-purpose-container');
+    const walkinProgLanguage = document.getElementById('walkin-prog-language');
+    const progLanguageOtherContainer = document.getElementById('prog-language-other-container');
+    const addWalkinBtn = document.getElementById('add-walkin-btn');
+
+    if (!searchBtn || !walkinPurpose || !otherPurposeContainer || 
+        !walkinProgLanguage || !progLanguageOtherContainer || !addWalkinBtn) {
+        console.error('Walk-in form elements not found');
+        return;
+    }
+
+    // Handle student search
+    searchBtn.addEventListener('click', async () => {
+        const studentId = document.getElementById('walkin-student-id').value.trim();
+        const statusElement = document.getElementById('student-search-status');
+        const studentInfo = document.getElementById('student-info');
+
+        if (!studentId) {
+            statusElement.textContent = 'Please enter a student ID';
+            return;
+        }
+
+        statusElement.textContent = 'Searching...';
+        const student = await searchStudentById(studentId);
+
+        if (student) {
+            document.getElementById('walkin-student-name').textContent = `${student.firstName} ${student.lastName}`;
+            document.getElementById('walkin-student-course').textContent = student.course;
+            document.getElementById('walkin-student-year').textContent = student.year;
+            studentInfo.classList.remove('hidden');
+            addWalkinBtn.disabled = false;
+            statusElement.textContent = 'Student found';
+        } else {
+            statusElement.textContent = 'Student not found';
+            studentInfo.classList.add('hidden');
+            addWalkinBtn.disabled = true;
+        }
+    });
+
+    // Handle purpose selection
+    walkinPurpose.addEventListener('change', () => {
+        otherPurposeContainer.classList.toggle('hidden', walkinPurpose.value !== 'Other');
+    });
+
+    // Handle programming language selection
+    walkinProgLanguage.addEventListener('change', () => {
+        progLanguageOtherContainer.classList.toggle('hidden', walkinProgLanguage.value !== 'Other');
+    });
+
+    // Handle walk-in submission
+    addWalkinBtn.addEventListener('click', async () => {
+        const studentId = document.getElementById('walkin-student-id').value.trim();
+        const purpose = document.getElementById('walkin-purpose').value;
+        const otherPurpose = document.getElementById('walkin-other-purpose').value;
+        const programmingLanguage = document.getElementById('walkin-prog-language').value;
+        const otherLanguage = document.getElementById('walkin-other-language').value;
+
+        if (!studentId || !purpose) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        if (purpose === 'Other' && !otherPurpose) {
+            alert('Please specify the other purpose');
+            return;
+        }
+
+        if (programmingLanguage === 'Other' && !otherLanguage) {
+            alert('Please specify the other programming language');
+            return;
+        }
+
+        const student = await searchStudentById(studentId);
+        if (!student) {
+            alert('Student not found');
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:3000/create-walkin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    idNumber: studentId,
+                    name: `${student.firstName} ${student.lastName}`,
+                    course: student.course,
+                    year: student.year,
+                    purpose: purpose === 'Other' ? otherPurpose : purpose,
+                    programmingLanguage: programmingLanguage === 'Other' ? otherLanguage : programmingLanguage,
+                    otherPurpose: purpose === 'Other' ? otherPurpose : null,
+                    otherLanguage: programmingLanguage === 'Other' ? otherLanguage : null
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('Walk-in student added successfully');
+                // Reset form
+                document.getElementById('walkin-student-id').value = '';
+                document.getElementById('walkin-purpose').value = '';
+                document.getElementById('walkin-other-purpose').value = '';
+                document.getElementById('walkin-prog-language').value = '';
+                document.getElementById('walkin-other-language').value = '';
+                document.getElementById('student-info').classList.add('hidden');
+                document.getElementById('add-walkin-btn').disabled = true;
+                // Refresh sit-ins table
+                fetchSitIns();
+            } else {
+                throw new Error(data.message || 'Failed to add walk-in student');
+            }
+        } catch (error) {
+            console.error('Error adding walk-in student:', error);
+            alert(error.message || 'Failed to add walk-in student');
+        }
+    });
+}
+
+// Add walk-in form setup to the DOMContentLoaded event
+document.addEventListener("DOMContentLoaded", function() {
+    // ... existing DOMContentLoaded code ...
+    
+    // Set up walk-in form
+    setupWalkInForm();
+    
+    // ... rest of existing DOMContentLoaded code ...
+});
+
+// Function to export and reset logs
+async function exportResetLogs() {
+    try {
+        // First, export the logs
+        const response = await fetch('http://localhost:3000/export-logs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to export logs');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `logs_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // After successful export, reset the logs
+        const resetResponse = await fetch('http://localhost:3000/reset-logs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!resetResponse.ok) {
+            throw new Error('Failed to reset logs');
+        }
+
+        // Show success message
+        alert('Logs exported and reset successfully!');
+        
+        // Refresh the logs table
+        loadResetLogs();
+    } catch (error) {
+        console.error('Error exporting/resetting logs:', error);
+        alert('Failed to export or reset logs. Please try again.');
+    }
 }

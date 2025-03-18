@@ -15,22 +15,28 @@ function checkAuthentication() {
 
 // Function to hide all sections
 function hideAllSections() {
-    const sections = document.querySelectorAll(".section");
-    sections.forEach(section => section.classList.add("hidden"));
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.add('hidden');
+    });
 }
 
 // Function to show a specific section
 async function showSection(sectionId) {
-    if (sectionId === 'profile') {
-        await showProfileModal();
-        return;
-    }
     hideAllSections();
     const section = document.getElementById(sectionId);
     if (section) {
-        section.classList.remove("hidden");
+        section.classList.remove('hidden');
         // Save the active section to localStorage
         localStorage.setItem("activeSection", sectionId);
+        
+        // Load data based on section
+        if (sectionId === 'reserve-session') {
+            initializeCalendar();
+        } else if (sectionId === 'dashboard') {
+            loadDashboardData();
+        } else if (sectionId === 'sit-in-history') {
+            loadSitInHistory();
+        }
     }
 }
 
@@ -55,6 +61,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     // Setup reservation form
     setupReservationForm();
+    
+    // Initialize calendar
+    initializeCalendar();
     
     // Set up periodic checks for new announcements
     setInterval(checkNewAnnouncements, 30000);
@@ -82,44 +91,16 @@ function loadInitialData() {
     
     // Show the active section
     showSection(activeSection);
-    
-    // Load data based on active section
-    if (activeSection === "dashboard") {
-        loadDashboardData();
-    } else if (activeSection === "announcements") {
-        loadAnnouncements();
-    } else if (activeSection === "sit-in-history") {
-        loadSitInHistory();
-    } else if (activeSection === "reservation-history") {
-        loadReservationHistory();
-    }
 }
 
 // Function to setup navigation
 function setupNavigation() {
-    const menuLinks = document.querySelectorAll(".sidebar ul li a");
-    
-    menuLinks.forEach(link => {
-        // Skip if this is the logout link with an onclick attribute
-        if (link.getAttribute("onclick")) {
-            return;
-        }
-        
+    // Add click event listeners to navigation links
+    document.querySelectorAll('nav a[href^="#"]').forEach(link => {
         link.addEventListener("click", function(event) {
             event.preventDefault();
             const targetId = this.getAttribute("href").substring(1);
             showSection(targetId);
-            
-            // Load data for the section if needed
-            if (targetId === "dashboard") {
-                loadDashboardData();
-            } else if (targetId === "announcements") {
-                loadAnnouncements();
-            } else if (targetId === "sit-in-history") {
-                loadSitInHistory();
-            } else if (targetId === "reservation-history") {
-                loadReservationHistory();
-            }
         });
     });
 }
@@ -262,22 +243,24 @@ async function updateDashboardStats(userId) {
             document.getElementById('pendingSessions').textContent = pendingCount;
         }
         
-        // Update remaining sessions
-        if (document.getElementById('remainingSessions')) {
-            document.getElementById('remainingSessions').textContent = userData.remainingSessions || 0;
-        }
+        // Update remaining sessions count everywhere
+        const remainingSessions = userData.remainingSessions;
+        const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+        remainingSessionsElements.forEach(element => {
+            element.textContent = remainingSessions;
+        });
+
+        // Store the remaining sessions count in localStorage for persistence
+        localStorage.setItem('remainingSessions', remainingSessions);
         
-        // Update remaining sessions in modal if it exists
-        if (document.getElementById('remainingSessionsModal')) {
-            document.getElementById('remainingSessionsModal').textContent = userData.remainingSessions || 0;
-        }
     } catch (error) {
-        console.error('Error updating dashboard stats:', error);
-        // Set default values if there's an error
-        if (document.getElementById('completedSessions')) document.getElementById('completedSessions').textContent = '0';
-        if (document.getElementById('pendingSessions')) document.getElementById('pendingSessions').textContent = '0';
-        if (document.getElementById('remainingSessions')) document.getElementById('remainingSessions').textContent = '0';
-        if (document.getElementById('remainingSessionsModal')) document.getElementById('remainingSessionsModal').textContent = '0';
+        console.error("Error updating dashboard stats:", error);
+        // If there's an error, try to use the cached value from localStorage
+        const cachedRemainingSessions = localStorage.getItem('remainingSessions') || '30';
+        const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+        remainingSessionsElements.forEach(element => {
+            element.textContent = cachedRemainingSessions;
+        });
     }
 }
 
@@ -467,9 +450,17 @@ function initializeProfile() {
                 document.getElementById('sidebarProfileName').textContent = fullName || 'Loading...';
                 document.getElementById('sidebarProfileCourse').textContent = data.course || 'Loading...';
                 
+                // Update remaining sessions count
+                const remainingSessions = data.remainingSessions || 0;
+                const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+                remainingSessionsElements.forEach(element => {
+                    element.textContent = remainingSessions;
+                });
+                
                 // Save to localStorage
                 localStorage.setItem('profileName', fullName);
                 localStorage.setItem('profileCourse', data.course || '');
+                localStorage.setItem('remainingSessions', remainingSessions);
                 
                 // Update all profile pictures if exists
                 if (data.profileImage) {
@@ -488,9 +479,17 @@ function initializeProfile() {
             const savedName = localStorage.getItem('profileName');
             const savedCourse = localStorage.getItem('profileCourse');
             const savedProfileImage = localStorage.getItem('profileImagePath');
+            const savedRemainingSessions = localStorage.getItem('remainingSessions') || '0';
             
             if (savedName) document.getElementById('sidebarProfileName').textContent = savedName;
             if (savedCourse) document.getElementById('sidebarProfileCourse').textContent = savedCourse;
+            
+            // Update remaining sessions from localStorage
+            const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+            remainingSessionsElements.forEach(element => {
+                element.textContent = savedRemainingSessions;
+            });
+            
             if (savedProfileImage) {
                 const profileImageWithTimestamp = `${savedProfileImage}?t=${new Date().getTime()}`;
                 document.getElementById('sidebarProfilePic').src = profileImageWithTimestamp;
@@ -1240,12 +1239,23 @@ function setupReservationForm() {
 
 // Function to handle session reservation
 async function reserveSession() {
+    const calendarEl = document.getElementById('calendar');
+    const selectedDate = calendarEl.dataset.selectedDate;
+    const labRoom = document.getElementById('labRoom').value;
+    const programmingLanguage = document.getElementById('programmingLanguage').value;
+    const time = document.getElementById('time').value;
+
+    if (!selectedDate) {
+        alert('Please select a date from the calendar');
+        return;
+    }
+
+    if (!labRoom || !programmingLanguage || !time) {
+        alert('Please fill in all fields');
+        return;
+    }
+
     try {
-        const date = document.getElementById("date").value;
-        const time = document.getElementById("time").value;
-        const labRoom = document.getElementById("labRoom").value;
-        const programmingLanguage = document.getElementById("programmingLanguage").value;
-        
         // Get user ID from localStorage or URL
         const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
         if (!userId) {
@@ -1253,23 +1263,6 @@ async function reserveSession() {
             window.location.href = '/login.html';
             return;
         }
-
-        if (!date || !time || !labRoom || !programmingLanguage) {
-            alert("Please fill in all fields: lab room, programming language, date, and time.");
-            return;
-        }
-
-        // Disable the button and show loading state
-        const submitButton = document.querySelector('#reservationForm button');
-        const originalButtonText = submitButton.innerHTML;
-        submitButton.disabled = true;
-        submitButton.innerHTML = `
-            <svg class="animate-spin h-5 w-5 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Processing...
-        `;
 
         // Get user profile data
         const userResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
@@ -1282,30 +1275,55 @@ async function reserveSession() {
             throw new Error("Invalid user data received from server");
         }
 
+        // Check for existing reservations for this user on the selected date
+        const reservationsResponse = await fetch('http://localhost:3000/reservations');
+        if (!reservationsResponse.ok) {
+            throw new Error('Failed to fetch reservations');
+        }
+        
+        const reservations = await reservationsResponse.json();
+        const userReservations = reservations.filter(res => res.idNumber === userId);
+        
+        // Check if user already has a reservation for this date
+        const existingReservation = userReservations.find(res => res.date === selectedDate);
+        if (existingReservation) {
+            alert('You already have a reservation for this date. Please select a different date.');
+            return;
+        }
+
         // Make reservation
         const response = await fetch("http://localhost:3000/reserve", {
             method: "POST",
-            headers: { 
+            headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             credentials: 'include',
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 email: userData.email,
                 idNumber: userData.idNumber,
                 purpose: "Programming Session", // Default purpose
-                date, 
+                date: selectedDate, 
                 time,
                 labRoom,
                 programmingLanguage
             })
         });
 
-        const result = await response.json();
-        
         if (response.ok) {
             alert("Reservation successful! Your session has been booked.");
-            document.getElementById("reservationForm").reset();
+            // Reset the form
+            document.getElementById('reservationForm').reset();
+            // Clear the selected date
+            calendarEl.dataset.selectedDate = '';
+            // Remove highlight from selected date
+            const selectedCell = document.querySelector(`[data-date="${selectedDate}"]`);
+            if (selectedCell) {
+                selectedCell.classList.remove('bg-blue-100');
+            }
+            
+            // Reinitialize the calendar to refresh events
+            initializeCalendar();
             
             // Refresh dashboard data if we're on the dashboard
             const dashboardSection = document.getElementById("dashboard");
@@ -1316,22 +1334,12 @@ async function reserveSession() {
             // Also refresh reservation history if that tab is open
             await loadReservationHistory();
         } else {
+            const result = await response.json();
             throw new Error(result.message || 'Failed to make reservation');
         }
     } catch (error) {
         console.error("Error making reservation:", error);
         alert(`Failed to make reservation: ${error.message}`);
-    }
-    // Restore button state
-    const submitButton = document.querySelector('#reservationForm button');
-    if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Reserve Now
-        `;
     }
 }
 
@@ -1411,37 +1419,22 @@ async function quickReserveSession() {
 }
 
 // Function to open quick reserve modal
-window.openQuickReserveModal = function() {
-    console.log('Opening quick reserve modal...'); // Debug log
+function openQuickReserveModal() {
     const modal = document.getElementById('quickReserveModal');
     if (modal) {
-        modal.style.display = 'block';
-        // Add opacity transition
-        setTimeout(() => {
-            modal.classList.remove('hidden', 'opacity-0');
-            modal.classList.add('opacity-100');
-        }, 10);
-        document.body.style.overflow = 'hidden';
+        modal.classList.remove('hidden');
+        modal.classList.add('opacity-100');
+        // Initialize the calendar when opening the modal
+        initializeCalendar();
     }
 }
 
 // Function to close quick reserve modal
-window.closeQuickReserveModal = function() {
-    console.log('Closing quick reserve modal...'); // Debug log
+function closeQuickReserveModal() {
     const modal = document.getElementById('quickReserveModal');
     if (modal) {
-        // Add fade out transition
+        modal.classList.add('hidden');
         modal.classList.remove('opacity-100');
-        modal.classList.add('opacity-0');
-        setTimeout(() => {
-            modal.style.display = 'none';
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }, 300);
-        const form = document.getElementById('quickReservationForm');
-        if (form) {
-            form.reset();
-        }
     }
 }
 
@@ -1826,51 +1819,25 @@ async function showProfileModal() {
         const profilePic = localStorage.getItem('profilePicture') || profileData.profilePicture || '/uploads/default-profile.png';
         document.getElementById('profilePicModal').src = profilePic;
 
-        // Show remaining sessions
-        document.getElementById('remainingSessionsModal').textContent = profileData.remainingSessions || '10';
+        // Show remaining sessions - use the value from profileData
+        const remainingSessions = profileData.remainingSessions || 0;
+        document.getElementById('remainingSessionsModal').textContent = remainingSessions;
+        
+        // Store the remaining sessions count in localStorage for consistency
+        localStorage.setItem('remainingSessions', remainingSessions);
 
         // Add event listener for change password button
         const changePasswordButton = document.querySelector('[onclick="openChangePasswordModal()"]');
         if (changePasswordButton) {
-            changePasswordButton.addEventListener('click', function(event) {
-                event.preventDefault();
-                openChangePasswordModal();
-            });
+            changePasswordButton.addEventListener('click', openChangePasswordModal);
         }
 
-        // Save data to localStorage for persistence
-        localStorage.setItem('profileData', JSON.stringify({
-            idNumber: profileData.idNumber,
-            email: profileData.email,
-            firstname: profileData.firstName,
-            middlename: profileData.middleName,
-            lastname: profileData.lastName,
-            year: profileData.year,
-            course: profileData.course
-        }));
-
+        // Show the modal
+        modal.classList.remove('hidden');
     } catch (error) {
-        console.error('Error loading profile data:', error);
-        // Fallback to localStorage if server fetch fails
-        const savedData = JSON.parse(localStorage.getItem('profileData')) || {};
-        
-        document.getElementById('idNumberModal').value = savedData.idNumber || '';
-        document.getElementById('emailModal').value = savedData.email || '';
-        document.getElementById('firstnameModal').value = savedData.firstname || '';
-        document.getElementById('middlenameModal').value = savedData.middlename || '';
-        document.getElementById('lastnameModal').value = savedData.lastname || '';
-        document.getElementById('yearModal').value = savedData.year || '1st Year';
-        document.getElementById('courseModal').value = savedData.course || 'BS Computer Science';
-        document.getElementById('oldIdNumberModal').value = savedData.idNumber || '';
+        console.error('Error showing profile modal:', error);
+        alert('Failed to load profile data. Please try again.');
     }
-
-    // Show the modal with animation
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-        modal.classList.add('opacity-100');
-        modalContent.classList.remove('scale-95', 'opacity-0');
-        modalContent.classList.add('scale-100', 'opacity-100');
-    }, 50);
 }
 
 function closeProfileModal() {
@@ -2027,5 +1994,66 @@ async function loadRecentActivityIntoModal() {
         console.error('Error loading recent activity:', error);
         const modalContent = document.getElementById('recentActivityModalContent');
         modalContent.innerHTML = '<p class="text-red-500 text-center">Error loading recent activity.</p>';
+    }
+}
+
+// Function to initialize calendar
+function initializeCalendar() {
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        selectable: true,
+        select: function(info) {
+            const date = info.startStr;
+            // Store the selected date in a data attribute
+            calendarEl.dataset.selectedDate = date;
+            // Highlight the selected date
+            const selectedCell = document.querySelector(`[data-date="${date}"]`);
+            if (selectedCell) {
+                selectedCell.classList.add('bg-blue-100');
+            }
+        },
+        events: async function(info, successCallback, failureCallback) {
+            try {
+                const response = await fetch('http://localhost:3000/reservations');
+                const data = await response.json();
+                
+                const events = data.map(reservation => ({
+                    id: reservation.id,
+                    title: `Room ${reservation.labRoom}`,
+                    start: `${reservation.date}T${reservation.time}`,
+                    backgroundColor: getStatusColor(reservation.status),
+                    borderColor: getStatusColor(reservation.status)
+                }));
+                
+                successCallback(events);
+            } catch (error) {
+                console.error('Error fetching events:', error);
+                failureCallback(error);
+            }
+        }
+    });
+
+    calendar.render();
+}
+
+// Function to get color based on reservation status
+function getStatusColor(status) {
+    switch (status) {
+        case 'pending':
+            return '#fbbf24'; // yellow
+        case 'approved':
+            return '#34d399'; // green
+        case 'rejected':
+            return '#ef4444'; // red
+        default:
+            return '#6b7280'; // gray
     }
 } 

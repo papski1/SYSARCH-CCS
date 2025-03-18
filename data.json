@@ -11,21 +11,21 @@
     "totalSessions": 10,
     "completedSessions": 0,
     "pendingReservations": 0,
-    "remainingSessions": 10
+    "remainingSessions": 15
   },
   {
     "idNumber": "22635452",
-    "firstName": "Paps",
-    "middleName": "Leroi",
-    "lastName": "Kikoy",
-    "email": "papskikoy21@gmail.com",
-    "year": "4th Year",
-    "course": "BS Civil Engineering",
+    "firstName": "Rey Mark",
+    "middleName": "NA",
+    "lastName": "Rivas",
+    "email": "reymarkrivas61@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Information Technology",
     "password": "$2b$10$Q0LgYdpN1QrE89dD3S88TOzY66jEzzfG3LEWEHJrby1veRWDueCwq",
     "totalSessions": 15,
     "completedSessions": 0,
     "pendingReservations": 0,
-    "remainingSessions": 2,
+    "remainingSessions": 30,
     "profileImage": "/uploads/1741753665527-b79152a9f75782757086d5d13489f6d1.jpg"
   },
   {
@@ -39,7 +39,34 @@
     "password": "$2b$10$aX7jv/U2P4YbIvpG03sSp.VBY5lOxuIX0uEg4/80RQWfh9EAXdQiO",
     "completedSessions": 0,
     "pendingReservations": 0,
-    "remainingSessions": 15,
+    "remainingSessions": 30,
     "profileImage": "/uploads/1741581696160-doblas.jpg"
+  },
+  {
+    "idNumber": "2222",
+    "firstName": "asdas",
+    "middleName": "asdasdsa",
+    "lastName": "asdasda",
+    "email": "asdasd@gmail.com",
+    "year": "2nd Year",
+    "course": "BS Computer Engineering",
+    "password": "$2b$10$alZKakfXmXnm4WB40lHFi.TPutrNiFdsHsTO6hCpazdX.L/xfxw9C",
+    "completedSessions": 0,
+    "pendingReservations": 0,
+    "remainingSessions": 30
+  },
+  {
+    "idNumber": "2223",
+    "firstName": "asdasd",
+    "middleName": "asdasdas",
+    "lastName": "asdasdsa",
+    "email": "asdasd@gmail.com",
+    "year": "2nd Year",
+    "course": "BS Information Systems",
+    "password": "$2b$10$awRbFfmKiSS8bWbXwW5tP.N5u/dMa1JMUbOukuPsLxiCNN8SJSUKi",
+    "completedSessions": 0,
+    "pendingReservations": 0,
+    "remainingSessions": 24,
+    "profileImage": "/uploads/1742312950299-22.jpg"
   }
 ]

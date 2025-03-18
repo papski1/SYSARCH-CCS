@@ -1050,218 +1050,89 @@ app.get("/get-recent-activity/:userId", (req, res) => {
     }
 });
 
-// Function to read session reset logs
+// Function to read reset logs
 function readResetLogs() {
-  if (!fs.existsSync("reset-logs.json")) {
-    return [];
-  }
-  const data = fs.readFileSync("reset-logs.json");
-  return JSON.parse(data);
-}
-
-// Function to save session reset logs
-function saveResetLogs(logs) {
-  fs.writeFileSync("reset-logs.json", JSON.stringify(logs, null, 2));
-}
-
-// Function to log a session reset operation
-function logSessionReset(adminId, resetType, details) {
-  try {
-    const logs = readResetLogs();
-    const logEntry = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      adminId: adminId,
-      resetType: resetType, // 'user' or 'semester'
-      details: details,
-    };
-    
-    logs.unshift(logEntry); // Add to beginning of array (newest first)
-    
-    // Keep only the last 100 logs to avoid the file growing too large
-    const trimmedLogs = logs.slice(0, 100);
-    saveResetLogs(trimmedLogs);
-    
-    return logEntry;
-  } catch (error) {
-    console.error('Error logging session reset:', error);
-    return null;
-  }
-}
-
-// Function to reset sessions (either by semester or by individual user)
-function resetSessions(idNumber = null, semester = null, adminId = 'admin') {
-  try {
-    // Read current sit-ins and reservations
-    const sitIns = readSitIns();
-    const reservations = readReservations();
-    
-    let updatedSitIns = [...sitIns];
-    let updatedReservations = [...reservations];
-    let resetDetails = {};
-    
-    // If semester is provided, reset all sessions for that semester
-    if (semester) {
-      // For a semester reset, we would typically clear all reservations
-      // and completed sit-ins, assuming semesters align with dates
-      
-      // Define semester date ranges based on the semester value
-      // This is an example - adjust according to your academic calendar
-      const semesterDateRanges = {
-        'First Semester': { start: '2024-08-01', end: '2024-12-31' },
-        'Second Semester': { start: '2025-01-01', end: '2025-05-31' },
-        'Summer': { start: '2025-06-01', end: '2025-07-31' },
-      };
-      
-      const semesterRange = semesterDateRanges[semester];
-      
-      if (!semesterRange) {
-        throw new Error('Invalid semester specified');
-      }
-      
-      // Filter out reservations and sit-ins from the specified semester
-      const filteredReservations = reservations.filter(res => {
-        const resDate = new Date(res.date);
-        const startDate = new Date(semesterRange.start);
-        const endDate = new Date(semesterRange.end);
-        
-        return !(resDate >= startDate && resDate <= endDate);
-      });
-      
-      const filteredSitIns = sitIns.filter(sitIn => {
-        const sitInDate = new Date(sitIn.date);
-        const startDate = new Date(semesterRange.start);
-        const endDate = new Date(semesterRange.end);
-        
-        return !(sitInDate >= startDate && sitInDate <= endDate);
-      });
-      
-      resetDetails = {
-        semester: semester,
-        dateRange: semesterRange,
-        reservationsRemoved: reservations.length - filteredReservations.length,
-        sitInsRemoved: sitIns.length - filteredSitIns.length
-      };
-      
-      updatedReservations = filteredReservations;
-      updatedSitIns = filteredSitIns;
-      
-    } 
-    // If idNumber is provided, reset sessions for that specific user
-    else if (idNumber) {
-      // Remove all reservations and sit-ins for the specified user
-      const filteredReservations = reservations.filter(res => res.idNumber !== idNumber);
-      const filteredSitIns = sitIns.filter(sitIn => sitIn.idNumber !== idNumber);
-      
-      resetDetails = {
-        userId: idNumber,
-        reservationsRemoved: reservations.length - filteredReservations.length,
-        sitInsRemoved: sitIns.length - filteredSitIns.length
-      };
-      
-      updatedReservations = filteredReservations;
-      updatedSitIns = filteredSitIns;
-      
-    } else {
-      throw new Error('Either idNumber or semester must be provided');
+    try {
+        const logsPath = "data/reset-logs.json";
+        if (!fs.existsSync("data")) {
+            fs.mkdirSync("data");
+        }
+        if (!fs.existsSync(logsPath)) {
+            fs.writeFileSync(logsPath, JSON.stringify([], null, 2), "utf8");
+            return [];
+        }
+        const data = fs.readFileSync(logsPath, "utf8");
+        return JSON.parse(data) || [];
+    } catch (error) {
+        console.error("Error reading reset logs:", error);
+        return [];
     }
-    
-    // Save the updated data
-    saveReservations(updatedReservations);
-    saveSitIns(updatedSitIns);
-    
-    // Log the reset operation
-    const resetType = idNumber ? 'user' : 'semester';
-    const logEntry = logSessionReset(adminId, resetType, resetDetails);
-    
-    return {
-      success: true,
-      message: idNumber 
-        ? `Sessions reset successfully for user ${idNumber}` 
-        : `Sessions reset successfully for ${semester}`,
-      details: resetDetails,
-      logId: logEntry ? logEntry.id : null
-    };
-  } catch (error) {
-    console.error('Error resetting sessions:', error);
-    return {
-      success: false,
-      message: error.message || 'Failed to reset sessions'
-    };
-  }
 }
 
-// Route to reset sessions
-app.post("/reset-sessions", (req, res) => {
-  const { idNumber, semester } = req.body;
-  
-  console.log("Reset Sessions Request:", { idNumber, semester });
-  console.log("Session:", req.session);
-  
-  // Check if user is authenticated and is an admin
-  if (!req.session || !req.session.user || req.session.user.role !== "admin") {
-    console.log("Authorization failed:", {
-      hasSession: !!req.session,
-      hasUser: req.session && !!req.session.user,
-      role: req.session && req.session.user ? req.session.user.role : 'none'
-    });
-    
-    return res.status(403).json({ 
-      success: false, 
-      message: "Unauthorized. Only administrators can reset sessions." 
-    });
-  }
-  
-  // Ensure at least one parameter is provided
-  if (!idNumber && !semester) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Either idNumber or semester must be provided" 
-    });
-  }
-  
-  // Call the reset function with admin ID
-  const adminId = req.session.user.idNumber;
-  const result = resetSessions(idNumber, semester, adminId);
-  
-  if (result.success) {
-    return res.status(200).json(result);
-  } else {
-    return res.status(500).json(result);
-  }
+// Function to save reset logs
+function saveResetLogs(logs) {
+    try {
+        const logsPath = "data/reset-logs.json";
+        if (!fs.existsSync("data")) {
+            fs.mkdirSync("data");
+        }
+        fs.writeFileSync(logsPath, JSON.stringify(logs, null, 2), "utf8");
+    } catch (error) {
+        console.error("Error saving reset logs:", error);
+    }
+}
+
+// Endpoint to export logs
+app.post("/export-logs", (req, res) => {
+    try {
+        const logs = readResetLogs();
+        
+        // Convert logs to CSV format
+        const csvHeader = "Timestamp,Reset Type,Details,Admin ID\n";
+        const csvRows = logs.map(log => {
+            const details = log.details ? JSON.stringify(log.details) : '';
+            return `${log.timestamp},${log.resetType},${details},${log.adminId || 'Unknown'}`;
+        }).join('\n');
+        
+        const csvContent = csvHeader + csvRows;
+        
+        // Set response headers for file download
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=reset_logs_${new Date().toISOString().split('T')[0]}.csv`);
+        
+        // Send the CSV content
+        res.send(csvContent);
+    } catch (error) {
+        console.error("Error exporting logs:", error);
+        res.status(500).json({ success: false, error: "Failed to export logs" });
+    }
 });
 
-// Route to get session reset logs
-app.get("/reset-logs", (req, res) => {
-  // Check if user is authenticated and is an admin
-  if (!req.session || !req.session.user || req.session.user.role !== "admin") {
-    return res.status(403).json({ 
-      success: false, 
-      message: "Unauthorized. Only administrators can view reset logs." 
-    });
-  }
-  
-  try {
-    const logs = readResetLogs();
-    return res.status(200).json({ success: true, logs });
-  } catch (error) {
-    console.error("Error fetching reset logs:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Failed to fetch reset logs" 
-    });
-  }
+// Endpoint to reset logs
+app.post("/reset-logs", (req, res) => {
+    try {
+        // Save empty array to reset logs
+        saveResetLogs([]);
+        res.json({ success: true, message: "Logs reset successfully" });
+    } catch (error) {
+        console.error("Error resetting logs:", error);
+        res.status(500).json({ success: false, error: "Failed to reset logs" });
+    }
 });
 
-// Route to check if the current user is an admin
+// Route: Check admin authentication
 app.get("/check-admin", (req, res) => {
-  console.log("Check Admin Request - Session:", req.session);
-  
-  if (req.session && req.session.user && req.session.user.role === "admin") {
-    return res.json({ isAdmin: true });
-  } else {
-    return res.json({ isAdmin: false });
-  }
+    try {
+        if (!req.session.user) {
+            return res.status(401).json({ isAdmin: false });
+        }
+        
+        const isAdmin = req.session.user.role === 'admin';
+        res.json({ isAdmin });
+    } catch (error) {
+        console.error("Error checking admin auth:", error);
+        res.status(500).json({ isAdmin: false });
+    }
 });
 
 // Add new endpoint to check and handle auto-logouts
@@ -1432,6 +1303,228 @@ app.post("/create-walkin", (req, res) => {
             message: "Error creating walk-in sit-in",
             error: error.message || "Unknown error occurred"
         });
+    }
+});
+
+// Endpoint to get reset logs
+app.get("/reset-logs", (req, res) => {
+    try {
+        // Check if user is authenticated and is an admin
+        if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Unauthorized. Only administrators can view reset logs." 
+            });
+        }
+
+        const logs = readResetLogs();
+        res.json({ success: true, logs });
+    } catch (error) {
+        console.error("Error fetching reset logs:", error);
+        res.status(500).json({ success: false, error: "Failed to fetch reset logs" });
+    }
+});
+
+// Function to log a session reset operation
+function logSessionReset(adminId, resetType, details) {
+    try {
+        const logs = readResetLogs();
+        const logEntry = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(),
+            adminId: adminId,
+            resetType: resetType, // 'user' or 'semester'
+            details: details,
+        };
+        
+        logs.unshift(logEntry); // Add to beginning of array (newest first)
+        
+        // Keep only the last 100 logs to avoid the file growing too large
+        const trimmedLogs = logs.slice(0, 100);
+        saveResetLogs(trimmedLogs);
+        
+        return logEntry;
+    } catch (error) {
+        console.error('Error logging session reset:', error);
+        return null;
+    }
+}
+
+// Function to reset sessions (either by semester or by individual user)
+function resetSessions(idNumber = null, semester = null, adminId = 'admin') {
+    try {
+        // Read current sit-ins, reservations, and users
+        const sitIns = readSitIns();
+        const reservations = readReservations();
+        const users = readData();
+        
+        let updatedSitIns = [...sitIns];
+        let updatedReservations = [...reservations];
+        let updatedUsers = [...users];
+        let resetDetails = {};
+        
+        // If semester is provided, reset all sessions for that semester
+        if (semester) {
+            // For a semester reset, we would typically clear all reservations
+            // and completed sit-ins, assuming semesters align with dates
+            
+            // Define semester date ranges based on the semester value
+            const semesterDateRanges = {
+                'First Semester': { start: '2024-08-01', end: '2024-12-31' },
+                'Second Semester': { start: '2025-01-01', end: '2025-05-31' },
+                'Summer': { start: '2025-06-01', end: '2025-07-31' },
+            };
+            
+            const semesterRange = semesterDateRanges[semester];
+            
+            if (!semesterRange) {
+                throw new Error('Invalid semester specified');
+            }
+            
+            // Filter out reservations and sit-ins from the specified semester
+            const filteredReservations = reservations.filter(res => {
+                const resDate = new Date(res.date);
+                const startDate = new Date(semesterRange.start);
+                const endDate = new Date(semesterRange.end);
+                
+                return !(resDate >= startDate && resDate <= endDate);
+            });
+            
+            const filteredSitIns = sitIns.filter(sitIn => {
+                const sitInDate = new Date(sitIn.date);
+                const startDate = new Date(semesterRange.start);
+                const endDate = new Date(semesterRange.end);
+                
+                return !(sitInDate >= startDate && sitInDate <= endDate);
+            });
+
+            // Reset remaining sessions for all students
+            updatedUsers = users.map(user => {
+                const isComputerCourse = user.course.toLowerCase().includes('computer') || 
+                                        user.course.toLowerCase().includes('information') || 
+                                        user.course.toLowerCase().includes('software');
+                const initialSessions = isComputerCourse ? 30 : 15;
+                
+                return {
+                    ...user,
+                    completedSessions: 0,
+                    pendingReservations: 0,
+                    remainingSessions: initialSessions
+                };
+            });
+            
+            resetDetails = {
+                semester: semester,
+                dateRange: semesterRange,
+                reservationsRemoved: reservations.length - filteredReservations.length,
+                sitInsRemoved: sitIns.length - filteredSitIns.length,
+                usersReset: users.length
+            };
+            
+            updatedReservations = filteredReservations;
+            updatedSitIns = filteredSitIns;
+            
+        } 
+        // If idNumber is provided, reset sessions for that specific user
+        else if (idNumber) {
+            // Remove all reservations and sit-ins for the specified user
+            const filteredReservations = reservations.filter(res => res.idNumber !== idNumber);
+            const filteredSitIns = sitIns.filter(sitIn => sitIn.idNumber !== idNumber);
+            
+            // Reset remaining sessions for the specific user
+            const userIndex = users.findIndex(u => u.idNumber === idNumber);
+            if (userIndex !== -1) {
+                const user = users[userIndex];
+                const isComputerCourse = user.course.toLowerCase().includes('computer') || 
+                                        user.course.toLowerCase().includes('information') || 
+                                        user.course.toLowerCase().includes('software');
+                const initialSessions = isComputerCourse ? 30 : 15;
+                
+                updatedUsers[userIndex] = {
+                    ...user,
+                    completedSessions: 0,
+                    pendingReservations: 0,
+                    remainingSessions: initialSessions
+                };
+            }
+            
+            resetDetails = {
+                userId: idNumber,
+                reservationsRemoved: reservations.length - filteredReservations.length,
+                sitInsRemoved: sitIns.length - filteredSitIns.length,
+                userReset: true
+            };
+            
+            updatedReservations = filteredReservations;
+            updatedSitIns = filteredSitIns;
+            
+        } else {
+            throw new Error('Either idNumber or semester must be provided');
+        }
+        
+        // Save the updated data
+        saveReservations(updatedReservations);
+        saveSitIns(updatedSitIns);
+        writeData(updatedUsers); // Save the updated users data
+        
+        // Log the reset operation
+        const resetType = idNumber ? 'user' : 'semester';
+        const logEntry = logSessionReset(adminId, resetType, resetDetails);
+        
+        return {
+            success: true,
+            message: idNumber 
+                ? `Sessions reset successfully for user ${idNumber}` 
+                : `Sessions reset successfully for ${semester}`,
+            details: resetDetails,
+            logId: logEntry ? logEntry.id : null
+        };
+    } catch (error) {
+        console.error('Error resetting sessions:', error);
+        return {
+            success: false,
+            message: error.message || 'Failed to reset sessions'
+        };
+    }
+}
+
+// Route to reset sessions
+app.post("/reset-sessions", (req, res) => {
+    const { idNumber, semester } = req.body;
+    
+    console.log("Reset Sessions Request:", { idNumber, semester });
+    console.log("Session:", req.session);
+    
+    // Check if user is authenticated and is an admin
+    if (!req.session || !req.session.user || req.session.user.role !== "admin") {
+        console.log("Authorization failed:", {
+            hasSession: !!req.session,
+            hasUser: req.session && !!req.session.user,
+            role: req.session && req.session.user ? req.session.user.role : 'none'
+        });
+        
+        return res.status(403).json({ 
+            success: false, 
+            message: "Unauthorized. Only administrators can reset sessions." 
+        });
+    }
+    
+    // Ensure at least one parameter is provided
+    if (!idNumber && !semester) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Either idNumber or semester must be provided" 
+        });
+    }
+    
+    // Call the reset function with admin ID
+    const adminId = req.session.user.idNumber;
+    const result = resetSessions(idNumber, semester, adminId);
+    
+    if (result.success) {
+        return res.status(200).json(result);
+    } else {
+        return res.status(500).json(result);
     }
 });
 

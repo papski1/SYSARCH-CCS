@@ -1,5 +1,57 @@
 [
   {
+    "id": 1742314684022,
+    "timestamp": "2025-03-18T16:18:04.022Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "2223",
+      "reservationsRemoved": 4,
+      "sitInsRemoved": 4,
+      "userReset": true
+    }
+  },
+  {
+    "id": 1742313177500,
+    "timestamp": "2025-03-18T15:52:57.500Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "dateRange": {
+        "start": "2025-01-01",
+        "end": "2025-05-31"
+      },
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 2,
+      "usersReset": 5
+    }
+  },
+  {
+    "id": 1742312327839,
+    "timestamp": "2025-03-18T15:38:47.839Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "22635452",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "userReset": true
+    }
+  },
+  {
+    "id": 1742312326565,
+    "timestamp": "2025-03-18T15:38:46.565Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "22635452",
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 1,
+      "userReset": true
+    }
+  },
+  {
     "id": 1742204009514,
     "timestamp": "2025-03-17T09:33:29.514Z",
     "adminId": "admin",
