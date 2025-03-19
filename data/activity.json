@@ -1,5 +1,30 @@
 [
   {
+    "id": 1742360423375,
+    "userId": "2223",
+    "type": "Reservation Created",
+    "details": {
+      "date": "2025-03-25",
+      "time": "13:02",
+      "labRoom": "544",
+      "status": "pending"
+    },
+    "date": "2025-03-19T05:00:23.375Z"
+  },
+  {
+    "id": 1742360363305,
+    "userId": "22635452",
+    "type": "Walk-in Sit-in Started",
+    "details": {
+      "date": "2025-03-19",
+      "timeIn": "12:59",
+      "labRoom": "Walk-in",
+      "status": "active",
+      "isWalkIn": true
+    },
+    "date": "2025-03-19T04:59:23.305Z"
+  },
+  {
     "id": 1742323634273,
     "userId": "2223",
     "type": "Sit-in Started",

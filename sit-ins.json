@@ -88,5 +88,21 @@
     "purpose": "Programming Session",
     "status": "active",
     "autoLogoutTime": "2025-03-19T08:47:00.271Z"
+  },
+  {
+    "id": 1742360363302,
+    "idNumber": "22635452",
+    "name": "Rey Mark Rivas",
+    "course": "BS Information Technology",
+    "year": "3rd Year",
+    "date": "2025-03-19",
+    "timeIn": "12:59",
+    "timeOut": null,
+    "labRoom": "Walk-in",
+    "programmingLanguage": "JavaScript",
+    "purpose": "Research",
+    "status": "active",
+    "autoLogoutTime": null,
+    "isWalkIn": true
   }
 ]

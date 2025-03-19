@@ -36,6 +36,8 @@ async function showSection(sectionId) {
             loadDashboardData();
         } else if (sectionId === 'sit-in-history') {
             loadSitInHistory();
+        } else if (sectionId === 'profile') {
+            await loadProfile();
         }
     }
 }
@@ -82,6 +84,9 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     // Initialize profile information
     initializeProfile();
+    
+    // Add this line to setup profile picture handlers
+    setupProfilePictureHandlers();
 });
 
 // Function to load initial data based on active section
@@ -303,68 +308,102 @@ async function loadDashboardData() {
 }
 
 // Function to update profile picture in both sidebar and modal
-function updateProfilePicture(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
-        
-        if (!userId) {
-            alert("User ID not found. Please try logging in again.");
-        return;
-    }
-
-        reader.onload = function(e) {
-            // Create FormData for upload
-    const formData = new FormData();
-            formData.append("profileImage", input.files[0]);
-    formData.append("userId", userId);
-
-            // Add loading state
-            const profilePic = document.getElementById('profilePicModal');
-    const originalSrc = profilePic.src;
-    profilePic.style.opacity = "0.5";
-
-            // Upload to server
-    fetch("http://localhost:3000/upload-profile", {
-        method: "POST",
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+async function updateProfilePicture(input) {
+    try {
+        if (!input.files || !input.files[0]) {
+            throw new Error('No file selected');
         }
-        return response.json();
-    })
-    .then(data => {
+
+        const file = input.files[0];
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            throw new Error('Invalid file type. Please upload a JPEG, PNG, or GIF image.');
+        }
+
+        // Validate file size (max 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+            throw new Error('File size too large. Maximum size is 5MB.');
+        }
+
+        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        if (!userId) {
+            throw new Error("User ID not found. Please try logging in again.");
+        }
+
+        // Create FormData
+        const formData = new FormData();
+        formData.append("profileImage", file);
+        formData.append("userId", userId);
+
+        // Add loading state
+        const profilePics = [
+            document.getElementById('profilePicModal'),
+            document.getElementById('sidebarProfilePic'),
+            document.getElementById('profilePic')
+        ];
+        
+        // Store original sources and add loading state
+        const originalSrcs = profilePics.map(pic => pic ? pic.src : null);
+        profilePics.forEach(pic => {
+            if (pic) pic.style.opacity = "0.5";
+        });
+
+        // Upload to server
+        const response = await fetch("http://localhost:3000/upload-profile", {
+            method: "POST",
+            body: formData,
+            credentials: 'include' // Include cookies
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
         if (data.success) {
             // Add timestamp to prevent caching
-            const newImagePath = data.imagePath + "?t=" + new Date().getTime();
-                    
-                    // Update all profile pictures
-                    document.getElementById('sidebarProfilePic').src = newImagePath;
-                    document.getElementById('profilePicModal').src = newImagePath;
-                    
-                    // Store the new image path in localStorage
+            const newImagePath = `${data.imagePath}?t=${new Date().getTime()}`;
+            
+            // Update all profile pictures
+            profilePics.forEach(pic => {
+                if (pic) {
+                    pic.src = newImagePath;
+                    pic.style.opacity = "1";
+                }
+            });
+            
+            // Store the new image path in localStorage
             localStorage.setItem("profileImagePath", data.imagePath);
             
             alert("Profile picture updated successfully!");
         } else {
-            alert("Failed to upload profile picture: " + (data.message || "Unknown error"));
-            profilePic.src = originalSrc;
+            throw new Error(data.message || "Failed to update profile picture");
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error("Error uploading profile picture:", error);
-        alert("Error uploading profile picture. Please try again.");
-        profilePic.src = originalSrc;
-    })
-    .finally(() => {
-                // Remove loading state
-        profilePic.style.opacity = "1";
-    });
-        };
+        alert(error.message || "Error uploading profile picture. Please try again.");
         
-        reader.readAsDataURL(input.files[0]);
+        // Restore original images on error
+        const profilePics = [
+            document.getElementById('profilePicModal'),
+            document.getElementById('sidebarProfilePic'),
+            document.getElementById('profilePic')
+        ];
+        
+        profilePics.forEach(pic => {
+            if (pic) {
+                pic.style.opacity = "1";
+                // Set default profile picture if something goes wrong
+                pic.onerror = function() {
+                    this.src = '/uploads/default-profile.png';
+                };
+            }
+        });
     }
 }
 
@@ -398,192 +437,78 @@ async function loadProfile() {
         // Store profile data in localStorage for offline access
         localStorage.setItem('profileData', JSON.stringify(profileData));
         
-        // Update profile form fields
-        document.getElementById("idNumber").value = profileData.idNumber || '';
-        document.getElementById("firstname").value = profileData.firstName || '';
-        document.getElementById("middlename").value = profileData.middleName || '';
-        document.getElementById("lastname").value = profileData.lastName || '';
-        document.getElementById("email").value = profileData.email || '';
+        // Helper function to safely set input value
+        const setInputValue = (id, value, readonly = false) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value || '';
+                if (readonly) {
+                    element.setAttribute('readonly', 'readonly');
+                    element.classList.add('bg-gray-100');
+                }
+            }
+        };
         
-        // Update modal form fields
-        document.getElementById("idNumberModal").value = profileData.idNumber || '';
-        document.getElementById("firstnameModal").value = profileData.firstName || '';
-        document.getElementById("middlenameModal").value = profileData.middleName || '';
-        document.getElementById("lastnameModal").value = profileData.lastName || '';
-        document.getElementById("emailModal").value = profileData.email || '';
+        // Update profile form fields with null checks
+        setInputValue("idNumber", profileData.idNumber, true); // Set readonly for ID number
+        setInputValue("firstname", profileData.firstName);
+        setInputValue("middlename", profileData.middleName);
+        setInputValue("lastname", profileData.lastName);
+        setInputValue("email", profileData.email);
+        
+        // Update modal form fields with null checks
+        setInputValue("idNumberModal", profileData.idNumber, true); // Set readonly for ID number
+        setInputValue("firstnameModal", profileData.firstName);
+        setInputValue("middlenameModal", profileData.middleName);
+        setInputValue("lastnameModal", profileData.lastName);
+        setInputValue("emailModal", profileData.email);
         
         // Update sidebar profile
         updateSidebarProfile();
         
     } catch (error) {
         console.error("Error loading profile:", error);
-    }
-}
-
-// Function to update sidebar profile information
-function updateSidebarProfile() {
-    const firstName = document.getElementById('firstname').value || '';
-    const lastName = document.getElementById('lastname').value || '';
-    const course = document.getElementById('course').value || '';
-    
-    // Update sidebar profile name and course
-    const fullName = `${firstName} ${lastName}`.trim();
-    document.getElementById('sidebarProfileName').textContent = fullName;
-    document.getElementById('sidebarProfileCourse').textContent = course;
-    
-    // Save to localStorage for persistence
-    localStorage.setItem('profileName', fullName);
-    localStorage.setItem('profileCourse', course);
-}
-
-// Function to initialize profile information
-function initializeProfile() {
-    const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
-    
-    // Load profile data from server
-    fetch(`http://localhost:3000/get-profile?id=${userId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data) {
-                // Update sidebar profile
-                const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
-                document.getElementById('sidebarProfileName').textContent = fullName || 'Loading...';
-                document.getElementById('sidebarProfileCourse').textContent = data.course || 'Loading...';
-                
-                // Update remaining sessions count
-                const remainingSessions = data.remainingSessions || 0;
-                const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
-                remainingSessionsElements.forEach(element => {
-                    element.textContent = remainingSessions;
-                });
-                
-                // Save to localStorage
-                localStorage.setItem('profileName', fullName);
-                localStorage.setItem('profileCourse', data.course || '');
-                localStorage.setItem('remainingSessions', remainingSessions);
-                
-                // Update all profile pictures if exists
-                if (data.profileImage) {
-                    const profileImageWithTimestamp = `${data.profileImage}?t=${new Date().getTime()}`;
-                    document.getElementById('sidebarProfilePic').src = profileImageWithTimestamp;
-                    document.getElementById('profilePic').src = profileImageWithTimestamp;
-                    document.getElementById('profilePicModal').src = profileImageWithTimestamp;
-                    // Save to localStorage
-                    localStorage.setItem('profileImagePath', data.profileImage);
-                }
+        // Try to load from localStorage as fallback
+        const storedData = localStorage.getItem('profileData');
+        if (storedData) {
+            try {
+                const profileData = JSON.parse(storedData);
+                updateBothForms(profileData);
+                updateSidebarProfile();
+            } catch (e) {
+                console.error("Error loading profile from localStorage:", e);
             }
-        })
-        .catch(error => {
-            console.error('Error loading profile:', error);
-            // Load from localStorage as fallback
-            const savedName = localStorage.getItem('profileName');
-            const savedCourse = localStorage.getItem('profileCourse');
-            const savedProfileImage = localStorage.getItem('profileImagePath');
-            const savedRemainingSessions = localStorage.getItem('remainingSessions') || '0';
-            
-            if (savedName) document.getElementById('sidebarProfileName').textContent = savedName;
-            if (savedCourse) document.getElementById('sidebarProfileCourse').textContent = savedCourse;
-            
-            // Update remaining sessions from localStorage
-            const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
-            remainingSessionsElements.forEach(element => {
-                element.textContent = savedRemainingSessions;
-            });
-            
-            if (savedProfileImage) {
-                const profileImageWithTimestamp = `${savedProfileImage}?t=${new Date().getTime()}`;
-                document.getElementById('sidebarProfilePic').src = profileImageWithTimestamp;
-                document.getElementById('profilePic').src = profileImageWithTimestamp;
-                document.getElementById('profilePicModal').src = profileImageWithTimestamp;
-            }
-        });
-}
-
-// Modify the existing saveProfile function to update sidebar
-async function saveProfile(isModal = false) {
-    try {
-        const suffix = isModal ? 'Modal' : '';
-        
-        // Get form values
-        const oldIdNumber = document.getElementById(`oldIdNumber${suffix}`).value;
-        const newIdNumber = document.getElementById(`idNumber${suffix}`).value;
-
-        // Get the existing profile data from localStorage
-        const existingData = JSON.parse(localStorage.getItem('profileData') || '{}');
-        
-        // Create profile data object, using existing data for unchanged fields
-        const profileData = {
-            oldIdNumber: oldIdNumber,
-            idNumber: newIdNumber,
-            email: document.getElementById(`email${suffix}`).value || existingData.email,
-            firstName: document.getElementById(`firstname${suffix}`).value || existingData.firstName,
-            middleName: document.getElementById(`middlename${suffix}`).value || existingData.middleName,
-            lastName: document.getElementById(`lastname${suffix}`).value || existingData.lastName,
-            year: document.getElementById(`year${suffix}`).value || existingData.year,
-            course: document.getElementById(`course${suffix}`).value || existingData.course
-        };
-
-        // Validate ID number
-        if (!newIdNumber) {
-            alert('ID Number is required');
-            return;
         }
-
-        // Save to server
-        const response = await fetch('http://localhost:3000/update-profile', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(profileData)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Failed to update profile: ${response.status}`);
-        }
-
-        // Update the current user ID in localStorage
-        localStorage.setItem("currentUserId", newIdNumber);
-
-        // Save to localStorage for persistence
-        localStorage.setItem('profileData', JSON.stringify(profileData));
-
-        // Update both forms with new data
-        updateBothForms(profileData);
-
-        // Update sidebar profile
-        updateSidebarProfile();
-
-        // Show success message
-        alert('Profile updated successfully. Please use your new ID number for future logins.');
-
-        // If saving from modal, close it
-        if (isModal) {
-            closeProfileModal();
-        }
-
-        // Reload the page with the new ID number
-        window.location.href = `student.html?id=${newIdNumber}`;
-    } catch (error) {
-        console.error('Error saving profile:', error);
-        alert('Failed to save profile: ' + error.message);
     }
 }
 
 // Helper function to update both forms with the same data
 function updateBothForms(profileData) {
+    if (!profileData) return;
+    
     const forms = ['', 'Modal'];
+    const fields = ['idNumber', 'email', 'firstname', 'middlename', 'lastname', 'year', 'course'];
+    
     forms.forEach(suffix => {
-        if (document.getElementById(`idNumber${suffix}`)) {
-            document.getElementById(`idNumber${suffix}`).value = profileData.idNumber;
-            document.getElementById(`email${suffix}`).value = profileData.email;
-            document.getElementById(`firstname${suffix}`).value = profileData.firstName;
-            document.getElementById(`middlename${suffix}`).value = profileData.middleName;
-            document.getElementById(`lastname${suffix}`).value = profileData.lastName;
-            document.getElementById(`year${suffix}`).value = profileData.year;
-            document.getElementById(`course${suffix}`).value = profileData.course;
-            document.getElementById(`oldIdNumber${suffix}`).value = profileData.oldIdNumber;
+        fields.forEach(field => {
+            const element = document.getElementById(`${field}${suffix}`);
+            if (element) {
+                const value = profileData[field] || profileData[field.toLowerCase()] || '';
+                element.value = value;
+                // Make ID number fields readonly
+                if (field === 'idNumber') {
+                    element.setAttribute('readonly', 'readonly');
+                    element.classList.add('bg-gray-100');
+                }
+            }
+        });
+        
+        // Set oldIdNumber if the element exists
+        const oldIdElement = document.getElementById(`oldIdNumber${suffix}`);
+        if (oldIdElement) {
+            oldIdElement.value = profileData.idNumber || '';
+            oldIdElement.setAttribute('readonly', 'readonly');
+            oldIdElement.classList.add('bg-gray-100');
         }
     });
 }
@@ -1049,7 +974,138 @@ function generateStarRating(rating) {
     return stars;
 }
 
-// Function to load sit-in history
+// Function to format time as HH:MM:SS
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+// Function to start timer for active sit-in
+function startSitInTimer(sitInId, startTime) {
+    const timerElement = document.getElementById(`timer-${sitInId}`);
+    if (!timerElement) return;
+
+    const start = new Date(startTime).getTime();
+    const duration = 60 * 60 * 1000; // 1 hour in milliseconds
+    const end = start + duration;
+
+    function updateTimer() {
+        const now = new Date().getTime();
+        const remainingTime = end - now;
+
+        if (remainingTime <= 0) {
+            // Time's up - complete the sit-in
+            timerElement.textContent = "Time's up!";
+            timerElement.classList.remove('text-green-600');
+            timerElement.classList.add('text-red-600');
+            completeSitIn(sitInId);
+            return;
+        }
+
+        const remainingSeconds = Math.floor(remainingTime / 1000);
+        timerElement.textContent = formatTime(remainingSeconds);
+
+        // Update timer color based on remaining time
+        if (remainingTime < 300000) { // Less than 5 minutes
+            timerElement.classList.remove('text-green-600');
+            timerElement.classList.add('text-red-600', 'animate-pulse');
+        } else if (remainingTime < 600000) { // Less than 10 minutes
+            timerElement.classList.remove('text-green-600');
+            timerElement.classList.add('text-yellow-600');
+        }
+
+        requestAnimationFrame(updateTimer);
+    }
+
+    updateTimer();
+}
+
+// Function to complete sit-in
+async function completeSitIn(sitInId) {
+    try {
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
+        if (!userId) {
+            throw new Error('User ID not found');
+        }
+
+        // Get user profile for notification details
+        const profileResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
+        if (!profileResponse.ok) {
+            throw new Error('Failed to fetch user profile');
+        }
+        const profileData = await profileResponse.json();
+
+        // Prepare completion data
+        const completionData = {
+            sitInId: parseInt(sitInId),
+            status: 'completed',
+            timeOut: new Date().toISOString(),
+            userId: userId,
+            studentName: `${profileData.firstName} ${profileData.lastName}`,
+            notificationType: 'session_completed',
+            message: `Student ${profileData.firstName} ${profileData.lastName} (${userId}) has completed their session.`
+        };
+
+        // Send completion request to server
+        const response = await fetch("http://localhost:3000/update-sit-in-status", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            credentials: 'include',
+            body: JSON.stringify(completionData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to complete sit-in');
+        }
+
+        // Get the response data
+        const responseData = await response.json();
+
+        // Update remaining sessions in localStorage
+        if (responseData.remainingSessions !== undefined) {
+            localStorage.setItem('remainingSessions', responseData.remainingSessions);
+            // Update all remaining sessions displays
+            const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+            remainingSessionsElements.forEach(element => {
+                if (element) {
+                    element.textContent = responseData.remainingSessions;
+                }
+            });
+        }
+
+        // Send notification to admin
+        await fetch("http://localhost:3000/admin-notification", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                type: 'session_completed',
+                userId: userId,
+                studentName: `${profileData.firstName} ${profileData.lastName}`,
+                message: `Student ${profileData.firstName} ${profileData.lastName} (${userId}) has completed their session.`,
+                timestamp: new Date().toISOString()
+            })
+        });
+
+        // Reload sit-in history to reflect changes
+        await loadSitInHistory();
+
+        // Show completion message to user
+        alert('Session completed successfully!');
+
+    } catch (error) {
+        console.error('Error completing sit-in:', error);
+        alert('Error completing sit-in. Please try again.');
+    }
+}
+
+// Modify loadSitInHistory function to include timer
 async function loadSitInHistory() {
     try {
         // Get user data from localStorage
@@ -1085,20 +1141,29 @@ async function loadSitInHistory() {
             row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
             
             // Format date and time
-            const dateTime = new Date(sitIn.date);
+            const dateTime = new Date(sitIn.date + ' ' + sitIn.timeIn);
             const formattedDate = dateTime.toLocaleDateString();
             const formattedTime = dateTime.toLocaleTimeString();
 
             // Generate star rating HTML
             const starRating = sitIn.rating ? generateStarRating(sitIn.rating) : generateStarRating(0);
 
+            // Add timer element for active sit-ins
+            const timerHtml = sitIn.status === 'active' ? 
+                `<div id="timer-${sitIn.id}" class="text-green-600 font-mono">Loading...</div>` : '';
+
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.labRoom || 'N/A'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${formattedDate} ${formattedTime}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.duration || '1 hour'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    ${sitIn.status === 'active' ? timerHtml : (sitIn.duration || '1 hour')}
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.programmingLanguage || 'N/A'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        sitIn.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    }">
                         ${sitIn.status || 'N/A'}
                     </span>
                 </td>
@@ -1110,7 +1175,12 @@ async function loadSitInHistory() {
             `;
             tableBody.appendChild(row);
 
-            // Only show feedback form for completed sit-ins that haven't been rated
+            // Start timer for active sit-ins
+            if (sitIn.status === 'active') {
+                startSitInTimer(sitIn.id, sitIn.date + ' ' + sitIn.timeIn);
+            }
+
+            // Add feedback form for completed sit-ins without feedback
             if (sitIn.status === 'completed' && !sitIn.feedback) {
                 const feedbackRow = document.createElement('tr');
                 feedbackRow.className = 'bg-gray-50 dark:bg-gray-800';
@@ -2056,4 +2126,316 @@ function getStatusColor(status) {
         default:
             return '#6b7280'; // gray
     }
-} 
+}
+
+// Function to initialize profile information
+function initializeProfile() {
+    try {
+        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        
+        if (!userId) {
+            console.error('User ID not found');
+            return;
+        }
+
+        // Load profile data from server
+        fetch(`http://localhost:3000/get-profile?id=${userId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) {
+                    // Update sidebar profile
+                    const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+                    const sidebarNameEl = document.getElementById('sidebarProfileName');
+                    const sidebarCourseEl = document.getElementById('sidebarProfileCourse');
+                    const sidebarPicEl = document.getElementById('sidebarProfilePic');
+                    const profilePicEl = document.getElementById('profilePic');
+                    const profilePicModalEl = document.getElementById('profilePicModal');
+                    
+                    // Update name and course with null checks
+                    if (sidebarNameEl) {
+                        sidebarNameEl.textContent = fullName || 'Student Name';
+                    }
+                    if (sidebarCourseEl) {
+                        sidebarCourseEl.textContent = data.course || 'Course';
+                    }
+                    
+                    // Update remaining sessions count
+                    const remainingSessions = data.remainingSessions || 30;
+                    const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+                    remainingSessionsElements.forEach(element => {
+                        if (element) {
+                            element.textContent = remainingSessions;
+                        }
+                    });
+                    
+                    // Save to localStorage
+                    localStorage.setItem('profileName', fullName);
+                    localStorage.setItem('profileCourse', data.course || '');
+                    localStorage.setItem('remainingSessions', remainingSessions);
+                    
+                    // Update all profile pictures if exists
+                    if (data.profileImage) {
+                        const profileImageWithTimestamp = `${data.profileImage}?t=${new Date().getTime()}`;
+                        
+                        if (sidebarPicEl) {
+                            sidebarPicEl.src = profileImageWithTimestamp;
+                            sidebarPicEl.onerror = function() {
+                                this.src = '/uploads/default-profile.png';
+                            };
+                        }
+                        if (profilePicEl) {
+                            profilePicEl.src = profileImageWithTimestamp;
+                            profilePicEl.onerror = function() {
+                                this.src = '/uploads/default-profile.png';
+                            };
+                        }
+                        if (profilePicModalEl) {
+                            profilePicModalEl.src = profileImageWithTimestamp;
+                            profilePicModalEl.onerror = function() {
+                                this.src = '/uploads/default-profile.png';
+                            };
+                        }
+                        
+                        // Save to localStorage
+                        localStorage.setItem('profileImagePath', data.profileImage);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading profile:', error);
+                // Load from localStorage as fallback
+                const savedName = localStorage.getItem('profileName');
+                const savedCourse = localStorage.getItem('profileCourse');
+                const savedProfileImage = localStorage.getItem('profileImagePath');
+                const savedRemainingSessions = localStorage.getItem('remainingSessions') || '30';
+                
+                const sidebarNameEl = document.getElementById('sidebarProfileName');
+                const sidebarCourseEl = document.getElementById('sidebarProfileCourse');
+                const sidebarPicEl = document.getElementById('sidebarProfilePic');
+                const profilePicEl = document.getElementById('profilePic');
+                const profilePicModalEl = document.getElementById('profilePicModal');
+                
+                // Update with fallback values
+                if (sidebarNameEl) {
+                    sidebarNameEl.textContent = savedName || 'Student Name';
+                }
+                if (sidebarCourseEl) {
+                    sidebarCourseEl.textContent = savedCourse || 'Course';
+                }
+                
+                // Update remaining sessions from localStorage
+                const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+                remainingSessionsElements.forEach(element => {
+                    if (element) {
+                        element.textContent = savedRemainingSessions;
+                    }
+                });
+                
+                // Update profile pictures with fallback
+                if (savedProfileImage) {
+                    const profileImageWithTimestamp = `${savedProfileImage}?t=${new Date().getTime()}`;
+                    
+                    if (sidebarPicEl) {
+                        sidebarPicEl.src = profileImageWithTimestamp;
+                        sidebarPicEl.onerror = function() {
+                            this.src = '/uploads/default-profile.png';
+                        };
+                    }
+                    if (profilePicEl) {
+                        profilePicEl.src = profileImageWithTimestamp;
+                        profilePicEl.onerror = function() {
+                            this.src = '/uploads/default-profile.png';
+                        };
+                    }
+                    if (profilePicModalEl) {
+                        profilePicModalEl.src = profileImageWithTimestamp;
+                        profilePicModalEl.onerror = function() {
+                            this.src = '/uploads/default-profile.png';
+                        };
+                    }
+                } else {
+                    // Set default profile picture if no saved image
+                    const defaultPic = '/uploads/default-profile.png';
+                    if (sidebarPicEl) sidebarPicEl.src = defaultPic;
+                    if (profilePicEl) profilePicEl.src = defaultPic;
+                    if (profilePicModalEl) profilePicModalEl.src = defaultPic;
+                }
+            });
+    } catch (error) {
+        console.error('Error in initializeProfile:', error);
+    }
+}
+
+// Function to update sidebar profile
+function updateSidebarProfile() {
+    try {
+        // Get profile data from localStorage
+        const fullName = localStorage.getItem('profileName') || 'Student Name';
+        const course = localStorage.getItem('profileCourse') || 'Course';
+        const profileImage = localStorage.getItem('profileImagePath');
+        
+        // Update sidebar elements with null checks
+        const sidebarNameEl = document.getElementById('sidebarProfileName');
+        const sidebarCourseEl = document.getElementById('sidebarProfileCourse');
+        const sidebarPicEl = document.getElementById('sidebarProfilePic');
+        
+        if (sidebarNameEl) {
+            sidebarNameEl.textContent = fullName;
+        }
+        
+        if (sidebarCourseEl) {
+            sidebarCourseEl.textContent = course;
+        }
+        
+        if (sidebarPicEl && profileImage) {
+            const profileImageWithTimestamp = `${profileImage}?t=${new Date().getTime()}`;
+            sidebarPicEl.src = profileImageWithTimestamp;
+            sidebarPicEl.onerror = function() {
+                this.src = '/uploads/default-profile.png';
+            };
+        } else if (sidebarPicEl) {
+            sidebarPicEl.src = '/uploads/default-profile.png';
+        }
+    } catch (error) {
+        console.error('Error updating sidebar profile:', error);
+    }
+}
+
+// Function to save profile data
+async function saveProfile(isModal = false) {
+    try {
+        // Get the suffix based on whether we're using the modal form
+        const suffix = isModal ? 'Modal' : '';
+        
+        // Get form values with null checks and trimming
+        const formValues = {
+            idNumber: document.getElementById(`idNumber${suffix}`)?.value?.trim(),
+            oldIdNumber: document.getElementById(`oldIdNumber${suffix}`)?.value?.trim(),
+            firstName: document.getElementById(`firstname${suffix}`)?.value?.trim(),
+            middleName: document.getElementById(`middlename${suffix}`)?.value?.trim(),
+            lastName: document.getElementById(`lastname${suffix}`)?.value?.trim(),
+            email: document.getElementById(`email${suffix}`)?.value?.trim(),
+            year: document.getElementById(`year${suffix}`)?.value?.trim(),
+            course: document.getElementById(`course${suffix}`)?.value?.trim()
+        };
+
+        // Log form values for debugging
+        console.log('Form values:', formValues);
+
+        // Validate required fields
+        const requiredFields = ['idNumber', 'firstName', 'lastName', 'email', 'year', 'course'];
+        const missingFields = requiredFields.filter(field => !formValues[field]);
+        
+        if (missingFields.length > 0) {
+            throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formValues.email)) {
+            throw new Error('Invalid email format');
+        }
+
+        // Create profile data object with all required fields
+        const profileData = {
+            idNumber: formValues.idNumber,
+            oldIdNumber: formValues.oldIdNumber || formValues.idNumber, // Fallback to current ID if old ID is not provided
+            firstName: formValues.firstName,
+            middleName: formValues.middleName || '', // Empty string if middle name is not provided
+            lastName: formValues.lastName,
+            email: formValues.email,
+            year: formValues.year,
+            course: formValues.course
+        };
+
+        // Log request data
+        console.log('Sending profile update request:', profileData);
+
+        // Send update request to server
+        const response = await fetch('http://localhost:3000/update-profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+
+        // Log response status and data
+        console.log('Response status:', response.status);
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+
+        // Check for specific error responses
+        if (!response.ok) {
+            if (responseData.message) {
+                throw new Error(responseData.message);
+            } else if (response.status === 400) {
+                throw new Error('Invalid request data. Please check all fields and try again.');
+            } else {
+                throw new Error(`Server error: ${response.status}`);
+            }
+        }
+
+        // Update localStorage with new values
+        Object.entries(profileData).forEach(([key, value]) => {
+            if (value) localStorage.setItem(key, value);
+        });
+        localStorage.setItem('currentUserId', profileData.idNumber);
+        localStorage.setItem('profileName', `${profileData.firstName} ${profileData.lastName}`.trim());
+        localStorage.setItem('profileCourse', profileData.course);
+
+        // Update the profile display
+        updateSidebarProfile();
+
+        // Show success message
+        alert('Profile updated successfully!');
+
+        // If this was called from modal, close it
+        if (isModal) {
+            closeProfileModal();
+        }
+
+        // Reload profile data to ensure everything is in sync
+        await loadProfile();
+
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        // Show more detailed error message to the user
+        alert(`Failed to update profile: ${error.message}`);
+    }
+}
+
+// Function to setup profile picture update handlers
+function setupProfilePictureHandlers() {
+    const uploadInput = document.getElementById('uploadProfilePic');
+    const profilePics = [
+        document.getElementById('profilePicModal'),
+        document.getElementById('sidebarProfilePic'),
+        document.getElementById('profilePic')
+    ];
+
+    // Add click handlers to all profile pictures
+    profilePics.forEach(pic => {
+        if (pic) {
+            pic.style.cursor = 'pointer';
+            pic.title = 'Click to change profile picture';
+            pic.addEventListener('click', () => {
+                uploadInput.click();
+            });
+        }
+    });
+
+    // Add change handler to file input
+    if (uploadInput) {
+        uploadInput.addEventListener('change', function() {
+            updateProfilePicture(this);
+        });
+    }
+}

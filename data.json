@@ -57,16 +57,16 @@
   },
   {
     "idNumber": "2223",
-    "firstName": "asdasd",
-    "middleName": "asdasdas",
-    "lastName": "asdasdsa",
-    "email": "asdasd@gmail.com",
-    "year": "2nd Year",
-    "course": "BS Information Systems",
+    "firstName": "fsdfsd",
+    "middleName": "fsdfsd",
+    "lastName": "fsdfsdf",
+    "email": "asdasdas@gmail.com",
+    "year": "1st Year",
+    "course": "BS Computer Science",
     "password": "$2b$10$awRbFfmKiSS8bWbXwW5tP.N5u/dMa1JMUbOukuPsLxiCNN8SJSUKi",
     "completedSessions": 0,
     "pendingReservations": 0,
     "remainingSessions": 24,
-    "profileImage": "/uploads/1742312950299-22.jpg"
+    "profileImage": "/uploads/1742359887040-doblas.jpg"
   }
 ]
