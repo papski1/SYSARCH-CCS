@@ -211,197 +211,56 @@ async function fetchReservations() {
 
 async function updateReservationStatus(reservationId, status) {
     try {
-        console.log("Updating reservation status:", { reservationId, status });
-        
-        const response = await fetch("http://localhost:3000/update-reservation-status", {
-            method: "POST",
+        console.log(`Updating reservation status: ID ${reservationId} to ${status}`);
+        const response = await fetch('http://localhost:3000/update-reservation-status', {
+            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-                reservationId: parseInt(reservationId), 
-                status 
-            })
+            body: JSON.stringify({ id: parseInt(reservationId), status: status }),
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to update reservation status');
+            throw new Error('Failed to update reservation status');
         }
 
-        const data = await response.json();
-        
-        // Show appropriate message based on status
-        let message = data.message;
-        if (status === 'approved') {
-            message = "Reservation approved and sit-in session created successfully.";
-            
-            // Refresh both reservations and sit-ins tables
-            await Promise.all([
-                fetchReservations(),
-                fetchSitIns()
-            ]);
-            
-            // Update dashboard counts
-            const dashboardSitInCount = document.getElementById('current-sit-in');
-            if (dashboardSitInCount) {
-                const currentCount = parseInt(dashboardSitInCount.textContent || '0');
-                dashboardSitInCount.textContent = currentCount + 1;
-            }
+        // Fetch updated reservations
+        const reservationsResponse = await fetch('http://localhost:3000/get-all-reservations');
+        const reservations = await reservationsResponse.json();
 
-            // Fetch current sit-ins for charts
-            const sitInsResponse = await fetch("http://localhost:3000/sit-ins");
-            if (!sitInsResponse.ok) {
-                throw new Error("Failed to fetch sit-ins");
-            }
-            const sitIns = await sitInsResponse.json();
-            
-            // Filter for today's records
-            const today = new Date().toISOString().split('T')[0];
-            const todaysSitIns = sitIns.filter(sitIn => sitIn.date === today);
+        // Fetch all sit-ins
+        const sitInsResponse = await fetch('http://localhost:3000/sit-ins');
+        const sitIns = await sitInsResponse.json();
 
-            // Update records section if visible
-            const recordsSection = document.getElementById('sit-in-records');
-            if (recordsSection && !recordsSection.classList.contains('hidden')) {
-                // Get chart canvases
-                const programmingLanguageCanvas = document.getElementById('programmingLanguageChart');
-                const labRoomCanvas = document.getElementById('labRoomChart');
-
-                // Destroy existing charts if they exist
-                if (window.programmingLanguageChart) {
-                    window.programmingLanguageChart.destroy();
-                }
-                if (window.labRoomChart) {
-                    window.labRoomChart.destroy();
-                }
-
-                // Count programming languages
-                const languageStats = {};
-                todaysSitIns.forEach(record => {
-                    const lang = record.programmingLanguage || 'Not Specified';
-                    languageStats[lang] = (languageStats[lang] || 0) + 1;
-                });
-
-                // Count lab rooms
-                const labStats = {};
-                todaysSitIns.forEach(record => {
-                    const lab = record.laboratory || 'Not Specified';
-                    labStats[lab] = (labStats[lab] || 0) + 1;
-                });
-
-                // Create programming language chart
-                if (programmingLanguageCanvas) {
-                    window.programmingLanguageChart = new Chart(programmingLanguageCanvas, {
-                        type: 'pie',
-                        data: {
-                            labels: Object.keys(languageStats),
-                            datasets: [{
-                                data: Object.values(languageStats),
-                                backgroundColor: [
-                                    'rgba(255, 99, 132, 0.7)',
-                                    'rgba(54, 162, 235, 0.7)',
-                                    'rgba(255, 206, 86, 0.7)',
-                                    'rgba(75, 192, 192, 0.7)',
-                                    'rgba(153, 102, 255, 0.7)',
-                                    'rgba(255, 159, 64, 0.7)',
-                                    'rgba(199, 199, 199, 0.7)'
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: {
-                                    position: 'right',
-                                    labels: {
-                                        padding: 20,
-                                        font: {
-                                            size: 12
-                                        }
-                                    }
-                                },
-                                title: {
-                                    display: true,
-                                    font: {
-                                        size: 16
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-
-                // Create lab room chart
-                if (labRoomCanvas) {
-                    window.labRoomChart = new Chart(labRoomCanvas, {
-                        type: 'pie',
-                        data: {
-                            labels: Object.keys(labStats),
-                            datasets: [{
-                                data: Object.values(labStats),
-                                backgroundColor: [
-                                    'rgba(75, 192, 192, 0.7)',
-                                    'rgba(255, 159, 64, 0.7)',
-                                    'rgba(54, 162, 235, 0.7)',
-                                    'rgba(255, 99, 132, 0.7)',
-                                    'rgba(153, 102, 255, 0.7)',
-                                    'rgba(255, 206, 86, 0.7)',
-                                    'rgba(199, 199, 199, 0.7)'
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: {
-                                    position: 'right',
-                                    labels: {
-                                        padding: 20,
-                                        font: {
-                                            size: 12
-                                        }
-                                    }
-                                },
-                                title: {
-                                    display: true,
-                                    font: {
-                                        size: 16
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-
-                // Update records table
-                displaySitInRecords(todaysSitIns);
-            }
-
-            // Update dashboard chart
-            updateDashboardChart(sitIns);
-
-            // Update total sessions count for today
-            const totalSessionsToday = document.getElementById('total-sessions-today');
-            if (totalSessionsToday) {
-                totalSessionsToday.textContent = todaysSitIns.length;
-            }
-        } else if (status === 'rejected') {
-            message = "Reservation rejected successfully.";
-            // Only refresh reservations for rejected status
-            await fetchReservations();
+        // Update dashboard counts
+        const currentSitIns = sitIns.filter(sitIn => sitIn.status === 'active');
+        const currentSitInsCount = document.getElementById('current-sit-ins-count');
+        if (currentSitInsCount) {
+            currentSitInsCount.textContent = currentSitIns.length;
         }
-        
-        // Show success message
-        alert(message);
-        
+
+        // Update charts for today's records section if that section is active
+        if (document.getElementById('sit-in-records-section').classList.contains('active')) {
+            // Load today's sit-in records to update the charts
+            loadTodaysSitInRecords();
+        }
+
+        // Re-fetch and display the reservations and sit-ins in the "All Records" section
+        const pendingReservations = reservations.filter(res => res.status === 'pending');
+        displayUnifiedTable(pendingReservations, currentSitIns, sitIns.filter(sitIn => sitIn.status === 'completed'));
+
+        // Update dashboard counts
+        const pendingReservationsCount = document.getElementById('pending-reservations-count');
+        if (pendingReservationsCount) {
+            pendingReservationsCount.textContent = pendingReservations.length;
+        }
+
+        // Show notification
+        showNotification(`Reservation ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+
     } catch (error) {
-        console.error("Error updating reservation status:", error);
-        alert("Error: " + (error.message || "Failed to update reservation status"));
+        console.error('Error updating reservation status:', error);
+        showNotification('Error updating reservation status', 'error');
     }
 }
 
@@ -2123,178 +1982,20 @@ async function loadTodaysSitInRecords() {
 
         const sitIns = await response.json();
         
-        // Filter for today's records and active sit-ins
+        // Filter for today's records (both active and completed)
         const today = new Date().toISOString().split('T')[0];
-        const todaysSitIns = sitIns.filter(sitIn => 
-            sitIn.date === today && 
-            sitIn.status === 'active'
-        );
-
-        console.log("Today's active sit-ins:", todaysSitIns);
-
-        // Get chart canvases
-        const programmingLanguageCanvas = document.getElementById('programmingLanguageChart');
-        const labRoomCanvas = document.getElementById('labRoomChart');
-
-        if (!programmingLanguageCanvas || !labRoomCanvas) {
-            console.error("Chart canvases not found");
-            return;
-        }
-
-        // Destroy existing charts if they exist
-        const existingProgrammingChart = Chart.getChart(programmingLanguageCanvas);
-        if (existingProgrammingChart) {
-            existingProgrammingChart.destroy();
-        }
+        console.log("Today's date:", today);
+        const todaysSitIns = sitIns.filter(sitIn => sitIn.date === today);
         
-        const existingLabChart = Chart.getChart(labRoomCanvas);
-        if (existingLabChart) {
-            existingLabChart.destroy();
-        }
+        console.log("Today's sit-ins:", todaysSitIns);
 
-        // Count programming languages for active sit-ins
-        const languageStats = {};
-        todaysSitIns.forEach(record => {
-            const lang = record.programmingLanguage || 'Not Specified';
-            languageStats[lang] = (languageStats[lang] || 0) + 1;
-        });
-
-        // Count lab rooms for active sit-ins
-        const labStats = {};
-        todaysSitIns.forEach(record => {
-            const lab = record.laboratory || 'Not Specified';
-            labStats[lab] = (labStats[lab] || 0) + 1;
-        });
-
-        // Add default data if no active sit-ins
-        if (Object.keys(languageStats).length === 0) {
-            languageStats['No Data'] = 1;
-        }
-        if (Object.keys(labStats).length === 0) {
-            labStats['No Data'] = 1;
-        }
-
-        // Create programming language chart
-        new Chart(programmingLanguageCanvas, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(languageStats),
-                datasets: [{
-                    data: Object.values(languageStats),
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(199, 199, 199, 0.7)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            padding: 20,
-                            font: {
-                                size: 12
-                            },
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                if (data.labels.length && data.datasets.length) {
-                                    return data.labels.map((label, i) => {
-                                        const value = data.datasets[0].data[i];
-                                        const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        return {
-                                            text: `${label} (${percentage}%)`,
-                                            fillStyle: data.datasets[0].backgroundColor[i],
-                                            index: i
-                                        };
-                                    });
-                                }
-                                return [];
-                            }
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: 'Programming Language Distribution',
-                        font: {
-                            size: 16
-                        }
-                    }
-                }
-            }
-        });
-
-        // Create lab room chart
-        new Chart(labRoomCanvas, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(labStats),
-                datasets: [{
-                    data: Object.values(labStats),
-                    backgroundColor: [
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(199, 199, 199, 0.7)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            padding: 20,
-                            font: {
-                                size: 12
-                            },
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                if (data.labels.length && data.datasets.length) {
-                                    return data.labels.map((label, i) => {
-                                        const value = data.datasets[0].data[i];
-                                        const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        return {
-                                            text: `${label} (${percentage}%)`,
-                                            fillStyle: data.datasets[0].backgroundColor[i],
-                                            index: i
-                                        };
-                                    });
-                                }
-                                return [];
-                            }
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: 'Lab Room Distribution',
-                        font: {
-                            size: 16
-                        }
-                    }
-                }
-            }
-        });
-
-        // Update records table with active sit-ins
+        // Display records in the table
         displaySitInRecords(todaysSitIns);
-
+        
+        // Update charts with today's sit-ins
+        updateProgrammingLanguageChart(todaysSitIns);
+        updateLabRoomChart(todaysSitIns);
+        
         // Update total sessions count for today
         const totalSessionsToday = document.getElementById('total-sessions-today');
         if (totalSessionsToday) {
@@ -2343,7 +2044,7 @@ function displaySitInRecords(records) {
             <td class="border px-4 py-2">${record.course || 'N/A'}</td>
             <td class="border px-4 py-2">${record.year || 'N/A'}</td>
             <td class="border px-4 py-2">${record.programmingLanguage || 'N/A'}</td>
-            <td class="border px-4 py-2">${record.laboratory || 'N/A'}</td>
+            <td class="border px-4 py-2">${record.labRoom || 'N/A'}</td>
             <td class="border px-4 py-2">${timeIn}</td>
             <td class="border px-4 py-2">${timeOut}</td>
             <td class="border px-4 py-2">${duration}</td>
@@ -2361,8 +2062,18 @@ function displaySitInRecords(records) {
 
 // Function to update programming language distribution chart
 function updateProgrammingLanguageChart(records) {
-    const canvas = document.getElementById('programmingLanguageChart');
-    if (!canvas) return;
+    // Get the canvas
+    const programmingLanguageCanvas = document.getElementById('programmingLanguageChart');
+    if (!programmingLanguageCanvas) {
+        console.error("Programming language chart canvas not found");
+        return;
+    }
+
+    // Destroy existing chart if it exists
+    const existingChart = Chart.getChart(programmingLanguageCanvas);
+    if (existingChart) {
+        existingChart.destroy();
+    }
 
     // Count programming languages
     const languageStats = {};
@@ -2371,43 +2082,40 @@ function updateProgrammingLanguageChart(records) {
         languageStats[lang] = (languageStats[lang] || 0) + 1;
     });
 
-    // Prepare data for chart
-    const labels = Object.keys(languageStats);
-    const data = Object.values(languageStats);
-
-    // Define colors
-    const backgroundColors = [
-        'rgba(255, 99, 132, 0.7)',
-        'rgba(54, 162, 235, 0.7)',
-        'rgba(255, 206, 86, 0.7)',
-        'rgba(75, 192, 192, 0.7)',
-        'rgba(153, 102, 255, 0.7)',
-        'rgba(255, 159, 64, 0.7)',
-        'rgba(199, 199, 199, 0.7)'
-    ];
-
-    // Get existing chart instance
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) {
-        existingChart.destroy();
+    // Add default data if no records
+    if (Object.keys(languageStats).length === 0) {
+        languageStats['No Data'] = 1;
     }
 
-    // Create new chart
-    new Chart(canvas, {
+    // Create programming language chart
+    new Chart(programmingLanguageCanvas, {
         type: 'pie',
         data: {
-            labels: labels,
+            labels: Object.keys(languageStats),
             datasets: [{
-                data: data,
-                backgroundColor: backgroundColors.slice(0, labels.length),
+                data: Object.values(languageStats),
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)'
+                ],
                 borderWidth: 1
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             layout: {
-                padding: 20
+                padding: {
+                    top: 20,
+                    bottom: 20,
+                    left: 20,
+                    right: 20
+                }
             },
             plugins: {
                 legend: {
@@ -2437,6 +2145,7 @@ function updateProgrammingLanguageChart(records) {
                 },
                 title: {
                     display: true,
+                    text: 'Programming Language Distribution',
                     font: {
                         size: 16
                     }
@@ -2448,53 +2157,60 @@ function updateProgrammingLanguageChart(records) {
 
 // Function to update lab room distribution chart
 function updateLabRoomChart(records) {
-    const canvas = document.getElementById('labRoomChart');
-    if (!canvas) return;
+    // Get the canvas
+    const labRoomCanvas = document.getElementById('labRoomChart');
+    if (!labRoomCanvas) {
+        console.error("Lab room chart canvas not found");
+        return;
+    }
 
-    // Count lab room usage
-    const labStats = {};
-    records.forEach(record => {
-        const lab = record.laboratory || 'Not Specified';
-        labStats[lab] = (labStats[lab] || 0) + 1;
-    });
-
-    // Prepare data for chart
-    const labels = Object.keys(labStats);
-    const data = Object.values(labStats);
-
-    // Define colors
-    const backgroundColors = [
-        'rgba(75, 192, 192, 0.7)',
-        'rgba(255, 159, 64, 0.7)',
-        'rgba(54, 162, 235, 0.7)',
-        'rgba(255, 99, 132, 0.7)',
-        'rgba(153, 102, 255, 0.7)',
-        'rgba(255, 206, 86, 0.7)',
-        'rgba(199, 199, 199, 0.7)'
-    ];
-
-    // Get existing chart instance
-    const existingChart = Chart.getChart(canvas);
+    // Destroy existing chart if it exists
+    const existingChart = Chart.getChart(labRoomCanvas);
     if (existingChart) {
         existingChart.destroy();
     }
 
-    // Create new chart
-    new Chart(canvas, {
+    // Count lab room usage
+    const labStats = {};
+    records.forEach(record => {
+        const lab = record.labRoom || 'Not Specified';
+        labStats[lab] = (labStats[lab] || 0) + 1;
+    });
+
+    // Add default data if no records
+    if (Object.keys(labStats).length === 0) {
+        labStats['No Data'] = 1;
+    }
+
+    // Create lab room chart
+    new Chart(labRoomCanvas, {
         type: 'pie',
         data: {
-            labels: labels,
+            labels: Object.keys(labStats),
             datasets: [{
-                data: data,
-                backgroundColor: backgroundColors.slice(0, labels.length),
+                data: Object.values(labStats),
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(199, 199, 199, 0.7)'
+                ],
                 borderWidth: 1
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             layout: {
-                padding: 20
+                padding: {
+                    top: 20,
+                    bottom: 20,
+                    left: 20,
+                    right: 20
+                }
             },
             plugins: {
                 legend: {
@@ -2524,6 +2240,7 @@ function updateLabRoomChart(records) {
                 },
                 title: {
                     display: true,
+                    text: 'Lab Room Distribution',
                     font: {
                         size: 16
                     }

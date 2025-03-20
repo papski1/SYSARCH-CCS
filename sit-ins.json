@@ -11,8 +11,7 @@
     "labRoom": "524",
     "programmingLanguage": "Python",
     "purpose": "Programming Session",
-    "status": "completed",
-    "autoLogoutTime": "2025-03-19T07:46:00.414Z"
+    "status": "completed"
   },
   {
     "id": 1742321424545,
@@ -26,8 +25,7 @@
     "labRoom": "526",
     "programmingLanguage": "C++",
     "purpose": "Programming Session",
-    "status": "completed",
-    "autoLogoutTime": "2025-03-19T08:10:00.544Z"
+    "status": "completed"
   },
   {
     "id": 1742322492728,
@@ -41,8 +39,7 @@
     "labRoom": "524",
     "programmingLanguage": "Python",
     "purpose": "Programming Session",
-    "status": "completed",
-    "autoLogoutTime": "2025-03-19T08:28:00.727Z"
+    "status": "completed"
   },
   {
     "id": 1742322663286,
@@ -56,8 +53,7 @@
     "labRoom": "524",
     "programmingLanguage": "JavaScript",
     "purpose": "Programming Session",
-    "status": "completed",
-    "autoLogoutTime": "2025-03-19T08:31:00.286Z"
+    "status": "completed"
   },
   {
     "id": 1742323142828,
@@ -71,8 +67,7 @@
     "labRoom": "524",
     "programmingLanguage": "PHP",
     "purpose": "Programming Session",
-    "status": "completed",
-    "autoLogoutTime": "2025-03-19T08:39:00.828Z"
+    "status": "completed"
   },
   {
     "id": 1742323634271,
@@ -86,8 +81,7 @@
     "labRoom": "524",
     "programmingLanguage": "C++",
     "purpose": "Programming Session",
-    "status": "active",
-    "autoLogoutTime": "2025-03-19T08:47:00.271Z"
+    "status": "completed"
   },
   {
     "id": 1742360363302,
@@ -97,12 +91,53 @@
     "year": "3rd Year",
     "date": "2025-03-19",
     "timeIn": "12:59",
-    "timeOut": null,
+    "timeOut": "2025-03-20T09:13:26.142Z",
     "labRoom": "Walk-in",
     "programmingLanguage": "JavaScript",
     "purpose": "Research",
-    "status": "active",
-    "autoLogoutTime": null,
+    "status": "completed",
     "isWalkIn": true
+  },
+  {
+    "id": 1742462011826,
+    "idNumber": "2223",
+    "name": "fsdfsd fsdfsdf",
+    "course": "BS Computer Science",
+    "year": "1st Year",
+    "date": "2025-03-25",
+    "timeIn": "13:02",
+    "timeOut": "15:02",
+    "labRoom": "544",
+    "programmingLanguage": "Python",
+    "purpose": "Programming Session",
+    "status": "completed"
+  },
+  {
+    "id": 1742464501605,
+    "idNumber": "2223",
+    "name": "fsdfsd fsdfsdf",
+    "course": "BS Computer Science",
+    "year": "1st Year",
+    "date": "2025-03-29",
+    "timeIn": "17:54",
+    "timeOut": null,
+    "labRoom": "530",
+    "programmingLanguage": "PHP",
+    "purpose": "Programming Session",
+    "status": "active"
+  },
+  {
+    "id": 1742465502252,
+    "idNumber": "2223",
+    "name": "fsdfsd fsdfsdf",
+    "course": "BS Computer Science",
+    "year": "1st Year",
+    "date": "2025-03-30",
+    "timeIn": "06:10",
+    "timeOut": null,
+    "labRoom": "544",
+    "programmingLanguage": "Python",
+    "purpose": "Programming Session",
+    "status": "active"
   }
 ]

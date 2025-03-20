@@ -159,18 +159,20 @@ app.post("/reserve", (req, res) => {
 app.post("/update-reservation-status", async (req, res) => {
     try {
         console.log("Received update request:", req.body);
-        const { reservationId, status } = req.body;
+        // Check for both id and reservationId to be backward compatible
+        const reservationId = req.body.reservationId || req.body.id;
+        const { status } = req.body;
 
         if (!reservationId || !status) {
             return res.status(400).json({ 
                 success: false, 
-                message: "Missing required fields: reservationId and status" 
+                message: "Missing required fields: id and status" 
             });
         }
 
         // Read reservations
         const reservations = readReservations();
-        const reservationIndex = reservations.findIndex(r => r.id === reservationId);
+        const reservationIndex = reservations.findIndex(r => r.id === parseInt(reservationId));
         
         if (reservationIndex === -1) {
             return res.status(404).json({ 
@@ -208,6 +210,9 @@ app.post("/update-reservation-status", async (req, res) => {
                 u.idNumber === userData.idNumber ? userData : u
             );
             writeData(updatedUsers);
+
+            // Update chart data for the approved reservation
+            updateDailyChartData(reservation.programmingLanguage, reservation.labRoom);
         }
 
         // Update reservation status
@@ -218,14 +223,7 @@ app.post("/update-reservation-status", async (req, res) => {
         let newSitIn = null;
         // If the reservation is approved, create sit-in record
         if (status === 'approved' && userData) {
-            // Create a sit-in record with auto-logout time
             let sitIns = readSitIns();
-            
-            // Calculate end time (2 hours after start time)
-            const [hours, minutes] = reservation.time.split(':');
-            const startTime = new Date();
-            startTime.setHours(parseInt(hours), parseInt(minutes), 0);
-            const endTime = new Date(startTime.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
             
             newSitIn = {
                 id: Date.now(),
@@ -235,12 +233,11 @@ app.post("/update-reservation-status", async (req, res) => {
                 year: userData.year,
                 date: reservation.date,
                 timeIn: reservation.time,
-                timeOut: `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`,
+                timeOut: null,
                 labRoom: reservation.labRoom,
                 programmingLanguage: reservation.programmingLanguage,
                 purpose: reservation.purpose,
-                status: 'active',
-                autoLogoutTime: endTime.toISOString()
+                status: 'active'
             };
             sitIns.push(newSitIn);
             saveSitIns(sitIns);
@@ -249,10 +246,8 @@ app.post("/update-reservation-status", async (req, res) => {
             logUserActivity(reservation.idNumber, 'Sit-in Started', {
                 date: reservation.date,
                 timeIn: reservation.time,
-                timeOut: newSitIn.timeOut,
                 labRoom: reservation.labRoom,
-                status: 'active',
-                autoLogout: true
+                status: 'active'
             });
         }
 
@@ -260,8 +255,7 @@ app.post("/update-reservation-status", async (req, res) => {
             success: true, 
             message: status === 'approved' ? 
                 "Reservation approved and sit-in session created successfully" : 
-                "Reservation status updated successfully",
-            autoLogoutTime: status === 'approved' ? newSitIn?.autoLogoutTime : null
+                "Reservation status updated successfully"
         });
     } catch (error) {
         console.error("Error updating reservation status:", error);
@@ -703,20 +697,21 @@ app.post("/update-sit-in-status", (req, res) => {
             });
         }
 
-        // Update the sit-in status
-        sitIns[sitInIndex].status = status;
-        
-        // If completing the sit-in, add the timeOut
+        // If completing the sit-in, remove it from the list
         if (status === 'completed') {
-            sitIns[sitInIndex].timeOut = timeOut || new Date().toISOString();
-            
-            // Log the sit-in completion
+            // Log the sit-in completion before removing
             logUserActivity(sitIns[sitInIndex].idNumber, 'Sit-in Completed', {
                 date: sitIns[sitInIndex].date,
                 timeIn: sitIns[sitInIndex].timeIn,
-                timeOut: sitIns[sitInIndex].timeOut,
+                timeOut: timeOut || new Date().toISOString(),
                 labRoom: sitIns[sitInIndex].labRoom
             });
+
+            // Remove the sit-in from the array
+            sitIns.splice(sitInIndex, 1);
+        } else {
+            // For other status updates, just update the status
+            sitIns[sitInIndex].status = status;
         }
 
         // Save the updated sit-ins
@@ -724,8 +719,10 @@ app.post("/update-sit-in-status", (req, res) => {
 
         res.json({ 
             success: true, 
-            message: "Sit-in status updated successfully",
-            sitIn: sitIns[sitInIndex]
+            message: status === 'completed' ? 
+                "Sit-in completed and removed successfully" : 
+                "Sit-in status updated successfully",
+            sitIn: status === 'completed' ? null : sitIns[sitInIndex]
         });
     } catch (error) {
         console.error("Error updating sit-in status:", error);
@@ -1525,6 +1522,145 @@ app.post("/reset-sessions", (req, res) => {
         return res.status(200).json(result);
     } else {
         return res.status(500).json(result);
+    }
+});
+
+// Function to read chart data
+function readChartData() {
+    try {
+        if (!fs.existsSync('data/chart-data.json')) {
+            const initialData = {
+                daily: {
+                    languages: {},
+                    labRooms: {}
+                }
+            };
+            fs.writeFileSync('data/chart-data.json', JSON.stringify(initialData, null, 2));
+            return initialData;
+        }
+        const data = fs.readFileSync('data/chart-data.json', 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error reading chart data:', error);
+        return {
+            daily: {
+                languages: {},
+                labRooms: {}
+            }
+        };
+    }
+}
+
+// Function to save chart data
+function saveChartData(data) {
+    try {
+        fs.writeFileSync('data/chart-data.json', JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error('Error saving chart data:', error);
+    }
+}
+
+// Function to update daily chart data
+function updateDailyChartData(language, labRoom) {
+    const chartData = readChartData();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Initialize today's data if it doesn't exist
+    if (!chartData.daily.languages[today]) {
+        chartData.daily.languages[today] = {};
+    }
+    if (!chartData.daily.labRooms[today]) {
+        chartData.daily.labRooms[today] = {};
+    }
+
+    // Update language count
+    chartData.daily.languages[today][language] = (chartData.daily.languages[today][language] || 0) + 1;
+
+    // Update lab room count
+    chartData.daily.labRooms[today][labRoom] = (chartData.daily.labRooms[today][labRoom] || 0) + 1;
+
+    // Keep only the last 30 days of data
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+    // Clean up old data
+    Object.keys(chartData.daily.languages).forEach(date => {
+        if (date < thirtyDaysAgoStr) {
+            delete chartData.daily.languages[date];
+        }
+    });
+
+    Object.keys(chartData.daily.labRooms).forEach(date => {
+        if (date < thirtyDaysAgoStr) {
+            delete chartData.daily.labRooms[date];
+        }
+    });
+
+    saveChartData(chartData);
+}
+
+// Function to get today's sit-in statistics
+function getTodaySitInStats() {
+    try {
+        const sitIns = readSitIns();
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Filter today's sit-ins
+        const todaySitIns = sitIns.filter(sitIn => sitIn.date === today);
+        
+        // Calculate language statistics
+        const languageStats = {};
+        todaySitIns.forEach(sitIn => {
+            languageStats[sitIn.programmingLanguage] = (languageStats[sitIn.programmingLanguage] || 0) + 1;
+        });
+        
+        // Calculate lab room statistics
+        const labRoomStats = {};
+        todaySitIns.forEach(sitIn => {
+            labRoomStats[sitIn.labRoom] = (labRoomStats[sitIn.labRoom] || 0) + 1;
+        });
+        
+        return {
+            languages: languageStats,
+            labRooms: labRoomStats,
+            totalSitIns: todaySitIns.length
+        };
+    } catch (error) {
+        console.error('Error getting today\'s sit-in statistics:', error);
+        return {
+            languages: {},
+            labRooms: {},
+            totalSitIns: 0
+        };
+    }
+}
+
+// Route to get chart data
+app.get("/chart-data", (req, res) => {
+    try {
+        // Get today's statistics from sit-ins
+        const todayStats = getTodaySitInStats();
+        
+        // Get historical chart data
+        const chartData = readChartData();
+        
+        // Combine today's data with historical data
+        const today = new Date().toISOString().split('T')[0];
+        chartData.daily.languages[today] = todayStats.languages;
+        chartData.daily.labRooms[today] = todayStats.labRooms;
+        
+        res.json({
+            daily: chartData.daily,
+            today: {
+                languages: todayStats.languages,
+                labRooms: todayStats.labRooms,
+                totalSitIns: todayStats.totalSitIns
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching chart data:", error);
+        res.status(500).json({ error: "Failed to fetch chart data" });
     }
 });
 
