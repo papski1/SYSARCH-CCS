@@ -35,7 +35,17 @@ async function showSection(sectionId) {
         } else if (sectionId === 'dashboard') {
             loadDashboardData();
         } else if (sectionId === 'sit-in-history') {
-            loadSitInHistory();
+            // Update the section title to show "Reservation History" instead of "Sit-in History"
+            const sectionTitle = section.querySelector('h2');
+            if (sectionTitle) {
+                sectionTitle.textContent = 'Reservation History';
+            }
+            
+            // Call setupHistoryTabs to ensure the reservation tab is selected
+            setupHistoryTabs();
+        } else if (sectionId === 'profile') {
+            // When profile section is shown, update profile data
+            await updateProfileDisplay();
         }
     }
 }
@@ -50,8 +60,27 @@ document.addEventListener("DOMContentLoaded", async function() {
     // Load announcements immediately
     await loadAnnouncements();
     
+    // Update the navigation link text from "Sit-in History" to "Reservation History"
+    const historyNavLink = document.querySelector('a[href="#sit-in-history"]');
+    if (historyNavLink) {
+        // Find the text node within the link (it's usually the last child)
+        for (let i = 0; i < historyNavLink.childNodes.length; i++) {
+            const node = historyNavLink.childNodes[i];
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() === 'Sit-in History') {
+                node.textContent = 'Reservation History';
+                break;
+            }
+        }
+    }
+    
     // Setup navigation
     setupNavigation();
+    
+    // Remove any existing sessions counter that might have been previously added
+    const existingCounter = document.getElementById('nav-sessions-counter');
+    if (existingCounter) {
+        existingCounter.remove();
+    }
     
     // Setup history tabs
     setupHistoryTabs();
@@ -82,6 +111,14 @@ document.addEventListener("DOMContentLoaded", async function() {
     
     // Initialize profile information
     initializeProfile();
+    
+    // Set up profile picture upload handler
+    const uploadProfilePicInput = document.getElementById('uploadProfilePic');
+    if (uploadProfilePicInput) {
+        uploadProfilePicInput.addEventListener('change', function() {
+            updateProfilePicture(this);
+        });
+    }
 });
 
 // Function to load initial data based on active section
@@ -103,6 +140,9 @@ function setupNavigation() {
             showSection(targetId);
         });
     });
+    
+    // Remove the sessions counter from nav
+    // addSessionsCounterToNav(); - This line is removed
 }
 
 // Function to check for new announcements
@@ -244,11 +284,14 @@ async function updateDashboardStats(userId) {
         }
         
         // Update remaining sessions count everywhere
-        const remainingSessions = userData.remainingSessions;
+        const remainingSessions = userData.remainingSessions || 0;
         const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
         remainingSessionsElements.forEach(element => {
             element.textContent = remainingSessions;
         });
+
+        // Add a sessions warning if needed
+        updateSessionsWarning(remainingSessions);
 
         // Store the remaining sessions count in localStorage for persistence
         localStorage.setItem('remainingSessions', remainingSessions);
@@ -261,6 +304,52 @@ async function updateDashboardStats(userId) {
         remainingSessionsElements.forEach(element => {
             element.textContent = cachedRemainingSessions;
         });
+    }
+}
+
+// Function to update sessions warning
+function updateSessionsWarning(remainingSessions) {
+    // Remove any existing warning
+    const existingWarning = document.getElementById('sessions-warning');
+    if (existingWarning) {
+        existingWarning.remove();
+    }
+    
+    // Only add warning if sessions are low
+    if (remainingSessions <= 5) {
+        const dashboardSection = document.getElementById('dashboard');
+        if (dashboardSection) {
+            const warningElement = document.createElement('div');
+            warningElement.id = 'sessions-warning';
+            warningElement.className = remainingSessions === 0 
+                ? 'bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-md dark:bg-red-900/30 dark:text-red-300'
+                : 'bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded shadow-md dark:bg-yellow-900/30 dark:text-yellow-300';
+            
+            const message = remainingSessions === 0
+                ? 'You have no remaining sessions. Please contact the administrator to reset your sessions.'
+                : `You only have ${remainingSessions} ${remainingSessions === 1 ? 'session' : 'sessions'} remaining.`;
+            
+            warningElement.innerHTML = `
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p>${message}</p>
+                    </div>
+                </div>
+            `;
+            
+            // Insert after the stats cards
+            const statCards = dashboardSection.querySelector('.grid');
+            if (statCards) {
+                statCards.parentNode.insertBefore(warningElement, statCards.nextSibling);
+            } else {
+                dashboardSection.appendChild(warningElement);
+            }
+        }
     }
 }
 
@@ -302,7 +391,7 @@ async function loadDashboardData() {
     }
 }
 
-// Function to update profile picture in both sidebar and modal
+// Function to handle profile photo upload
 function updateProfilePicture(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -310,69 +399,269 @@ function updateProfilePicture(input) {
         
         if (!userId) {
             alert("User ID not found. Please try logging in again.");
-        return;
-    }
+            return;
+        }
+
+        // Get file details
+        const file = input.files[0];
+        console.log("File selected:", file.name, "Type:", file.type, "Size:", file.size);
+        
+        // Validate file type - only allow PNG, JPG, or JPEG
+        const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validImageTypes.includes(file.type)) {
+            alert("Please select a valid image file (PNG, JPG, or JPEG only)");
+            return;
+        }
+        
+        // Validate file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            alert("File is too large. Maximum size is 5MB");
+            return;
+        }
+
+        // Show loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'profileUploadLoading';
+        loadingIndicator.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
+        loadingIndicator.innerHTML = '<div class="bg-white p-4 rounded-md shadow-md"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-2"></div><p class="text-center">Uploading profile photo...</p></div>';
+        document.body.appendChild(loadingIndicator);
 
         reader.onload = function(e) {
+            // Show preview immediately using the DataURL result from FileReader
+            const previewUrl = e.target.result; // This is a data URL representation of the image
+            console.log("Setting preview with data URL");
+            directUpdateAllProfileImages(previewUrl);
+
             // Create FormData for upload
-    const formData = new FormData();
-            formData.append("profileImage", input.files[0]);
-    formData.append("userId", userId);
-
-            // Add loading state
-            const profilePic = document.getElementById('profilePicModal');
-    const originalSrc = profilePic.src;
-    profilePic.style.opacity = "0.5";
-
-            // Upload to server
-    fetch("http://localhost:3000/upload-profile", {
-        method: "POST",
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Add timestamp to prevent caching
-            const newImagePath = data.imagePath + "?t=" + new Date().getTime();
-                    
-                    // Update all profile pictures
-                    document.getElementById('sidebarProfilePic').src = newImagePath;
-                    document.getElementById('profilePicModal').src = newImagePath;
-                    
-                    // Store the new image path in localStorage
-            localStorage.setItem("profileImagePath", data.imagePath);
+            const formData = new FormData();
+            formData.append("profileImage", file); // Send the actual file
+            formData.append("userId", userId);
             
-            alert("Profile picture updated successfully!");
-        } else {
-            alert("Failed to upload profile picture: " + (data.message || "Unknown error"));
-            profilePic.src = originalSrc;
-        }
-    })
-    .catch(error => {
-        console.error("Error uploading profile picture:", error);
-        alert("Error uploading profile picture. Please try again.");
-        profilePic.src = originalSrc;
-    })
-    .finally(() => {
-                // Remove loading state
-        profilePic.style.opacity = "1";
-    });
+            // Upload to server
+            fetch("http://localhost:3000/upload-profile", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                console.log("Upload response status:", response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Upload response data:", data);
+                
+                if (data.success) {
+                    // Extract the image path from the response
+                    let imagePath = data.imagePath || data.path || data.profileImage || data.image || data.url;
+                    console.log("Server returned image path:", imagePath);
+                    
+                    // If image path is empty or null, use the data URL preview instead
+                    if (!imagePath) {
+                        console.warn("Server did not return a valid image path, using data URL instead");
+                        // Just keep using the preview - don't throw an error
+                        
+                        // Update localStorage with the data URL for persistence
+                        localStorage.setItem("profileImagePath", previewUrl);
+                        
+                        // Remove loading indicator
+                        const loadingElement = document.getElementById('profileUploadLoading');
+                        if (loadingElement) loadingElement.remove();
+                        
+                        alert("Profile picture updated successfully (local only)!");
+                        return;
+                    }
+                    
+                    // Make sure the path is absolute and not just a filename
+                    if (imagePath && !imagePath.includes('://') && !imagePath.startsWith('/')) {
+                        imagePath = '/uploads/' + imagePath;
+                    }
+                    
+                    // Create full URL to the image with a random timestamp to prevent caching
+                    const randomTimestamp = new Date().getTime() + Math.floor(Math.random() * 10000);
+                    const imageUrl = imagePath.startsWith('http') 
+                        ? `${imagePath}?t=${randomTimestamp}`
+                        : `http://localhost:3000${imagePath.startsWith('/') ? '' : '/'}${imagePath}?t=${randomTimestamp}`;
+                    
+                    console.log("Full image URL with timestamp:", imageUrl);
+                    
+                    // Store the path in localStorage
+                    localStorage.setItem("profileImagePath", imagePath);
+                    
+                    // Force the browser to pre-load the image before updating the UI
+                    const tempImg = new Image();
+                    tempImg.onload = function() {
+                        console.log("Image preloaded successfully, updating UI");
+                        // Now update all profile images with the new URL since we know it loads
+                        directUpdateAllProfileImages(imageUrl);
+                        
+                        try {
+                            // Update the database with the new image path
+                            // This is now wrapped in try-catch to ensure the success message still appears
+                            // even if the database update fails
+                            updateProfileImageInDatabase(userId, imagePath);
+                        } catch (err) {
+                            console.error("Error when updating profile image in database:", err);
+                            // Even if database update fails, we still show success since the image is shown locally
+                        }
+                        
+                        // Show success message
+                        alert("Profile picture updated successfully!");
+                    };
+                    
+                    tempImg.onerror = function() {
+                        console.error("Failed to load the uploaded image, keeping preview");
+                        // Keep using the data URL preview since the server image failed to load
+                        
+                        try {
+                            // Still update the database with the path in case it becomes available later
+                            updateProfileImageInDatabase(userId, imagePath);
+                        } catch (err) {
+                            console.error("Error when updating profile image in database:", err);
+                            // Continue even if database update fails
+                        }
+                        
+                        alert("Profile picture uploaded but couldn't be displayed. It will appear after refresh.");
+                    };
+                    
+                    // Start loading the image
+                    tempImg.src = imageUrl;
+                } else {
+                    throw new Error(data.message || "Unknown error");
+                }
+            })
+            .catch(error => {
+                console.error("Error uploading profile picture:", error);
+                alert("Error uploading profile picture: " + error.message);
+            })
+            .finally(() => {
+                // Remove loading indicator
+                const loadingElement = document.getElementById('profileUploadLoading');
+                if (loadingElement) {
+                    loadingElement.remove();
+                }
+            });
         };
         
         reader.readAsDataURL(input.files[0]);
     }
 }
 
+// Direct update of profile images without any checks - guarantees update
+function directUpdateAllProfileImages(imageSrc) {
+    console.log("Directly updating all profile images with:", imageSrc);
+    
+    // List of profile image elements to update
+    const profileImageElements = [
+        document.getElementById('sidebarProfilePic'),
+        document.getElementById('profilePic'),
+        document.getElementById('profilePicModal')
+    ];
+    
+    // Update each element if it exists
+    profileImageElements.forEach(element => {
+        if (element) {
+            // Remove any previous error handler
+            element.onerror = null;
+            
+            // Set the new source
+            element.src = imageSrc;
+            console.log(`Directly updated image element: ${element.id}`);
+            
+            // Add error handler after setting src
+            element.onerror = function() {
+                console.log(`Error loading image for ${element.id}, using fallback`);
+                this.src = getDefaultAvatarSvg();
+                this.onerror = null; // Prevent infinite loop
+            };
+        }
+    });
+}
+
+// Helper function to update profile image in database
+function updateProfileImageInDatabase(userId, imagePath) {
+    // Check if the endpoint is available
+    fetch("http://localhost:3000/update-profile-image", {
+        method: "HEAD"
+    })
+    .then(response => {
+        if (response.ok) {
+            // Endpoint exists, proceed with the update
+            return fetch("http://localhost:3000/update-profile-image", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    profileImage: imagePath
+                })
+            });
+        } else {
+            // Endpoint doesn't exist, try to update user profile endpoint instead
+            return fetch("http://localhost:3000/update-profile", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    idNumber: userId,
+                    profileImage: imagePath
+                })
+            });
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Profile image path updated in database:", data);
+    })
+    .catch(error => {
+        console.error("Error updating profile image in database:", error);
+        // Continue gracefully despite the error - the image is already displayed locally
+        console.log("Profile image will remain displayed locally only until next login");
+        
+        // Save to localStorage for persistence
+        localStorage.setItem("profileImagePath", imagePath);
+    });
+}
+
+// Helper function to get the default avatar SVG
+function getDefaultAvatarSvg() {
+    return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzY0NzQ4QiI+PHBhdGggZD0iTTEyIDJDNi40NzcgMiAyIDYuNDc3IDIgMTJzNC40NzcgMTAgMTAgMTAgMTAtNC40NzcgMTAtMTBTMTcuNTIzIDIgMTIgMnptLTEuNSA2LjVhMS41IDEuNSAwIDEgMSAzIDAgMS41IDEuNSAwIDEgMS0zIDB6TTE1IDE3SDlhMSAxIDAgMSAxIDAtMmg2YTEgMSAwIDAgMSAwIDJ6Ii8+PC9zdmc+';
+}
+
+// Function to handle when user clicks "Change Profile Picture" button
+function triggerProfilePictureUpload() {
+    console.log("Triggering profile picture upload");
+    // Create a file input if it doesn't exist
+    let fileInput = document.getElementById('profileImageInput');
+    
+    if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.id = 'profileImageInput';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        fileInput.onchange = function() { 
+            updateProfilePicture(this); 
+        };
+        document.body.appendChild(fileInput);
+    }
+    
+    // Trigger click on file input
+    fileInput.click();
+}
+
 // Function to load profile data
 async function loadProfile() {
     try {
-        // Get the current user ID using consistent method
-        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId') || new URLSearchParams(window.location.search).get("id");
         
         if (!userId) {
             console.error("No user ID found for loading profile");
@@ -382,41 +671,133 @@ async function loadProfile() {
         // Fetch profile data from server
         const response = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
         if (!response.ok) {
-            // If server request fails, try to load from localStorage
-            const storedData = localStorage.getItem('profileData');
-            if (storedData) {
-                const profileData = JSON.parse(storedData);
-                updateBothForms(profileData);
-                updateSidebarProfile();
-                return;
-            }
             throw new Error(`Failed to fetch profile data: ${response.status}`);
         }
 
         const profileData = await response.json();
-        
-        // Store profile data in localStorage for offline access
-        localStorage.setItem('profileData', JSON.stringify(profileData));
-        
-        // Update profile form fields
-        document.getElementById("idNumber").value = profileData.idNumber || '';
-        document.getElementById("firstname").value = profileData.firstName || '';
-        document.getElementById("middlename").value = profileData.middleName || '';
-        document.getElementById("lastname").value = profileData.lastName || '';
-        document.getElementById("email").value = profileData.email || '';
-        
+        console.log("Profile data loaded:", profileData); // Debug log
+
+        // Update profile information in the main form
+        const mainFormFields = {
+            'idNumber': profileData.idNumber || '',
+            'firstname': profileData.firstName || '',
+            'middlename': profileData.middleName || '',
+            'lastname': profileData.lastName || '',
+            'email': profileData.email || '',
+            'year': profileData.year || '1st Year',
+            'course': profileData.course || 'BS Computer Science',
+            'oldIdNumber': profileData.idNumber || ''
+        };
+
+        // Update main form fields
+        Object.entries(mainFormFields).forEach(([fieldId, value]) => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.value = value;
+            }
+        });
+
+        // Make ID number field non-editable
+        const idNumberInput = document.getElementById('idNumber');
+        if (idNumberInput) {
+            idNumberInput.readOnly = true;
+            idNumberInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
+
         // Update modal form fields
-        document.getElementById("idNumberModal").value = profileData.idNumber || '';
-        document.getElementById("firstnameModal").value = profileData.firstName || '';
-        document.getElementById("middlenameModal").value = profileData.middleName || '';
-        document.getElementById("lastnameModal").value = profileData.lastName || '';
-        document.getElementById("emailModal").value = profileData.email || '';
+        const modalFormFields = {
+            'idNumberModal': profileData.idNumber || '',
+            'firstnameModal': profileData.firstName || '',
+            'middlenameModal': profileData.middleName || '',
+            'lastnameModal': profileData.lastName || '',
+            'emailModal': profileData.email || '',
+            'yearModal': profileData.year || '1st Year',
+            'courseModal': profileData.course || 'BS Computer Science',
+            'oldIdNumberModal': profileData.idNumber || ''
+        };
+
+        // Update modal form fields
+        Object.entries(modalFormFields).forEach(([fieldId, value]) => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.value = value;
+            }
+        });
+
+        // Make ID number field non-editable in modal
+        const idNumberModalInput = document.getElementById('idNumberModal');
+        if (idNumberModalInput) {
+            idNumberModalInput.readOnly = true;
+            idNumberModalInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
+
+        // Update profile image if it exists
+        if (profileData.profileImage) {
+            // Create URL with timestamp to prevent caching
+            const profileImageWithTimestamp = `${profileData.profileImage}?t=${new Date().getTime()}`;
+            
+            // Update all profile pictures
+            updateAllProfileImages(profileImageWithTimestamp);
+            
+            // Save to localStorage
+            localStorage.setItem('profileImagePath', profileData.profileImage);
+        } else {
+            // Use SVG fallback if no profile image exists
+            updateAllProfileImages(null); // Will use default avatar
+        }
+
+        // Update remaining sessions count
+        const remainingSessions = profileData.remainingSessions || 0;
+        const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
+        remainingSessionsElements.forEach(element => {
+            element.textContent = remainingSessions;
+        });
         
+        // Save to localStorage for persistence
+        localStorage.setItem('profileData', JSON.stringify(profileData));
+        localStorage.setItem('remainingSessions', remainingSessions);
+
         // Update sidebar profile
         updateSidebarProfile();
         
+        // Update profile display fields - using direct query selectors for flexibility
+        const fullName = `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim();
+        const profileDisplayElements = {
+            // Main profile elements with ID
+            'profile-name': fullName,
+            'profile-id': profileData.idNumber || '',
+            'profile-course': profileData.course || '',
+            'profile-year': profileData.year || '',
+            'profile-email': profileData.email || '',
+            // Profile section elements with ID
+            'profile-section-name': fullName,
+            'profile-section-id': profileData.idNumber || '',
+            'profile-section-course': profileData.course || '',
+            'profile-section-year': profileData.year || '',
+            'profile-section-email': profileData.email || '',
+            'profile-section-middle': profileData.middleName || ''
+        };
+
+        // Try multiple query methods to update profile fields
+        Object.entries(profileDisplayElements).forEach(([selector, value]) => {
+            // Try by ID first
+            const elementById = document.getElementById(selector);
+            if (elementById) {
+                elementById.textContent = value || 'N/A';
+            }
+            
+            // Also try by class selector
+            const elementsByClass = document.querySelectorAll(`.${selector}`);
+            elementsByClass.forEach(element => {
+                element.textContent = value || 'N/A';
+            });
+        });
+
+        console.log("Profile display updated successfully");
+
     } catch (error) {
         console.error("Error loading profile:", error);
+        alert("Failed to load profile data. Please try again.");
     }
 }
 
@@ -447,8 +828,15 @@ function initializeProfile() {
             if (data) {
                 // Update sidebar profile
                 const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
-                document.getElementById('sidebarProfileName').textContent = fullName || 'Loading...';
-                document.getElementById('sidebarProfileCourse').textContent = data.course || 'Loading...';
+                const sidebarProfileName = document.getElementById('sidebarProfileName');
+                const sidebarProfileCourse = document.getElementById('sidebarProfileCourse');
+                
+                if (sidebarProfileName) {
+                    sidebarProfileName.textContent = fullName || 'Loading...';
+                }
+                if (sidebarProfileCourse) {
+                    sidebarProfileCourse.textContent = data.course || 'Loading...';
+                }
                 
                 // Update remaining sessions count
                 const remainingSessions = data.remainingSessions || 0;
@@ -464,12 +852,15 @@ function initializeProfile() {
                 
                 // Update all profile pictures if exists
                 if (data.profileImage) {
+                    // Create URL with timestamp to prevent caching
                     const profileImageWithTimestamp = `${data.profileImage}?t=${new Date().getTime()}`;
-                    document.getElementById('sidebarProfilePic').src = profileImageWithTimestamp;
-                    document.getElementById('profilePic').src = profileImageWithTimestamp;
-                    document.getElementById('profilePicModal').src = profileImageWithTimestamp;
+                    updateAllProfileImages(profileImageWithTimestamp);
+                    
                     // Save to localStorage
                     localStorage.setItem('profileImagePath', data.profileImage);
+                } else {
+                    // Use SVG fallback if no profile image exists
+                    updateAllProfileImages(null); // Will use default avatar
                 }
             }
         })
@@ -481,8 +872,16 @@ function initializeProfile() {
             const savedProfileImage = localStorage.getItem('profileImagePath');
             const savedRemainingSessions = localStorage.getItem('remainingSessions') || '0';
             
-            if (savedName) document.getElementById('sidebarProfileName').textContent = savedName;
-            if (savedCourse) document.getElementById('sidebarProfileCourse').textContent = savedCourse;
+            // Safely update sidebar profile elements
+            const sidebarProfileName = document.getElementById('sidebarProfileName');
+            const sidebarProfileCourse = document.getElementById('sidebarProfileCourse');
+            
+            if (sidebarProfileName && savedName) {
+                sidebarProfileName.textContent = savedName;
+            }
+            if (sidebarProfileCourse && savedCourse) {
+                sidebarProfileCourse.textContent = savedCourse;
+            }
             
             // Update remaining sessions from localStorage
             const remainingSessionsElements = document.querySelectorAll('.remaining-sessions');
@@ -490,11 +889,14 @@ function initializeProfile() {
                 element.textContent = savedRemainingSessions;
             });
             
+            // Safely update profile pictures from localStorage
             if (savedProfileImage) {
+                // Create URL with timestamp to prevent caching
                 const profileImageWithTimestamp = `${savedProfileImage}?t=${new Date().getTime()}`;
-                document.getElementById('sidebarProfilePic').src = profileImageWithTimestamp;
-                document.getElementById('profilePic').src = profileImageWithTimestamp;
-                document.getElementById('profilePicModal').src = profileImageWithTimestamp;
+                updateAllProfileImages(profileImageWithTimestamp);
+            } else {
+                // Use SVG fallback if no profile image exists in localStorage
+                updateAllProfileImages(null); // Will use default avatar
             }
         });
 }
@@ -867,43 +1269,188 @@ function logout() {
 // Function to load reservation history
 async function loadReservationHistory() {
     try {
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
-        const response = await fetch("http://localhost:3000/reservations");
-        const reservations = await response.json();
-        
-        const userReservations = reservations.filter(res => res.idNumber === userId);
-        const tableBody = document.getElementById("reservationTableBody");
-        
-        if (!tableBody) return;
-        tableBody.innerHTML = '';
-
-        if (userReservations.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">No reservations found</td></tr>';
+        // Get user data
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            document.getElementById('reservation-history-body').innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-3 text-center text-gray-500">User data not found. Please log in again.</td>
+                </tr>
+            `;
             return;
         }
 
-        userReservations.forEach(reservation => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td class="border px-4 py-2">${reservation.date}</td>
-                <td class="border px-4 py-2">${reservation.time}</td>
-                <td class="border px-4 py-2">${reservation.purpose}</td>
-                <td class="border px-4 py-2">
-                    <span class="px-2 py-1 rounded text-sm ${
-                        reservation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        reservation.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                    }">${reservation.status}</span>
-                </td>
+        const user = JSON.parse(userData);
+        const userId = user.id || localStorage.getItem('currentUserId');
+        
+        if (!userId) {
+            document.getElementById('reservation-history-body').innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-3 text-center text-gray-500">User ID not found. Please log in again.</td>
+                </tr>
             `;
-            tableBody.appendChild(row);
-        });
-    } catch (error) {
-        console.error("Error loading reservations:", error);
-        const tableBody = document.getElementById("reservationTableBody");
-        if (tableBody) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-red-500">Error loading reservations</td></tr>';
+            return;
         }
+
+        console.log("Loading reservation history for user ID:", userId);
+
+        // Fetch both reservations and walk-ins in parallel
+        const [reservationsResponse, walkInsResponse] = await Promise.all([
+            fetch('/reservations'),
+            fetch('/sit-ins')
+        ]);
+        
+        if (!reservationsResponse.ok || !walkInsResponse.ok) {
+            throw new Error("Failed to fetch reservation data");
+        }
+        
+        const reservations = await reservationsResponse.json();
+        const walkIns = await walkInsResponse.json();
+
+        console.log("Retrieved reservations:", reservations.length);
+        console.log("Retrieved walk-ins:", walkIns.length);
+
+        // Tag each entry with its type for identification
+        const taggedReservations = reservations.map(res => ({
+            ...res,
+            entryType: 'reservation',
+            isWalkIn: false,
+            displayTime: res.time
+        }));
+        
+        const taggedWalkIns = walkIns.map(walkIn => ({
+            ...walkIn,
+            entryType: 'walk-in',
+            isWalkIn: true,
+            displayTime: walkIn.timeIn || walkIn.time
+        }));
+
+        // Combine both data sources
+        const allEntries = [...taggedReservations, ...taggedWalkIns];
+        
+        // Filter for the current user and status (approved or active)
+        const userEntries = allEntries.filter(entry => {
+            const entryUserId = entry.userId || entry.idNumber;
+            return entryUserId === userId && 
+                   (entry.status === 'approved' || entry.status === 'active');
+        });
+        
+        console.log(`Found ${userEntries.length} entries for user ID ${userId}`);
+
+        // Deduplicate entries
+        const uniqueEntries = [];
+        const seenKeys = new Set();
+        
+        userEntries.forEach(entry => {
+            const timeValue = entry.displayTime || entry.time || entry.timeIn || '00:00';
+            const key = `${entry.idNumber || entry.userId}_${entry.date}_${timeValue}_${entry.entryType}_${entry.programmingLanguage || ''}`;
+            
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                uniqueEntries.push(entry);
+                console.log(`Added entry with key: ${key}`);
+            } else {
+                console.log(`Skipped duplicate entry with key: ${key}`);
+            }
+        });
+        
+        console.log(`Deduplicated to ${uniqueEntries.length} unique entries`);
+
+        // Sort by date and time (newest first)
+        uniqueEntries.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            
+            if (dateA.getTime() !== dateB.getTime()) {
+                return dateB - dateA; // Sort dates descending (newest first)
+            }
+            
+            // If dates are equal, compare times
+            const timeA = a.displayTime || a.time || a.timeIn || '00:00';
+            const timeB = b.displayTime || b.time || b.timeIn || '00:00';
+            return timeB.localeCompare(timeA); // Sort times descending
+        });
+
+        // Display in table
+        const tableBody = document.getElementById('reservation-history-body');
+        if (!tableBody) {
+            console.error("Reservation history table body not found");
+            return;
+        }
+        
+        if (uniqueEntries.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-3 text-center text-gray-500">No approved or active sessions found.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        let html = '';
+        
+        uniqueEntries.forEach(entry => {
+            const date = entry.date || 'N/A';
+            const time = entry.displayTime || entry.time || entry.timeIn || 'N/A';
+            const purpose = entry.programmingLanguage || 'N/A';
+            const status = entry.status || 'N/A';
+            
+            // Format entry type with proper capitalization
+            const entryType = entry.entryType ?
+                entry.entryType.charAt(0).toUpperCase() + entry.entryType.slice(1) :
+                (entry.isWalkIn ? 'Walk-in' : 'Reservation');
+            
+            // Determine status badge class
+            let statusClass = '';
+            if (status === 'approved') {
+                statusClass = 'bg-blue-100 text-blue-800';
+            } else if (status === 'active') {
+                statusClass = 'bg-green-100 text-green-800';
+            }
+
+            html += `
+                <tr class="hover:bg-gray-100">
+                    <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${time}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${purpose}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            entryType === 'Walk-in' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800'
+                        }">
+                            ${entryType}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        ${
+                            status === 'approved' ? 
+                            `<button onclick="markAsActive('${entry.id}')" class="text-indigo-600 hover:text-indigo-900">
+                                Check In
+                            </button>` : 
+                            status === 'active' ?
+                            `<button onclick="markAsCompleted('${entry.id}')" class="text-blue-600 hover:text-blue-900">
+                                Check Out
+                            </button>` : ''
+                        }
+                    </td>
+                </tr>
+            `;
+        });
+
+        tableBody.innerHTML = html;
+        console.log("Reservation history table updated successfully");
+        
+    } catch (error) {
+        console.error('Error loading reservation history:', error);
+        document.getElementById('reservation-history-body').innerHTML = `
+            <tr>
+                <td colspan="7" class="px-6 py-3 text-center text-red-500">Error loading reservation history: ${error.message}</td>
+            </tr>
+        `;
     }
 }
 
@@ -1052,6 +1599,14 @@ function generateStarRating(rating) {
 // Function to load sit-in history
 async function loadSitInHistory() {
     try {
+        const tableBody = document.getElementById('sitInTableBody');
+        if (tableBody) {
+            // Display a message that no sit-in history is available
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">No sit-in history found</td></tr>';
+        }
+        
+        // Note: The code below is commented out as we're no longer fetching sit-in history
+        /*
         // Get user data from localStorage
         const userData = JSON.parse(localStorage.getItem('userData'));
         const userId = localStorage.getItem('currentUserId');
@@ -1148,10 +1703,13 @@ async function loadSitInHistory() {
                 });
             }
         });
+        */
     } catch (error) {
         console.error('Error loading sit-in history:', error);
         const tableBody = document.getElementById('sitInTableBody');
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-600">Error loading sit-in history</td></tr>';
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-600">Error loading sit-in history</td></tr>';
+        }
     }
 }
 
@@ -1190,21 +1748,47 @@ function setupHistoryTabs() {
     const sitInHistoryContent = document.getElementById('sitInHistoryContent');
     const reservationHistoryContent = document.getElementById('reservationHistoryContent');
 
-    sitInHistoryTab.addEventListener('click', () => {
-        sitInHistoryTab.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
-        reservationHistoryTab.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600');
-        sitInHistoryContent.classList.remove('hidden');
-        reservationHistoryContent.classList.add('hidden');
-        loadSitInHistory();
-    });
-
-    reservationHistoryTab.addEventListener('click', () => {
-        reservationHistoryTab.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
-        sitInHistoryTab.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600');
-        reservationHistoryContent.classList.remove('hidden');
+    // Hide the sit-in history tab completely
+    if (sitInHistoryTab) {
+        sitInHistoryTab.style.display = 'none';
+    }
+    
+    // Hide sit-in history content
+    if (sitInHistoryContent) {
         sitInHistoryContent.classList.add('hidden');
-        loadReservationHistory();
-    });
+    }
+    
+    // Show reservation history tab and content by default
+    if (reservationHistoryTab) {
+        reservationHistoryTab.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
+        reservationHistoryTab.style.width = '100%'; // Make it take the full width
+    }
+    
+    if (reservationHistoryContent) {
+        reservationHistoryContent.classList.remove('hidden');
+    }
+
+    // Removed the click handlers for sit-in history tab since it's now hidden
+    
+    // Keep the reservation history tab click handler
+    if (reservationHistoryTab) {
+        reservationHistoryTab.addEventListener('click', () => {
+            reservationHistoryTab.classList.add('border-b-2', 'border-blue-600', 'text-blue-600');
+            if (sitInHistoryTab) {
+                sitInHistoryTab.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600');
+            }
+            if (reservationHistoryContent) {
+                reservationHistoryContent.classList.remove('hidden');
+            }
+            if (sitInHistoryContent) {
+                sitInHistoryContent.classList.add('hidden');
+            }
+            loadReservationHistory();
+        });
+    }
+    
+    // Load reservation history by default
+    loadReservationHistory();
 }
 
 // Function to setup lab rules toggle
@@ -1239,182 +1823,477 @@ function setupReservationForm() {
 
 // Function to handle session reservation
 async function reserveSession() {
-    const calendarEl = document.getElementById('calendar');
-    const selectedDate = calendarEl.dataset.selectedDate;
-    const labRoom = document.getElementById('labRoom').value;
-    const programmingLanguage = document.getElementById('programmingLanguage').value;
-    const time = document.getElementById('time').value;
-
-    if (!selectedDate) {
-        alert('Please select a date from the calendar');
-        return;
+    // Find the reserve button
+    const reserveButton = document.querySelector('button[onclick="reserveSession()"]');
+    
+    // Show loading animation if button exists
+    if (reserveButton) {
+        reserveButton.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>';
+        reserveButton.disabled = true;
+    } else {
+        console.error("Reserve button not found in the DOM");
     }
-
-    if (!labRoom || !programmingLanguage || !time) {
-        alert('Please fill in all fields');
-        return;
-    }
-
+    
     try {
-        // Get user ID from localStorage or URL
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
         if (!userId) {
-            alert("Please log in first");
-            window.location.href = '/login.html';
+            throw new Error('User ID not found');
+        }
+        
+        // Get remaining sessions from localStorage
+        const remainingSessions = parseInt(localStorage.getItem('remainingSessions') || '0');
+        
+        // Check if the student has any remaining sessions
+        if (remainingSessions <= 0) {
+            // Display error message
+            const errorElement = document.getElementById('reservation-error');
+            if (errorElement) {
+                errorElement.innerHTML = `
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium">You have no remaining sessions!</p>
+                                <p class="text-xs mt-1">Please contact the administrator to reset your sessions.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                errorElement.classList.remove('hidden');
+            } else {
+                // If error element doesn't exist, create one
+                const reservationForm = document.getElementById('reservationForm');
+                if (reservationForm) {
+                    const newErrorElement = document.createElement('div');
+                    newErrorElement.id = 'reservation-error';
+                    newErrorElement.innerHTML = `
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium">You have no remaining sessions!</p>
+                                    <p class="text-xs mt-1">Please contact the administrator to reset your sessions.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    reservationForm.prepend(newErrorElement);
+                } else {
+                    alert("You have no remaining sessions! Please contact the administrator.");
+                }
+            }
+            
+            // Reset button
+            if (reserveButton) {
+                reserveButton.innerHTML = 'Reserve Now';
+                reserveButton.disabled = false;
+            }
+            
             return;
         }
-
-        // Get user profile data
-        const userResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
-        if (!userResponse.ok) {
-            throw new Error(`Failed to fetch user data: ${userResponse.status}`);
+        
+        // Get form values
+        const form = document.getElementById('reservationForm');
+        if (!form) {
+            throw new Error('Reservation form not found');
         }
         
-        const userData = await userResponse.json();
-        if (!userData || !userData.email || !userData.idNumber) {
-            throw new Error("Invalid user data received from server");
-        }
-
-        // Check for existing reservations for this user on the selected date
-        const reservationsResponse = await fetch('http://localhost:3000/reservations');
-        if (!reservationsResponse.ok) {
-            throw new Error('Failed to fetch reservations');
+        // Get selected date from calendar data attribute
+        const calendar = document.getElementById('calendar');
+        const selectedDate = calendar ? calendar.dataset.selectedDate : null;
+        
+        if (!selectedDate) {
+            throw new Error('Please select a date on the calendar');
         }
         
-        const reservations = await reservationsResponse.json();
-        const userReservations = reservations.filter(res => res.idNumber === userId);
+        // Get form data
+        const formData = new FormData(form);
+        const time = formData.get('time');
+        const purpose = formData.get('purpose') || 'Programming Session'; // Provide default purpose if missing
+        const labRoom = formData.get('labRoom');
+        const programmingLanguage = formData.get('programmingLanguage');
         
-        // Check if user already has a reservation for this date
-        const existingReservation = userReservations.find(res => res.date === selectedDate);
-        if (existingReservation) {
-            alert('You already have a reservation for this date. Please select a different date.');
-            return;
+        // Basic validation
+        if (!time || !labRoom || !programmingLanguage) {
+            throw new Error('Please fill out all required fields');
         }
-
-        // Make reservation
-        const response = await fetch("http://localhost:3000/reserve", {
-            method: "POST",
+        
+        // Get user profile data for name and course
+        const profileResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
+        if (!profileResponse.ok) {
+            throw new Error('Failed to get user profile');
+        }
+        
+        const profileData = await profileResponse.json();
+        
+        // Prepare reservation data
+        const reservationData = {
+            idNumber: userId,
+            email: profileData.email || '',
+            name: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim(),
+            course: profileData.course || '',
+            year: profileData.year || '',
+            purpose: purpose,
+            date: selectedDate,
+            time: time,
+            labRoom: labRoom,
+            programmingLanguage: programmingLanguage
+        };
+        
+        // Send reservation request
+        const response = await fetch('http://localhost:3000/reserve', {
+            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
+                'Content-Type': 'application/json'
             },
-            credentials: 'include',
-            body: JSON.stringify({
-                email: userData.email,
-                idNumber: userData.idNumber,
-                purpose: "Programming Session", // Default purpose
-                date: selectedDate, 
-                time,
-                labRoom,
-                programmingLanguage
-            })
+            body: JSON.stringify(reservationData)
         });
-
-        if (response.ok) {
-            alert("Reservation successful! Your session has been booked.");
-            // Reset the form
-            document.getElementById('reservationForm').reset();
-            // Clear the selected date
-            calendarEl.dataset.selectedDate = '';
-            // Remove highlight from selected date
-            const selectedCell = document.querySelector(`[data-date="${selectedDate}"]`);
-            if (selectedCell) {
-                selectedCell.classList.remove('bg-blue-100');
-            }
-            
-            // Reinitialize the calendar to refresh events
-            initializeCalendar();
-            
-            // Refresh dashboard data if we're on the dashboard
-            const dashboardSection = document.getElementById("dashboard");
-            if (dashboardSection && !dashboardSection.classList.contains("hidden")) {
-                loadDashboardData();
-            }
-            
-            // Also refresh reservation history if that tab is open
-            await loadReservationHistory();
-        } else {
-            const result = await response.json();
-            throw new Error(result.message || 'Failed to make reservation');
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to reserve session');
         }
+        
+        // Display success message
+        const successElement = document.getElementById('reservation-success');
+        if (successElement) {
+            successElement.innerHTML = `
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">Reservation successful!</p>
+                            <p class="text-xs mt-1">Your session has been reserved for ${selectedDate} at ${time}. You now have ${result.remainingSessions} sessions remaining.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            successElement.classList.remove('hidden');
+        } else {
+            // If success element doesn't exist, create one
+            const reservationForm = document.getElementById('reservationForm');
+            if (reservationForm) {
+                const newSuccessElement = document.createElement('div');
+                newSuccessElement.id = 'reservation-success';
+                newSuccessElement.innerHTML = `
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium">Reservation successful!</p>
+                                <p class="text-xs mt-1">Your session has been reserved for ${selectedDate} at ${time}. You now have ${result.remainingSessions} sessions remaining.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                reservationForm.prepend(newSuccessElement);
+            } else {
+                alert(`Reservation successful! Your session has been reserved for ${selectedDate} at ${time}. You now have ${result.remainingSessions} sessions remaining.`);
+            }
+        }
+        
+        // Hide any error message
+        const errorElement = document.getElementById('reservation-error');
+        if (errorElement) {
+            errorElement.classList.add('hidden');
+        }
+        
+        // Update remaining sessions in localStorage
+        if (result.remainingSessions !== undefined) {
+            localStorage.setItem('remainingSessions', result.remainingSessions.toString());
+            
+            // Update all remaining sessions displays
+            document.querySelectorAll('.remaining-sessions').forEach(el => {
+                el.textContent = result.remainingSessions;
+            });
+        }
+        
+        // Reset form
+        form.reset();
+        
+        // Refresh calendar to show new reservation
+        if (typeof initializeCalendar === 'function') {
+            initializeCalendar();
+        }
+        
     } catch (error) {
-        console.error("Error making reservation:", error);
-        alert(`Failed to make reservation: ${error.message}`);
+        console.error('Error reserving session:', error);
+        
+        // Display error message
+        const errorElement = document.getElementById('reservation-error');
+        if (errorElement) {
+            errorElement.innerHTML = `
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">Error reserving session</p>
+                            <p class="text-xs mt-1">${error.message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            errorElement.classList.remove('hidden');
+        } else {
+            // Create an error element if it doesn't exist
+            const reservationForm = document.getElementById('reservationForm');
+            if (reservationForm) {
+                const newErrorElement = document.createElement('div');
+                newErrorElement.id = 'reservation-error';
+                newErrorElement.innerHTML = `
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium">Error reserving session</p>
+                                <p class="text-xs mt-1">${error.message}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                reservationForm.prepend(newErrorElement);
+            } else {
+                alert(`Error reserving session: ${error.message}`);
+            }
+        }
+        
+        // Hide success message
+        const successElement = document.getElementById('reservation-success');
+        if (successElement) {
+            successElement.classList.add('hidden');
+        }
+    } finally {
+        // Reset button state
+        if (reserveButton) {
+            reserveButton.innerHTML = 'Reserve Now';
+            reserveButton.disabled = false;
+        }
     }
 }
 
 // Function to handle quick session reservation
 async function quickReserveSession() {
+    // Show loading animation
+    const quickReserveButton = document.getElementById('quick-reserve-button');
+    if (quickReserveButton) {
+        quickReserveButton.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>';
+        quickReserveButton.disabled = true;
+    }
+    
     try {
-        const labRoom = document.getElementById("quickLabRoom").value;
-        const programmingLanguage = document.getElementById("quickProgrammingLanguage").value;
-        const date = document.getElementById("quickDate").value;
-        const time = document.getElementById("quickTime").value;
-
-        if (!labRoom || !programmingLanguage || !date || !time) {
-            alert("Please fill in all fields (Lab Room, Programming Language, Date, and Time)");
-            return;
-        }
-
-        // Get user ID from localStorage or URL
-        const userId = localStorage.getItem("currentUserId") || new URLSearchParams(window.location.search).get("id");
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId');
         if (!userId) {
-            alert("Please log in first");
-            window.location.href = '/login.html';
+            throw new Error('User ID not found');
+        }
+        
+        // Get remaining sessions from localStorage
+        const remainingSessions = parseInt(localStorage.getItem('remainingSessions') || '0');
+        
+        // Check if the student has any remaining sessions
+        if (remainingSessions <= 0) {
+            // Display error message
+            const errorElement = document.getElementById('quick-reservation-error');
+            if (errorElement) {
+                errorElement.innerHTML = `
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium">You have no remaining sessions!</p>
+                                <p class="text-xs mt-1">Please contact the administrator to reset your sessions.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                errorElement.classList.remove('hidden');
+            }
+            
+            // Reset button
+            if (quickReserveButton) {
+                quickReserveButton.innerHTML = 'Reserve Now';
+                quickReserveButton.disabled = false;
+            }
+            
             return;
         }
-
-        // Get user profile data
-        const userResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
-        if (!userResponse.ok) {
-            throw new Error(`Failed to fetch user data: ${userResponse.status}`);
+        
+        // Get form values
+        const form = document.getElementById('quick-reservation-form');
+        if (!form) {
+            throw new Error('Quick reservation form not found');
         }
         
-        const userData = await userResponse.json();
-        if (!userData || !userData.email || !userData.idNumber) {
-            throw new Error("Invalid user data received from server");
+        // Get form data
+        const formData = new FormData(form);
+        const purpose = formData.get('quick-purpose');
+        const labRoom = formData.get('quick-labRoom');
+        const programmingLanguage = formData.get('quick-programmingLanguage');
+        
+        // Basic validation
+        if (!purpose || !labRoom || !programmingLanguage) {
+            throw new Error('Please fill out all required fields');
         }
-
-        // Create the reservation
-        const response = await fetch('http://localhost:3000/reserve', {
+        
+        // Get current date and time
+        const now = new Date();
+        const date = now.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        
+        // Format time as HH:MM, ensuring two digits for hour and minute
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const time = `${hours}:${minutes}`;
+        
+        // Get user profile data for name and course
+        const profileResponse = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
+        if (!profileResponse.ok) {
+            throw new Error('Failed to get user profile');
+        }
+        
+        const profileData = await profileResponse.json();
+        
+        // Prepare reservation data
+        const reservationData = {
+            idNumber: userId,
+            email: profileData.email || '',
+            name: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim(),
+            course: profileData.course || '',
+            year: profileData.year || '',
+            purpose: purpose,
+            date: date,
+            time: time,
+            labRoom: labRoom,
+            programmingLanguage: programmingLanguage
+        };
+        
+        // Send reservation request to create-walkin endpoint (different from reserve endpoint)
+        const response = await fetch('http://localhost:3000/create-walkin', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
+            headers: {
+                'Content-Type': 'application/json'
             },
-            credentials: 'include',
-            body: JSON.stringify({ 
-                email: userData.email,
-                idNumber: userData.idNumber,
-                purpose: "Programming Session", // Default purpose
-                labRoom,
-                programmingLanguage,
-                date, 
-                time 
-            })
+            body: JSON.stringify(reservationData)
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to make reservation');
-        }
-
-        const data = await response.json();
-        alert("Reservation successful!");
         
-        // Close the modal
-        const modal = document.getElementById('quickReserveModal');
-        modal.style.display = 'none';
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to create walk-in session');
+        }
+        
+        // Display success message
+        const successElement = document.getElementById('quick-reservation-success');
+        if (successElement) {
+            successElement.innerHTML = `
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">Walk-in successful!</p>
+                            <p class="text-xs mt-1">Your sit-in session has been created for today at ${time}. You now have ${result.remainingSessions} sessions remaining.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            successElement.classList.remove('hidden');
+        }
+        
+        // Hide any error message
+        const errorElement = document.getElementById('quick-reservation-error');
+        if (errorElement) {
+            errorElement.classList.add('hidden');
+        }
+        
+        // Update remaining sessions in localStorage
+        if (result.remainingSessions !== undefined) {
+            localStorage.setItem('remainingSessions', result.remainingSessions.toString());
+            
+            // Update all remaining sessions displays
+            document.querySelectorAll('.remaining-sessions').forEach(el => {
+                el.textContent = result.remainingSessions;
+            });
+        }
         
         // Reset form
-        document.getElementById("quickReservationForm").reset();
+        form.reset();
         
-        // Update dashboard stats
-        updateDashboardStats(userId);
+        // Close modal
+        if (typeof closeQuickReserveModal === 'function') {
+            closeQuickReserveModal();
+        }
+        
+        // Update dashboard data
+        if (typeof loadDashboardData === 'function') {
+            loadDashboardData();
+        }
         
     } catch (error) {
-        console.error('Error:', error);
-        alert(error.message || "Failed to make reservation. Please try again.");
+        console.error('Error creating walk-in session:', error);
+        
+        // Display error message
+        const errorElement = document.getElementById('quick-reservation-error');
+        if (errorElement) {
+            errorElement.innerHTML = `
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">Error creating walk-in</p>
+                            <p class="text-xs mt-1">${error.message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            errorElement.classList.remove('hidden');
+        }
+        
+        // Hide success message
+        const successElement = document.getElementById('quick-reservation-success');
+        if (successElement) {
+            successElement.classList.add('hidden');
+        }
+    } finally {
+        // Reset button state
+        if (quickReserveButton) {
+            quickReserveButton.innerHTML = 'Start Sit-in Now';
+            quickReserveButton.disabled = false;
+        }
     }
 }
 
@@ -2056,4 +2935,217 @@ function getStatusColor(status) {
         default:
             return '#6b7280'; // gray
     }
-} 
+}
+
+// Function to update profile display
+async function updateProfileDisplay() {
+    try {
+        const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId') || new URLSearchParams(window.location.search).get("id");
+        
+        if (!userId) {
+            console.error("No user ID found for profile display");
+            return;
+        }
+        
+        console.log("Updating profile display for user:", userId);
+        
+        // Fetch profile data from server
+        const response = await fetch(`http://localhost:3000/get-profile?id=${userId}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch profile data: ${response.status}`);
+        }
+        
+        const profileData = await response.json();
+        console.log("Profile data retrieved:", profileData);
+        
+        // Get profile section
+        const profileSection = document.getElementById('profile');
+        if (!profileSection) {
+            console.error("Profile section not found in DOM");
+            return;
+        }
+
+        // DIRECT FORM UPDATE: Update input values in the profile form
+        const formInputs = {
+            // Main form input fields
+            'idNumber': profileData.idNumber || '',
+            'email': profileData.email || '',
+            'firstname': profileData.firstName || '',
+            'middlename': profileData.middleName || '',
+            'lastname': profileData.lastName || '',
+            'year': profileData.year || '',
+            'course': profileData.course || '',
+            'oldIdNumber': profileData.idNumber || ''
+        };
+
+        // Update each form input field with the corresponding value
+        Object.entries(formInputs).forEach(([fieldId, value]) => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.value = value;
+            }
+        });
+        
+        // Update profile name display
+        const profileNameElement = profileSection.querySelector('.profile-name');
+        if (profileNameElement) {
+            const fullName = `${profileData.firstName || ''} ${profileData.middleName ? profileData.middleName + ' ' : ''}${profileData.lastName || ''}`;
+            profileNameElement.textContent = fullName.trim();
+        }
+        
+        // Update profile course display
+        const profileCourseElement = profileSection.querySelector('.profile-course');
+        if (profileCourseElement) {
+            profileCourseElement.textContent = `${profileData.course || 'Not Set'} - ${profileData.year || 'Not Set'}`;
+        }
+        
+        // Update profile ID display
+        const profileIdElement = profileSection.querySelector('.profile-id');
+        if (profileIdElement) {
+            profileIdElement.textContent = profileData.idNumber || 'Not Set';
+        }
+        
+        // Add sessions indicator to the profile section
+        updateProfileSessionsIndicator(profileSection, profileData.remainingSessions || 0);
+        
+        // Update profile picture if available
+        if (profileData.profilePicture) {
+            updateAllProfileImages(profileData.profilePicture);
+        } else {
+            // Set default avatar if no profile picture
+            updateAllProfileImages(`data:image/svg+xml;base64,${btoa(getDefaultAvatarSvg())}`);
+        }
+        
+        // Also update the sidebar profile
+        updateSidebarProfile();
+        
+    } catch (error) {
+        console.error("Error updating profile display:", error);
+    }
+}
+
+// Function to update the sessions indicator in the profile section
+function updateProfileSessionsIndicator(profileSection, remainingSessions) {
+    // Check if sessions indicator already exists
+    let sessionsIndicator = profileSection.querySelector('#profile-sessions-indicator');
+    
+    // If not, create it
+    if (!sessionsIndicator) {
+        sessionsIndicator = document.createElement('div');
+        sessionsIndicator.id = 'profile-sessions-indicator';
+        sessionsIndicator.className = 'mt-4 p-4 rounded-lg shadow-md';
+        
+        // Find a good spot to insert it (after the main profile info)
+        const profileInfo = profileSection.querySelector('.profile-info') || 
+                           profileSection.querySelector('form') ||
+                           profileSection.querySelector('.card');
+        
+        if (profileInfo) {
+            profileInfo.parentNode.insertBefore(sessionsIndicator, profileInfo.nextSibling);
+        } else {
+            // If we can't find a good spot, just append to the section
+            profileSection.appendChild(sessionsIndicator);
+        }
+    }
+    
+    // Set appropriate color based on remaining sessions
+    let bgColor, textColor, borderColor;
+    if (remainingSessions === 0) {
+        bgColor = 'bg-red-100 dark:bg-red-900/30';
+        textColor = 'text-red-800 dark:text-red-300';
+        borderColor = 'border-red-500';
+    } else if (remainingSessions <= 5) {
+        bgColor = 'bg-yellow-100 dark:bg-yellow-900/30';
+        textColor = 'text-yellow-800 dark:text-yellow-300';
+        borderColor = 'border-yellow-500';
+    } else {
+        bgColor = 'bg-green-100 dark:bg-green-900/30';
+        textColor = 'text-green-800 dark:text-green-300';
+        borderColor = 'border-green-500';
+    }
+    
+    // Update classes
+    sessionsIndicator.className = `mt-4 p-4 rounded-lg shadow-md border-l-4 ${bgColor} ${textColor} ${borderColor}`;
+    
+    // Set content with appropriate message
+    const sessionWord = remainingSessions === 1 ? 'session' : 'sessions';
+    let message;
+    
+    if (remainingSessions === 0) {
+        message = `
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="font-medium">No remaining sessions!</p>
+                    <p class="text-sm mt-1">You have used all your allocated lab sessions. Please contact the administrator to reset your sessions.</p>
+                </div>
+            </div>
+        `;
+    } else if (remainingSessions <= 5) {
+        message = `
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="font-medium">Low sessions warning</p>
+                    <p class="text-sm mt-1">You have only ${remainingSessions} ${sessionWord} remaining. Use them wisely!</p>
+                </div>
+            </div>
+        `;
+    } else {
+        message = `
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="font-medium">Sessions status</p>
+                    <p class="text-sm mt-1">You have ${remainingSessions} ${sessionWord} remaining.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    sessionsIndicator.innerHTML = message;
+}
+
+// Helper function to update all profile image elements - used by other functions
+function updateAllProfileImages(imageSrc) {
+    // If imageSrc is null or undefined, use the default avatar
+    if (!imageSrc) {
+        imageSrc = getDefaultAvatarSvg();
+    }
+    
+    console.log("Updating all profile images with:", imageSrc);
+    
+    // List of profile image elements to update
+    const profileImageElements = [
+        document.getElementById('sidebarProfilePic'),
+        document.getElementById('profilePic'),
+        document.getElementById('profilePicModal')
+    ];
+    
+    // Update each element if it exists
+    profileImageElements.forEach(element => {
+        if (element) {
+            element.src = imageSrc;
+            console.log(`Updated image element: ${element.id}`);
+            
+            element.onerror = function() {
+                console.log(`Error loading image for ${element.id}, using fallback`);
+                // Use a generic avatar SVG instead of default.png
+                this.src = getDefaultAvatarSvg();
+                this.onerror = null; // Prevent infinite loop
+            };
+        }
+    });
+}

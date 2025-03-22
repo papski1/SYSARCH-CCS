@@ -76,24 +76,45 @@ function saveReservations(reservations) {
 
 // Function to read sit-ins
 function readSitIns() {
-    const sitInsPath = path.join(__dirname, "sit-ins.json");
-    if (!fs.existsSync(sitInsPath)) {
-        fs.writeFileSync(sitInsPath, JSON.stringify([], null, 2));
-        return [];
-    }
     try {
-        const data = fs.readFileSync(sitInsPath, "utf8");
-        return JSON.parse(data);
+        // Now we'll just get sit-ins from the reservations.json file
+        const reservations = readReservations();
+        
+        // Filter for records that are walk-ins or have been approved and are active
+        const sitIns = reservations.filter(record => 
+            record.isWalkIn || 
+            record.status === 'active' || 
+            record.status === 'completed'
+        );
+        
+        return sitIns;
     } catch (error) {
-        console.error("Error reading sit-ins:", error);
+        console.error("Error reading sit-ins from reservations:", error);
         return [];
     }
 }
 
 // Function to save sit-ins
 function saveSitIns(sitIns) {
-    const sitInsPath = path.join(__dirname, "sit-ins.json");
-    fs.writeFileSync(sitInsPath, JSON.stringify(sitIns, null, 2));
+    try {
+        // Get all current reservations
+        const reservations = readReservations();
+        
+        // For each sit-in, update it in the reservations or add it if it doesn't exist
+        sitIns.forEach(sitIn => {
+            const index = reservations.findIndex(res => res.id === sitIn.id);
+            if (index !== -1) {
+                reservations[index] = sitIn;
+            } else {
+                reservations.push(sitIn);
+            }
+        });
+        
+        // Save the updated reservations
+        saveReservations(reservations);
+    } catch (error) {
+        console.error("Error saving sit-ins to reservations:", error);
+    }
 }
 
 // Ensure uploads folder exists
@@ -116,11 +137,44 @@ app.get("/admin.html", (req, res) => {
 // Route: Create new reservation
 app.post("/reserve", (req, res) => {
     try {
-        const { email, idNumber, purpose, date, time, labRoom, programmingLanguage } = req.body;
+        const { email, idNumber, name, purpose, date, time, labRoom, programmingLanguage, status } = req.body;
 
         // Validate required fields
         if (!email || !idNumber || !purpose || !date || !time || !labRoom || !programmingLanguage) {
-            return res.status(400).json({ error: "All fields are required" });
+            return res.status(400).json({ success: false, error: "All fields are required" });
+        }
+
+        // Check if student exists and has remaining sessions
+        const users = readData();
+        const userIndex = users.findIndex(user => user.idNumber === idNumber);
+        
+        if (userIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                message: "Student not found in system"
+            });
+        }
+        
+        // If this is a regular reservation (not a walk-in), check remaining sessions
+        const isWalkIn = req.body.isWalkIn || false;
+        if (!isWalkIn) {
+            // Check remaining sessions
+            if (!users[userIndex].remainingSessions || users[userIndex].remainingSessions <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Student has no remaining sessions"
+                });
+            }
+            
+            // Increment pending reservations count
+            if (!users[userIndex].pendingReservations) {
+                users[userIndex].pendingReservations = 1;
+            } else {
+                users[userIndex].pendingReservations += 1;
+            }
+            
+            // Save updated user data
+            writeData(users);
         }
 
         const reservations = readReservations();
@@ -128,147 +182,180 @@ app.post("/reserve", (req, res) => {
             id: Date.now(),
             email,
             idNumber,
+            name,
             purpose,
             date,
             time,
             labRoom,
             programmingLanguage,
-            status: 'pending',
-            createdAt: new Date().toISOString()
+            status: status || 'pending', // Use provided status or default to 'pending'
+            createdAt: new Date().toISOString(),
+            isWalkIn: isWalkIn
         };
 
         reservations.push(newReservation);
         saveReservations(reservations);
 
         // Log the reservation activity
-        logUserActivity(idNumber, 'Reservation Created', {
+        logUserActivity(idNumber, isWalkIn ? 'Walk-in Created' : 'Reservation Created', {
             date,
             time,
             labRoom,
-            status: 'pending'
+            status: status || 'pending',
+            remainingSessions: users[userIndex].remainingSessions
         });
 
-        res.json({ success: true, reservation: newReservation });
+        res.json({ 
+            success: true, 
+            reservation: newReservation,
+            reservationId: newReservation.id,
+            remainingSessions: users[userIndex].remainingSessions,
+            pendingReservations: users[userIndex].pendingReservations
+        });
     } catch (error) {
         console.error("Error creating reservation:", error);
-        res.status(500).json({ error: "Failed to create reservation" });
+        res.status(500).json({ success: false, error: "Failed to create reservation", message: error.message });
     }
 });
 
-// Route: Update reservation status
-app.post("/update-reservation-status", async (req, res) => {
+// Route: Update reservation status (for any reservation or sit-in)
+app.post("/update-reservation", (req, res) => {
     try {
-        console.log("Received update request:", req.body);
-        const { reservationId, status } = req.body;
-
-        if (!reservationId || !status) {
+        console.log("Updating reservation:", req.body);
+        const { id, status, timeout } = req.body;
+        
+        if (!id || !status) {
             return res.status(400).json({ 
-                success: false, 
-                message: "Missing required fields: reservationId and status" 
+                error: "Reservation ID and status are required" 
             });
         }
 
-        // Read reservations
-        const reservations = readReservations();
-        const reservationIndex = reservations.findIndex(r => r.id === reservationId);
+        // Get all reservations
+        let reservations = readReservations();
+        
+        // Convert id to string to handle both string and number ids
+        const reservationId = id.toString();
+        
+        // Find the reservation by id
+        const reservationIndex = reservations.findIndex(r => r.id.toString() === reservationId);
         
         if (reservationIndex === -1) {
             return res.status(404).json({ 
-                success: false, 
-                message: "Reservation not found" 
+                error: "Reservation not found" 
             });
         }
 
         const reservation = reservations[reservationIndex];
-
-        // If approving, get user details first
-        let userData = null;
-        if (status === 'approved') {
-            const users = readData();
-            userData = users.find(u => u.idNumber === reservation.idNumber);
-            
-            if (!userData) {
-                return res.status(404).json({ 
-                    success: false, 
-                    message: `User not found with ID: ${reservation.idNumber}` 
-                });
-            }
-
-            // Check remaining sessions
-            if (userData.remainingSessions <= 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "User has no remaining sessions" 
-                });
-            }
-
-            // Update user's remaining sessions
-            userData.remainingSessions--;
-            const updatedUsers = users.map(u => 
-                u.idNumber === userData.idNumber ? userData : u
-            );
-            writeData(updatedUsers);
-        }
-
-        // Update reservation status
-        reservation.status = status;
-        reservations[reservationIndex] = reservation;
-        saveReservations(reservations);
-
-        let newSitIn = null;
-        // If the reservation is approved, create sit-in record
-        if (status === 'approved' && userData) {
-            // Create a sit-in record with auto-logout time
-            let sitIns = readSitIns();
-            
-            // Calculate end time (2 hours after start time)
-            const [hours, minutes] = reservation.time.split(':');
-            const startTime = new Date();
-            startTime.setHours(parseInt(hours), parseInt(minutes), 0);
-            const endTime = new Date(startTime.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
-            
-            newSitIn = {
-                id: Date.now(),
-                idNumber: reservation.idNumber,
-                name: `${userData.firstName} ${userData.lastName}`,
-                course: userData.course,
-                year: userData.year,
-                date: reservation.date,
-                timeIn: reservation.time,
-                timeOut: `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`,
-                labRoom: reservation.labRoom,
-                programmingLanguage: reservation.programmingLanguage,
-                purpose: reservation.purpose,
-                status: 'active',
-                autoLogoutTime: endTime.toISOString()
-            };
-            sitIns.push(newSitIn);
-            saveSitIns(sitIns);
-
-            // Log the sit-in creation
-            logUserActivity(reservation.idNumber, 'Sit-in Started', {
-                date: reservation.date,
-                timeIn: reservation.time,
-                timeOut: newSitIn.timeOut,
-                labRoom: reservation.labRoom,
-                status: 'active',
-                autoLogout: true
+        const previousStatus = reservation.status;
+        
+        // Get user data to update their session count
+        const users = readData();
+        const userIndex = users.findIndex(user => user.idNumber === reservation.idNumber);
+        
+        if (userIndex === -1) {
+            return res.status(404).json({ 
+                error: "Student not found in the system" 
             });
         }
+        
+        // Update the reservation status
+        reservations[reservationIndex].status = status;
+        
+        // Handle user session counts based on status change
+        if (previousStatus === 'pending' && status === 'approved') {
+            // When a pending reservation is approved, deduct one from remaining sessions
+            // Only if this is not a walk-in (walk-ins already had their session deducted)
+            if (!reservation.isWalkIn) {
+                // Deduct from remaining sessions
+                if (users[userIndex].remainingSessions > 0) {
+                    users[userIndex].remainingSessions -= 1;
+                }
+                
+                // Decrement pending reservations counter
+                if (users[userIndex].pendingReservations > 0) {
+                    users[userIndex].pendingReservations -= 1;
+                }
+            }
+        } 
+        else if (previousStatus === 'pending' && status === 'rejected') {
+            // When a pending reservation is rejected, don't deduct from remaining sessions
+            // but decrement the pending reservations count
+            if (!reservation.isWalkIn && users[userIndex].pendingReservations > 0) {
+                users[userIndex].pendingReservations -= 1;
+            }
+        }
+        else if (status === 'completed') {
+            // If completing the reservation, add the timeout/timeOut
+            // Set both timeout and timeOut for compatibility
+            reservations[reservationIndex].timeout = timeout || new Date().toTimeString().split(' ')[0];
+            reservations[reservationIndex].timeOut = timeout || new Date().toISOString();
+            
+            // Increment completed sessions only if it wasn't already completed
+            if (previousStatus !== 'completed' && !reservation.isWalkIn) {
+                if (!users[userIndex].completedSessions) {
+                    users[userIndex].completedSessions = 1;
+                } else {
+                    users[userIndex].completedSessions += 1;
+                }
+            }
+            
+            // Log the completion
+            logUserActivity(reservations[reservationIndex].idNumber, 'Session Completed', {
+                date: reservations[reservationIndex].date,
+                time: reservations[reservationIndex].time || reservations[reservationIndex].timeIn,
+                timeout: reservations[reservationIndex].timeout,
+                labRoom: reservations[reservationIndex].labRoom,
+                remainingSessions: users[userIndex].remainingSessions
+            });
+        }
+        
+        // Save updated user data
+        writeData(users);
+
+        // Save the updated reservations
+        saveReservations(reservations);
 
         res.json({ 
             success: true, 
-            message: status === 'approved' ? 
-                "Reservation approved and sit-in session created successfully" : 
-                "Reservation status updated successfully",
-            autoLogoutTime: status === 'approved' ? newSitIn?.autoLogoutTime : null
+            message: `Reservation ${status} successfully`,
+            reservation: reservations[reservationIndex],
+            user: {
+                remainingSessions: users[userIndex].remainingSessions,
+                pendingReservations: users[userIndex].pendingReservations,
+                completedSessions: users[userIndex].completedSessions
+            }
         });
     } catch (error) {
-        console.error("Error updating reservation status:", error);
+        console.error("Error updating reservation:", error);
+        res.status(500).json({ 
+            error: "Failed to update reservation",
+            message: error.message 
+        });
+    }
+});
+
+// Route: Update sit-in status (legacy route - redirects to update-reservation)
+app.post("/update-sit-in-status", (req, res) => {
+    try {
+        console.log("Redirecting sit-in update to reservation update:", req.body);
+        const { sitInId, status, timeOut } = req.body;
+        
+        // Redirect to the update-reservation endpoint
+        req.body = {
+            id: sitInId,
+            status: status,
+            timeout: timeOut || new Date().toTimeString().split(' ')[0]
+        };
+        
+        // Forward to the update-reservation handler
+        return app._router.handle(req, res);
+        
+    } catch (error) {
+        console.error("Error in sit-in status redirect:", error);
         res.status(500).json({ 
             success: false, 
-            message: "Error updating reservation status",
-            error: error.message || "Unknown error occurred"
+            message: "Failed to update sit-in status",
+            error: error.message 
         });
     }
 });
@@ -339,7 +426,19 @@ app.post("/login", async (req, res) => {
         req.session.user = { idNumber: user.idNumber, role: "student" };
         console.log("🔒 Student session stored:", req.session.user);
 
-        return res.json({ userId: user.idNumber, redirect: `/student.html?id=${user.idNumber}` });
+        return res.json({
+            success: true,
+            userId: user.id,
+            idNumber: user.idNumber,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            course: user.course,
+            year: user.year,
+            remainingSessions: user.remainingSessions,
+            profileImage: user.profileImage || null,
+            redirect: `/student.html?id=${user.idNumber}`
+        });
 
     } catch (error) {
         return res.status(500).json({ message: "Error comparing passwords" });
@@ -526,7 +625,7 @@ app.get("/get-profile", (req, res) => {
             email: user.email,
             year: user.year,
             course: user.course,
-            profileImage: user.profileImage || "/uploads/default.png",
+            profileImage: user.profileImage || null,
             remainingSessions: user.remainingSessions || 0
         };
         
@@ -671,68 +770,30 @@ app.get("/get-all-users", (req, res) => {
 // Route: Get all sit-ins
 app.get("/sit-ins", (req, res) => {
     try {
-        const sitIns = readSitIns();
-        console.log("Retrieved sit-ins:", sitIns); // Add logging
+        // Read sit-ins from the dedicated file
+        let sitIns = [];
+        try {
+            const sitInsData = fs.readFileSync("./sit-ins.json", "utf8");
+            sitIns = JSON.parse(sitInsData);
+        } catch (error) {
+            console.log("No sit-ins file found or invalid format, returning empty array");
+            sitIns = [];
+        }
+
+        // Ensure all entries have the entryType field for proper identification
+        sitIns = sitIns.map(entry => ({
+            ...entry,
+            entryType: 'walk-in',
+            isWalkIn: true
+        }));
+
         res.json(sitIns);
     } catch (error) {
-        console.error("Error handling sit-ins:", error);
-        res.status(500).json({ message: "Error fetching sit-ins data", error: error.message });
-    }
-});
-
-// Route: Update sit-in status
-app.post("/update-sit-in-status", (req, res) => {
-    try {
-        console.log("Updating sit-in status:", req.body);
-        const { sitInId, status, timeOut } = req.body;
-        
-        if (!sitInId || !status) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "sitInId and status are required" 
-            });
-        }
-
-        let sitIns = readSitIns();
-        const sitInIndex = sitIns.findIndex(s => s.id === parseInt(sitInId));
-        
-        if (sitInIndex === -1) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Sit-in not found" 
-            });
-        }
-
-        // Update the sit-in status
-        sitIns[sitInIndex].status = status;
-        
-        // If completing the sit-in, add the timeOut
-        if (status === 'completed') {
-            sitIns[sitInIndex].timeOut = timeOut || new Date().toISOString();
-            
-            // Log the sit-in completion
-            logUserActivity(sitIns[sitInIndex].idNumber, 'Sit-in Completed', {
-                date: sitIns[sitInIndex].date,
-                timeIn: sitIns[sitInIndex].timeIn,
-                timeOut: sitIns[sitInIndex].timeOut,
-                labRoom: sitIns[sitInIndex].labRoom
-            });
-        }
-
-        // Save the updated sit-ins
-        saveSitIns(sitIns);
-
-        res.json({ 
-            success: true, 
-            message: "Sit-in status updated successfully",
-            sitIn: sitIns[sitInIndex]
-        });
-    } catch (error) {
-        console.error("Error updating sit-in status:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Failed to update sit-in status",
-            error: error.message 
+        console.error("Error getting sit-ins:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to get sit-ins",
+            error: error.message
         });
     }
 });
@@ -1227,81 +1288,116 @@ app.get("/reset-stats", (req, res) => {
 // Route to create sit-in without reservation (for admin walk-ins)
 app.post("/create-walkin", (req, res) => {
     try {
-        console.log("Creating walk-in sit-in:", req.body);
-        const { 
-            idNumber, name, course, year, 
+        console.log("Creating walk-in reservation:", req.body);
+        const {
+            idNumber, name, course, year,
             purpose, programmingLanguage,
-            otherPurpose, otherLanguage
+            otherPurpose, otherLanguage,
+            labRoom
         } = req.body;
-        
+
         if (!idNumber || !purpose) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Student ID and purpose are required" 
+            return res.status(400).json({
+                success: false,
+                message: "Student ID and purpose are required"
             });
         }
 
-        // Get current sit-ins
-        let sitIns = readSitIns();
-        
-        // Check if student already has an active sit-in
-        const existingSitIn = sitIns.find(s => 
-            s.idNumber === idNumber && s.status === 'active'
-        );
-        
-        if (existingSitIn) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Student already has an active sit-in session" 
+        // Get current sit-ins records (use separate collection for walk-ins)
+        let sitIns = [];
+        try {
+            const sitInsData = fs.readFileSync("./sit-ins.json", "utf8");
+            sitIns = JSON.parse(sitInsData);
+        } catch (error) {
+            console.log("No sit-ins file found or invalid format, creating new one");
+            sitIns = [];
+        }
+
+        // Check if student has remaining sessions
+        const users = readData();
+        const userIndex = users.findIndex(user => user.idNumber === idNumber);
+
+        if (userIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                message: "Student not found in system"
             });
         }
-        
+
+        // Check remaining sessions
+        if (!users[userIndex].remainingSessions || users[userIndex].remainingSessions <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Student has no remaining sessions"
+            });
+        }
+
         // Create new sit-in
         const today = new Date();
         const dateString = today.toISOString().split('T')[0];
         const timeString = `${today.getHours().toString().padStart(2, '0')}:${today.getMinutes().toString().padStart(2, '0')}`;
-        
-        // Create a sit-in record
+
+        // Create a walk-in reservation with clear identification
         const newSitIn = {
-            id: Date.now(),
+            id: Date.now().toString(),
             idNumber: idNumber,
+            email: `${idNumber}@example.com`, // Create placeholder email
             name: name,
             course: course,
             year: year,
             date: dateString,
-            timeIn: timeString,
+            time: timeString,
+            timeIn: timeString, // Keep the timeIn for backwards compatibility
             timeOut: null,
-            labRoom: "Walk-in",
+            labRoom: labRoom || "Walk-in",
             programmingLanguage: programmingLanguage === "Other" ? otherLanguage : programmingLanguage,
             purpose: purpose === "Other" ? otherPurpose : purpose,
             status: 'active',
             autoLogoutTime: null,
-            isWalkIn: true
+            createdAt: today.toISOString(),
+            isWalkIn: true,
+            entryType: 'walk-in' // Clear identifier for deduplication
         };
+
+        // Deduct one session from the user's remaining sessions
+        users[userIndex].remainingSessions -= 1;
         
-        sitIns.push(newSitIn);
-        saveSitIns(sitIns);
-        
-        // Log the walk-in sit-in creation
-        logUserActivity(idNumber, 'Walk-in Sit-in Started', {
+        // Increment completed sessions count
+        if (!users[userIndex].completedSessions) {
+            users[userIndex].completedSessions = 1;
+        } else {
+            users[userIndex].completedSessions += 1;
+        }
+
+        // Save updated user data
+        writeData(users);
+
+        // Log user activity
+        logUserActivity(idNumber, 'Walk-in Created', {
             date: dateString,
-            timeIn: timeString,
-            labRoom: "Walk-in",
-            status: 'active',
-            isWalkIn: true
+            time: timeString,
+            labRoom: newSitIn.labRoom,
+            programmingLanguage: newSitIn.programmingLanguage,
+            purpose: newSitIn.purpose,
+            remainingSessions: users[userIndex].remainingSessions
         });
-        
-        res.json({ 
-            success: true, 
-            message: "Walk-in sit-in created successfully",
-            sitIn: newSitIn
+
+        // Add to sit-ins collection only (not reservations)
+        sitIns.push(newSitIn);
+        fs.writeFileSync("./sit-ins.json", JSON.stringify(sitIns, null, 2));
+
+        res.json({
+            success: true,
+            message: "Walk-in created successfully",
+            data: newSitIn,
+            remainingSessions: users[userIndex].remainingSessions
         });
     } catch (error) {
-        console.error("Error creating walk-in sit-in:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Error creating walk-in sit-in",
-            error: error.message || "Unknown error occurred"
+        console.error("Error creating walk-in:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error creating walk-in",
+            error: error.message
         });
     }
 });

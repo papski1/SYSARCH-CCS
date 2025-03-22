@@ -21,16 +21,8 @@ function showSection(sectionId) {
             loadTodaysSitInRecords();
         } else if (sectionId === "reports") {
             // Initialize reports section and show default tab
-            initializeReportsCharts();
             setupReportsTabs();
-            // Show sit-in statistics tab by default
-            const tabSitInStats = document.getElementById('tab-sit-in-stats');
-            const contentSitInStats = document.getElementById('content-sit-in-stats');
-            if (tabSitInStats && contentSitInStats) {
-                tabSitInStats.classList.remove('text-gray-500');
-                tabSitInStats.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
-                contentSitInStats.classList.remove('hidden');
-            }
+            // User feedback will be shown by default through setupReportsTabs
         } else if (sectionId === "dashboard") {
             initializeDashboard();
         } else if (sectionId === "reset-session") {
@@ -104,6 +96,9 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         // Initialize dashboard data
         initializeDashboard();
+        
+        // Initialize walk-in form
+        initializeWalkinForm();
     } catch (error) {
         console.error("Error initializing admin dashboard:", error);
         alert("Failed to initialize dashboard. Please try again.");
@@ -250,6 +245,9 @@ async function updateReservationStatus(reservationId, status) {
                 dashboardSitInCount.textContent = currentCount + 1;
             }
 
+            // Update the records charts to reflect the new sit-in
+            await updateRecordsCharts();
+
             // Fetch current sit-ins for charts
             const sitInsResponse = await fetch("http://localhost:3000/sit-ins");
             if (!sitInsResponse.ok) {
@@ -312,7 +310,7 @@ async function updateReservationStatus(reservationId, status) {
                         },
                         options: {
                             responsive: true,
-                            maintainAspectRatio: true,
+                            maintainAspectRatio: false,
                             plugins: {
                                 legend: {
                                     position: 'right',
@@ -324,10 +322,7 @@ async function updateReservationStatus(reservationId, status) {
                                     }
                                 },
                                 title: {
-                                    display: true,
-                                    font: {
-                                        size: 16
-                                    }
+                                    display: false // Hide title since we have a blue header now
                                 }
                             }
                         }
@@ -356,7 +351,7 @@ async function updateReservationStatus(reservationId, status) {
                         },
                         options: {
                             responsive: true,
-                            maintainAspectRatio: true,
+                            maintainAspectRatio: false,
                             plugins: {
                                 legend: {
                                     position: 'right',
@@ -368,10 +363,7 @@ async function updateReservationStatus(reservationId, status) {
                                     }
                                 },
                                 title: {
-                                    display: true,
-                                    font: {
-                                        size: 16
-                                    }
+                                    display: false // Hide title since we have a blue header now
                                 }
                             }
                         }
@@ -428,48 +420,86 @@ function updateDashboardChart(sitIns) {
     }
 
     // Create new chart
+    if (typeof Chart !== 'undefined') {
     window.studentStatsChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'pie',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Programming Language Usage',
                 data: data,
                 backgroundColor: [
-                    'rgba(54, 162, 235, 0.5)',
-                    'rgba(255, 99, 132, 0.5)',
-                    'rgba(75, 192, 192, 0.5)',
-                    'rgba(255, 206, 86, 0.5)',
-                    'rgba(153, 102, 255, 0.5)',
+                        'rgba(54, 162, 235, 0.7)',  // Blue for C#
+                        'rgba(255, 99, 132, 0.7)',  // Pink for C
+                        'rgba(255, 206, 86, 0.7)',  // Yellow for Java
+                        'rgba(255, 159, 64, 0.7)',  // Orange for ASP.Net
+                        'rgba(75, 192, 192, 0.7)',  // Teal for PHP
                 ],
                 borderColor: [
                     'rgba(54, 162, 235, 1)',
                     'rgba(255, 99, 132, 1)',
-                    'rgba(75, 192, 192, 1)',
                     'rgba(255, 206, 86, 1)',
-                    'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(75, 192, 192, 1)',
                 ],
                 borderWidth: 1
             }]
         },
         options: {
             responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 20,
+                        right: 120,
+                        bottom: 20,
+                        left: 20
                 }
             },
             plugins: {
+                    legend: {
+                        position: 'right',
+                        align: 'center',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                family: "'Inter', sans-serif"
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        // Add appropriate icons based on programming language
+                                        let icon = '💻';
+                                        if (label.toLowerCase().includes('c#')) icon = '🔵';
+                                        if (label.toLowerCase().includes('c')) icon = '🔴';
+                                        if (label.toLowerCase().includes('java')) icon = '🟡';
+                                        if (label.toLowerCase().includes('asp')) icon = '🟠';
+                                        if (label.toLowerCase().includes('php')) icon = '🟢';
+                                        return {
+                                            text: `${icon} ${label} (${percentage}%)`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
                 title: {
-                    display: true,
-                    text: 'Programming Language Distribution'
+                    display: false // Remove the "Statistics" title
                 }
             }
         }
     });
+    } else {
+        console.warn('Chart.js is not loaded yet');
+    }
 }
 
 function viewStudentDetails(idNumber) {
@@ -492,173 +522,347 @@ function logout() {
 // Function to fetch and display sit-ins and reservations in a unified table
 async function fetchSitIns() {
     try {
-        console.log("Fetching sit-ins and reservations...");
+        // Fetch users for mapping user information
+        const userResponse = await fetch('/get-all-users');
+        const usersData = await userResponse.json();
+        const usersMap = {};
         
-        // Fetch both sit-ins and reservations
-        const [sitInsResponse, reservationsResponse] = await Promise.all([
-            fetch("http://localhost:3000/sit-ins"),
-            fetch("http://localhost:3000/reservations")
+        // Create a map of users by ID for quick lookup
+        usersData.forEach(user => {
+            usersMap[user.idNumber] = user;
+        });
+
+        // Fetch both data sources in parallel
+        const [reservationsResponse, walkInsResponse] = await Promise.all([
+            fetch('/reservations'),
+            fetch('/sit-ins')
         ]);
 
-        if (!sitInsResponse.ok || !reservationsResponse.ok) {
-            throw new Error("Failed to fetch data");
-        }
-
-        const sitIns = await sitInsResponse.json();
         const reservations = await reservationsResponse.json();
+        const walkIns = await walkInsResponse.json();
 
-        // Get pending reservations and active sit-ins
-        const pendingReservations = reservations.filter(res => res.status === 'pending');
-        const activeSitIns = sitIns.filter(sit => sit.status === 'active');
-        const completedSitIns = sitIns.filter(sit => sit.status === 'completed');
+        // Process reservations - add entryType and isWalkIn properties
+        const taggedReservations = reservations.map(reservation => ({
+            ...reservation,
+            entryType: 'reservation',
+            isWalkIn: false,
+            displayTime: reservation.time // Use time property for display
+        }));
+
+        // Process walk-ins - ensure they have entryType and isWalkIn properties
+        const taggedWalkIns = walkIns.map(walkIn => ({
+            ...walkIn,
+            entryType: 'walk-in',
+            isWalkIn: true,
+            displayTime: walkIn.timeIn || walkIn.time // Use timeIn if available, fallback to time
+        }));
+
+        // Initialize counts
+        let pendingCount = 0;
+        let approvedCount = 0;
+        let rejectedCount = 0;
+        let completedCount = 0;
+        let currentSitInsCount = 0;
+        
+        // Process entries for deduplication and counting
+        const processedEntries = [];
+        const activeEntries = [];
+        const seenKeys = new Set();
+
+        // Process each reservation first
+        taggedReservations.forEach(entry => {
+            // Count by status - only count each unique entry once
+            const timeValue = entry.displayTime || entry.time || '00:00';
+            const key = `${entry.idNumber || entry.userId}_${entry.date}_${timeValue}_${entry.entryType}_${entry.programmingLanguage || ''}`;
+            
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                
+                if (entry.status === 'pending') {
+                    pendingCount++;
+                } else if (entry.status === 'approved') {
+                    approvedCount++;
+                    // Approved reservations are considered active for the dashboard
+                    activeEntries.push(entry);
+                    currentSitInsCount++;
+                } else if (entry.status === 'rejected') {
+                    rejectedCount++;
+                } else if (entry.status === 'completed') {
+                    completedCount++;
+                } else if (entry.status === 'active') {
+                    activeEntries.push(entry);
+                    currentSitInsCount++;
+                }
+                
+                processedEntries.push(entry);
+            }
+        });
+
+        // Then process walk-ins to ensure they don't override reservations
+        taggedWalkIns.forEach(entry => {
+            const timeValue = entry.displayTime || entry.timeIn || entry.time || '00:00';
+            const key = `${entry.idNumber || entry.userId}_${entry.date}_${timeValue}_${entry.entryType}_${entry.programmingLanguage || ''}`;
+            
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                
+                // For walk-ins, we mainly care about active ones for the dashboard
+                if (entry.status === 'active') {
+                    activeEntries.push(entry);
+                    currentSitInsCount++;
+                } else if (entry.status === 'completed') {
+                    completedCount++;
+                }
+                
+                processedEntries.push(entry);
+            }
+        });
+
+        // Add user data to all entries
+        const enrichedEntries = processedEntries.map(entry => {
+            const userId = entry.userId || entry.idNumber;
+            const user = usersMap[userId];
+            
+            return {
+                ...entry,
+                name: entry.name || (user ? `${user.firstName} ${user.lastName}` : 'Unknown'),
+                course: entry.course || (user ? user.course : 'Unknown'),
+                year: entry.year || (user ? user.year : 'Unknown')
+            };
+        });
+
+        // Sort entries by date and time
+        enrichedEntries.sort((a, b) => {
+            // Sort by date first
+            const dateComparison = new Date(a.date) - new Date(b.date);
+            if (dateComparison !== 0) return dateComparison;
+            
+            // If dates are the same, sort by time
+            const aTime = a.displayTime || a.time || a.timeIn || '00:00';
+            const bTime = b.displayTime || b.time || b.timeIn || '00:00';
+            return aTime.localeCompare(bTime);
+        });
 
         // Update dashboard counts
-        document.getElementById('current-sit-in').textContent = activeSitIns.length;
-        document.getElementById('pending-reservations').textContent = pendingReservations.length;
+        if (document.getElementById('pending-count')) document.getElementById('pending-count').textContent = pendingCount;
+        if (document.getElementById('approved-count')) document.getElementById('approved-count').textContent = approvedCount;
+        if (document.getElementById('rejected-count')) document.getElementById('rejected-count').textContent = rejectedCount;
+        if (document.getElementById('completed-count')) document.getElementById('completed-count').textContent = completedCount;
+        if (document.getElementById('current-sit-ins-count')) document.getElementById('current-sit-ins-count').textContent = currentSitInsCount;
 
-        // Display in unified table
-        displayUnifiedTable(pendingReservations, activeSitIns, completedSitIns);
-
+        console.log(`Total Entries: ${enrichedEntries.length}, Active: ${currentSitInsCount}`);
+        
+        // Display in table
+        displayUnifiedTable(enrichedEntries);
+        
+        // Display in charts
+        updateCharts(enrichedEntries);
+        
     } catch (error) {
-        console.error("Error fetching data:", error);
-        const tableBody = document.getElementById("unified-sit-ins-table");
-        if (tableBody) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="10" class="text-center py-4 text-red-500">
-                        Error loading data: ${error.message}
-                    </td>
-                </tr>
-            `;
-        }
+        console.error('Error fetching sit-ins data:', error);
+        document.getElementById('unified-sit-ins-table').innerHTML = `
+            <tr>
+                <td colspan="11" class="px-6 py-3 text-center text-red-500">
+                    Error loading data. Please try again.
+                </td>
+            </tr>
+        `;
     }
 }
 
 // Function to display unified table
-function displayUnifiedTable(pendingReservations, activeSitIns, completedSitIns) {
-    const tableBody = document.getElementById("unified-sit-ins-table");
-    if (!tableBody) return;
+function displayUnifiedTable(entries) {
+    const tableBody = document.getElementById('unified-sit-ins-table');
+    if (!tableBody) {
+        console.error("Table body 'unified-sit-ins-table' not found");
+        return;
+    }
 
-    tableBody.innerHTML = "";
-
-    // Combine and sort all entries by date and time
-    const allEntries = [
-        ...pendingReservations.map(r => ({...r, entryType: 'reservation'})),
-        ...activeSitIns.map(s => ({...s, entryType: 'active'})),
-        ...completedSitIns.map(s => ({...s, entryType: 'completed'}))
-    ].sort((a, b) => {
-        const dateA = new Date(a.date + ' ' + (a.timeIn || '00:00'));
-        const dateB = new Date(b.date + ' ' + (b.timeIn || '00:00'));
-        return dateB - dateA;
-    });
-
-    if (allEntries.length === 0) {
+    if (!entries || entries.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="10" class="text-center py-4 text-gray-500">
-                    No entries found
-                </td>
+                <td colspan="11" class="px-6 py-3 text-center text-gray-500">No entries found</td>
             </tr>
         `;
         return;
     }
 
-    allEntries.forEach(entry => {
-        const row = document.createElement("tr");
-        row.className = entry.entryType === 'reservation' ? 'bg-yellow-50' : 
-                       entry.entryType === 'active' ? 'bg-green-50' : 'bg-gray-50';
+    console.log(`Displaying ${entries.length} entries in the table`);
+
+    let html = '';
+    
+    entries.forEach(entry => {
+        // Use displayTime property consistently for time display
+        const timeIn = entry.displayTime || 'N/A';
+        const timeOut = entry.timeOut || entry.timeout || 'N/A';
+        const name = entry.name || 'N/A';
+        const course = entry.course || 'N/A';
+        const year = entry.year || 'N/A';
         
-        // For sit-ins (active or completed), use programming language as purpose
-        const displayPurpose = entry.entryType === 'reservation' ? 
-            (entry.purpose || 'N/A') : 
-            (entry.programmingLanguage ? `${entry.programmingLanguage}` : 'N/A');
+        // Format entry type - capitalize first letter
+        const entryType = entry.entryType ? 
+            entry.entryType.charAt(0).toUpperCase() + entry.entryType.slice(1) : 
+            (entry.isWalkIn ? 'Walk-in' : 'Reservation');
+
+        // Determine row class based on status
+        let rowClass = '';
+        if (entry.status === 'active') {
+            rowClass = 'bg-green-50';
+        } else if (entry.status === 'pending') {
+            rowClass = 'bg-yellow-50';
+        } else if (entry.status === 'completed') {
+            rowClass = 'bg-gray-50';
+        } else if (entry.status === 'rejected') {
+            rowClass = 'bg-red-50';
+        } else if (entry.status === 'approved') {
+            rowClass = 'bg-blue-50';
+        }
         
-        row.innerHTML = `
-            <td class="border px-4 py-2">${entry.idNumber || 'N/A'}</td>
-            <td class="border px-4 py-2">${entry.name || 'N/A'}</td>
-            <td class="border px-4 py-2">${entry.course || 'N/A'}</td>
-            <td class="border px-4 py-2">${entry.year || 'N/A'}</td>
-            <td class="border px-4 py-2">${displayPurpose}</td>
-            <td class="border px-4 py-2">${entry.date || 'N/A'}</td>
-            <td class="border px-4 py-2">${entry.timeIn || 'N/A'}</td>
-            <td class="border px-4 py-2">
-                ${entry.timeOut ? new Date(entry.timeOut).toLocaleTimeString() : 'N/A'}
-            </td>
-            <td class="border px-4 py-2">
-                <span class="px-2 py-1 rounded text-sm ${
-                    entry.entryType === 'reservation' ? 'bg-yellow-100 text-yellow-800' :
-                    entry.entryType === 'active' ? 'bg-green-100 text-green-800' :
-                    'bg-gray-100 text-gray-800'
-                }">
-                    ${entry.entryType === 'reservation' ? 'Pending' :
-                      entry.entryType === 'active' ? 'Active' : 'Completed'}
-                </span>
-            </td>
-            <td class="border px-4 py-2">
-                ${entry.entryType === 'reservation' ? `
-                    <div class="flex space-x-2">
-                        <button onclick="updateReservationStatus('${entry.id}', 'approved')" 
-                            class="bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600">
-                            Approve
-                        </button>
-                        <button onclick="updateReservationStatus('${entry.id}', 'rejected')" 
-                            class="bg-red-500 text-white px-2 py-1 rounded text-sm hover:bg-red-600">
-                            Reject
-                        </button>
-                    </div>
-                ` : entry.entryType === 'active' ? `
-                    <button onclick="completeSitIn('${entry.id}')" 
-                        class="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600">
-                        Mark as Completed
+        // Determine actions column based on entry status and type
+        let actionsHtml = '';
+        
+        if (entry.status === 'active') {
+            actionsHtml = `
+                <button onclick="completeSitIn('${entry.id}')" class="text-blue-600 hover:text-blue-900 mr-2">
+                    Mark as Completed
+                </button>
+            `;
+        } else if (entry.status === 'pending') {
+            actionsHtml = `
+                <div class="flex space-x-1">
+                    <button onclick="approveReservation('${entry.id}')" class="text-green-600 hover:text-green-900 mr-2">
+                        Approve
                     </button>
-                ` : `
-                    <span class="text-sm text-gray-500">Completed at ${
-                        entry.timeOut ? new Date(entry.timeOut).toLocaleTimeString() : 'N/A'
-                    }</span>
-                `}
-            </td>
+                    <button onclick="rejectReservation('${entry.id}')" class="text-red-600 hover:text-red-900">
+                        Reject
+                    </button>
+                </div>
+            `;
+        } else if (entry.status === 'completed' || entry.status === 'rejected') {
+            actionsHtml = '<span class="text-xs text-gray-500">No actions available</span>';
+        } else if (entry.status === 'approved') {
+            actionsHtml = `
+                <button onclick="completeSitIn('${entry.id}')" class="text-blue-600 hover:text-blue-900 mr-2">
+                    Mark as Completed
+                </button>
+            `;
+        }
+
+        // Create a badge for entry type
+        const entryTypeBadge = entryType.toLowerCase() === 'walk-in' 
+            ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Walk-in</span>`
+            : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">Reservation</span>`;
+
+        html += `
+            <tr class="${rowClass} hover:bg-gray-100">
+                <td class="px-6 py-4 whitespace-nowrap">${entry.idNumber || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${name}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${course}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${year}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${entry.programmingLanguage || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${entry.date || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${timeIn}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${timeOut}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${entryTypeBadge}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        entry.status === 'active' ? 'bg-green-100 text-green-800' :
+                        entry.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        entry.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                        entry.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                        entry.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                    }">
+                        ${entry.status || 'Unknown'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    ${actionsHtml}
+                </td>
+            </tr>
         `;
-        tableBody.appendChild(row);
+    });
+
+    tableBody.innerHTML = html;
+
+    // Initialize search if not already done
+    if (!window.searchInitialized) {
+        initializeSearch();
+        window.searchInitialized = true;
+    }
+}
+
+// Setup search for sit-in records
+function setupSitInSearch() {
+    const searchInput = document.getElementById('sit-in-search');
+    if (!searchInput) return;
+    
+    // Clear existing listeners to avoid duplicates
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+    
+    // Add new listener
+    newSearchInput.addEventListener('input', function() {
+        if (!window.allSitInEntries) return;
+        
+        const searchTerm = this.value.trim().toLowerCase();
+        if (!searchTerm) {
+            displayUnifiedTable(window.allSitInEntries);
+            return;
+        }
+        
+        // Filter entries by ID or name
+        const filteredEntries = window.allSitInEntries.filter(entry => 
+            (entry.idNumber && entry.idNumber.toLowerCase().includes(searchTerm)) || 
+            (entry.name && entry.name.toLowerCase().includes(searchTerm))
+        );
+        
+        displayUnifiedTable(filteredEntries);
     });
 }
 
 async function completeSitIn(sitInId) {
-    try {
-        if (!confirm('Are you sure you want to mark this sit-in as completed?')) {
-            return;
-        }
+    if (!confirm("Mark this sit-in session as completed?")) {
+        return;
+    }
 
-        const response = await fetch("http://localhost:3000/update-sit-in-status", {
+    try {
+        const now = new Date();
+        const timeOut = now.toTimeString().slice(0, 5); // Format HH:MM
+        
+        const response = await fetch("http://localhost:3000/update-reservation", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                sitInId: parseInt(sitInId),
-                status: 'completed',
-                timeOut: new Date().toISOString()
+                id: sitInId,
+                status: "completed",
+                timeout: timeOut
             })
         });
 
         const data = await response.json();
         
         if (!response.ok) {
-            throw new Error(data.message || 'Failed to update sit-in status');
+            throw new Error(data.error || data.message || "Failed to complete sit-in");
         }
 
-        if (data.success) {
-            // Refresh the sit-ins tables
+        alert("Sit-in marked as completed successfully!");
+        
+        // Update the dashboard count for active sit-ins
+        const activeCountElement = document.getElementById('current-sit-in');
+        if (activeCountElement) {
+            // We're displaying the total active sit-ins, not just for this user
+            // So we need to refresh the data to get the new count
             await fetchSitIns();
-            
-            // Show success message
-            alert("Sit-in marked as completed successfully!");
-        } else {
-            throw new Error(data.message || 'Failed to update sit-in status');
         }
         
+        // Refresh data
+        await fetchSitIns();
+        await updateRecordsCharts();
     } catch (error) {
         console.error("Error completing sit-in:", error);
-        alert("Error completing sit-in: " + error.message);
+        alert("Error: " + error.message);
     }
 }
 
@@ -668,7 +872,6 @@ async function initializeDashboard() {
         // Fetch students data
         const studentsResponse = await fetch("http://localhost:3000/get-all-users");
         const students = await studentsResponse.json();
-        
         // Update total students count
         document.getElementById('total-students').textContent = students.length;
 
@@ -711,43 +914,77 @@ async function initializeDashboard() {
         // Create new chart only if Chart.js is loaded
         if (typeof Chart !== 'undefined') {
             window.studentStatsChart = new Chart(ctx, {
-                type: 'bar',
+                type: 'pie',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Programming Language Usage',
                         data: data,
                         backgroundColor: [
-                            'rgba(54, 162, 235, 0.5)',
-                            'rgba(255, 99, 132, 0.5)',
-                            'rgba(75, 192, 192, 0.5)',
-                            'rgba(255, 206, 86, 0.5)',
-                            'rgba(153, 102, 255, 0.5)',
+                            'rgba(54, 162, 235, 0.7)',  // Blue for C#
+                            'rgba(255, 99, 132, 0.7)',  // Pink for C
+                            'rgba(255, 206, 86, 0.7)',  // Yellow for Java
+                            'rgba(255, 159, 64, 0.7)',  // Orange for ASP.Net
+                            'rgba(75, 192, 192, 0.7)',  // Teal for PHP
                         ],
                         borderColor: [
                             'rgba(54, 162, 235, 1)',
                             'rgba(255, 99, 132, 1)',
-                            'rgba(75, 192, 192, 1)',
                             'rgba(255, 206, 86, 1)',
-                            'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(75, 192, 192, 1)',
                         ],
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 20,
+                            right: 120,
+                            bottom: 20,
+                            left: 20
                         }
                     },
                     plugins: {
+                        legend: {
+                            position: 'right',
+                            align: 'center',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                    family: "'Inter', sans-serif"
+                                },
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            // Add appropriate icons based on programming language
+                                            let icon = '💻';
+                                            if (label.toLowerCase().includes('c#')) icon = '🔵';
+                                            if (label.toLowerCase().includes('c')) icon = '🔴';
+                                            if (label.toLowerCase().includes('java')) icon = '🟡';
+                                            if (label.toLowerCase().includes('asp')) icon = '🟠';
+                                            if (label.toLowerCase().includes('php')) icon = '🟢';
+                                            return {
+                                                text: `${icon} ${label} (${percentage}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
                         title: {
-                            display: true,
-                            text: 'Programming Language Distribution'
+                            display: false // Remove the "Statistics" title
                         }
                     }
                 }
@@ -1146,15 +1383,13 @@ function displayResetLogs(logs) {
 
 // Function to setup reports tab switching
 function setupReportsTabs() {
-    const tabSitInStats = document.getElementById('tab-sit-in-stats');
     const tabUserFeedback = document.getElementById('tab-user-feedback');
     const tabStudentReports = document.getElementById('tab-student-reports');
     
-    const contentSitInStats = document.getElementById('content-sit-in-stats');
     const contentUserFeedback = document.getElementById('content-user-feedback');
     const contentStudentReports = document.getElementById('content-student-reports');
     
-    if (!tabSitInStats || !tabUserFeedback || !tabStudentReports) {
+    if (!tabUserFeedback || !tabStudentReports) {
         console.error('Report tabs not found');
         return;
     }
@@ -1162,13 +1397,13 @@ function setupReportsTabs() {
     // Function to switch tabs
     function switchTab(activeTab, activeContent) {
         // Reset all tabs
-        [tabSitInStats, tabUserFeedback, tabStudentReports].forEach(tab => {
+        [tabUserFeedback, tabStudentReports].forEach(tab => {
             tab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
             tab.classList.add('text-gray-500');
         });
         
         // Reset all content
-        [contentSitInStats, contentUserFeedback, contentStudentReports].forEach(content => {
+        [contentUserFeedback, contentStudentReports].forEach(content => {
             content.classList.add('hidden');
         });
         
@@ -1188,11 +1423,6 @@ function setupReportsTabs() {
     }
     
     // Add event listeners to tabs
-    tabSitInStats.addEventListener('click', () => {
-        switchTab(tabSitInStats, contentSitInStats);
-        initializeReportsCharts();
-    });
-    
     tabUserFeedback.addEventListener('click', () => {
         switchTab(tabUserFeedback, contentUserFeedback);
     });
@@ -1200,6 +1430,9 @@ function setupReportsTabs() {
     tabStudentReports.addEventListener('click', () => {
         switchTab(tabStudentReports, contentStudentReports);
     });
+    
+    // Show user feedback tab by default
+    switchTab(tabUserFeedback, contentUserFeedback);
 }
 
 // Function to setup student reports functionality
@@ -1333,483 +1566,116 @@ function createDepartmentDistributionChart(sitIns) {
     if (!canvas) return;
     
     // Group sit-ins by course/department
-    const courseMap = {};
+    const departmentStats = {};
     sitIns.forEach(sitIn => {
-        const course = sitIn.course || 'Unknown';
-        if (courseMap[course]) {
-            courseMap[course]++;
-        } else {
-            courseMap[course] = 1;
-        }
+        const department = sitIn.course ? sitIn.course.split(' ')[0] : 'Unknown';
+        departmentStats[department] = (departmentStats[department] || 0) + 1;
     });
-    
-    // Convert to arrays for chart
-    const courses = Object.keys(courseMap);
-    const counts = Object.values(courseMap);
-    
-    // Define colors
-    const backgroundColors = [
-        'rgba(255, 99, 132, 0.5)',
-        'rgba(54, 162, 235, 0.5)',
-        'rgba(255, 206, 86, 0.5)',
-        'rgba(75, 192, 192, 0.5)',
-        'rgba(153, 102, 255, 0.5)',
-        'rgba(255, 159, 64, 0.5)',
-        'rgba(199, 199, 199, 0.5)'
-    ];
-    
-    // Create chart
+
+    // Destroy existing chart if it exists
     if (window.departmentChart) {
         window.departmentChart.destroy();
     }
     
+    // Create chart
     window.departmentChart = new Chart(canvas, {
         type: 'pie',
         data: {
-            labels: courses,
+            labels: Object.keys(departmentStats),
             datasets: [{
-                label: 'Sessions by Department',
-                data: counts,
-                backgroundColor: backgroundColors.slice(0, courses.length),
+                data: Object.values(departmentStats),
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)'
+                ],
                 borderWidth: 1
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'right',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Department Distribution',
+                    font: {
+                        size: 16
+                    }
                 }
             }
         }
     });
 }
 
-// Function to generate student report
-async function generateStudentReport() {
-    const studentId = document.getElementById('student-report-id').value.trim();
-    const startDate = document.getElementById('report-date-start').value;
-    const endDate = document.getElementById('report-date-end').value;
-    const resultsContainer = document.getElementById('student-report-results');
-    
-    if (!resultsContainer) {
-        console.error('Results container not found');
-        return;
-    }
-    
-    // Show loading state
-    resultsContainer.innerHTML = '<p class="text-center py-4">Loading report data...</p>';
-    
+// Function to initialize reset session section
+async function initResetSession() {
     try {
-        // Fetch student data
-        let student = null;
-        if (studentId) {
-            student = await fetchStudentById(studentId);
-            if (!student) {
-                resultsContainer.innerHTML = '<p class="text-center py-4 text-red-600">Student with ID ' + studentId + ' not found</p>';
-                return;
-            }
-        }
+        // Load reset logs
+        await loadResetLogs();
         
-        // Fetch sit-ins
-        const sitIns = await fetchSitInsData();
+        // Add event listeners for reset buttons
+        const resetUserBtn = document.getElementById('reset-user-btn');
+        const resetSemesterBtn = document.getElementById('reset-semester-btn');
         
-        // Filter sit-ins based on criteria
-        let filteredSitIns = [...sitIns];
-        
-        // Filter by student if specified
-        if (student) {
-            filteredSitIns = filteredSitIns.filter(sitIn => sitIn.idNumber === student.idNumber);
-        }
-        
-        // Filter by date range if specified
-        if (startDate) {
-            filteredSitIns = filteredSitIns.filter(sitIn => sitIn.date >= startDate);
-        }
-        
-        if (endDate) {
-            filteredSitIns = filteredSitIns.filter(sitIn => sitIn.date <= endDate);
-        }
-        
-        // Generate report HTML
-        if (filteredSitIns.length === 0) {
-            resultsContainer.innerHTML = '<p class="text-center py-4">No data found for the selected criteria</p>';
-            return;
-        }
-        
-        let reportHtml = '';
-        
-        // Student details section if a specific student was selected
-        if (student) {
-            reportHtml += `
-            <div class="bg-gray-50 p-4 rounded mb-4">
-                <h4 class="font-medium text-lg mb-2">Student Information</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <p><strong>ID:</strong> ${student.idNumber}</p>
-                        <p><strong>Name:</strong> ${student.firstName} ${student.lastName}</p>
-                    </div>
-                    <div>
-                        <p><strong>Course:</strong> ${student.course}</p>
-                        <p><strong>Year:</strong> ${student.year}</p>
-                    </div>
-                </div>
-            </div>`;
-        }
-        
-        // Activity summary
-        const totalSessions = filteredSitIns.length;
-        const completedSessions = filteredSitIns.filter(s => s.status === 'completed').length;
-        
-        reportHtml += `
-        <div class="bg-gray-50 p-4 rounded mb-4">
-            <h4 class="font-medium text-lg mb-2">Activity Summary</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white p-3 rounded shadow">
-                    <p class="text-sm text-gray-600">Total Sessions</p>
-                    <p class="text-2xl font-bold text-blue-600">${totalSessions}</p>
-                </div>
-                <div class="bg-white p-3 rounded shadow">
-                    <p class="text-sm text-gray-600">Completed</p>
-                    <p class="text-2xl font-bold text-green-600">${completedSessions}</p>
-                </div>
-                <div class="bg-white p-3 rounded shadow">
-                    <p class="text-sm text-gray-600">Completion Rate</p>
-                    <p class="text-2xl font-bold text-purple-600">${totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0}%</p>
-                </div>
-            </div>
-        </div>`;
-        
-        // Session details table
-        reportHtml += `
-        <div class="bg-gray-50 p-4 rounded">
-            <h4 class="font-medium text-lg mb-2">Session Details</h4>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border-collapse border border-gray-300">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="border px-4 py-2">Date</th>
-                            <th class="border px-4 py-2">Time In</th>
-                            <th class="border px-4 py-2">Time Out</th>
-                            <th class="border px-4 py-2">Purpose</th>
-                            <th class="border px-4 py-2">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-        
-        // Sort sit-ins by date (newest first)
-        filteredSitIns.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        filteredSitIns.forEach(sitIn => {
-            const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
-            reportHtml += `
-                        <tr>
-                            <td class="border px-4 py-2">${new Date(sitIn.date).toLocaleDateString()}</td>
-                            <td class="border px-4 py-2">${sitIn.timeIn}</td>
-                            <td class="border px-4 py-2">${timeOut}</td>
-                            <td class="border px-4 py-2">${sitIn.purpose}</td>
-                            <td class="border px-4 py-2">
-                                <span class="px-2 py-1 rounded text-sm ${
-                                    sitIn.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                                    sitIn.status === 'active' ? 'bg-blue-100 text-blue-800' : 
-                                    'bg-gray-100 text-gray-800'
-                                }">
-                                    ${sitIn.status}
-                                </span>
-                            </td>
-                        </tr>`;
-        });
-        
-        reportHtml += `
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-        
-        // Add export button
-        reportHtml += `
-        <div class="mt-4 flex justify-end">
-            <button id="export-report-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                Export Report
-            </button>
-        </div>`;
-        
-        // Add to results container
-        resultsContainer.innerHTML = reportHtml;
-        
-        // Add export functionality
-        document.getElementById('export-report-btn').addEventListener('click', () => {
-            exportReport(student, filteredSitIns, startDate, endDate);
-        });
-        
-    } catch (error) {
-        console.error('Error generating report:', error);
-        resultsContainer.innerHTML = '<p class="text-center py-4 text-red-600">Error generating report: ' + error.message + '</p>';
-    }
-}
-
-// Function to fetch student by ID
-async function fetchStudentById(studentId) {
-    try {
-        const response = await fetch(`http://localhost:3000/get-profile?id=${studentId}`);
-        if (!response.ok) {
-            return null;
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching student:', error);
-        return null;
-    }
-}
-
-// Function to export report
-async function exportReport(student, sitIns, startDate, endDate) {
-    try {
-        // Create export options modal
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-        modal.innerHTML = `
-            <div class="bg-white p-6 rounded-lg w-96">
-                <h2 class="text-xl font-bold mb-4">Export Report</h2>
-                <div class="space-y-3">
-                    <button onclick="exportToCSV(${JSON.stringify(sitIns).replace(/"/g, '&quot;')})" 
-                        class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                        Export as CSV
-                    </button>
-                    <button onclick="exportToExcel(${JSON.stringify(sitIns).replace(/"/g, '&quot;')})" 
-                        class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        Export as Excel
-                    </button>
-                    <button onclick="exportToPDF(${JSON.stringify(sitIns).replace(/"/g, '&quot;')})" 
-                        class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                        Export as PDF
-                    </button>
-                    <button onclick="this.closest('.fixed').remove()" 
-                        class="w-full bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    } catch (error) {
-        console.error('Error showing export options:', error);
-        alert('Error preparing export options. Please try again.');
-    }
-}
-
-// Function to export to CSV
-function exportToCSV(sitIns) {
-    try {
-        // Define CSV headers
-        const headers = [
-            'ID Number',
-            'Name',
-            'Course',
-            'Year',
-            'Programming Language',
-            'Laboratory',
-            'Date',
-            'Time In',
-            'Time Out',
-            'Duration (mins)',
-            'Status'
-        ];
-
-        // Convert sit-ins to CSV rows
-        const rows = sitIns.map(sitIn => {
-            const timeIn = sitIn.timeIn || 'N/A';
-            const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
-            let duration = 'N/A';
-            
-            if (sitIn.timeIn && sitIn.timeOut) {
-                const start = new Date(sitIn.date + ' ' + sitIn.timeIn);
-                const end = new Date(sitIn.timeOut);
-                const diff = Math.round((end - start) / (1000 * 60));
-                duration = diff;
-            }
-
-            return [
-                sitIn.idNumber || 'N/A',
-                sitIn.name || 'N/A',
-                sitIn.course || 'N/A',
-                sitIn.year || 'N/A',
-                sitIn.programmingLanguage || 'N/A',
-                sitIn.laboratory || 'N/A',
-                sitIn.date || 'N/A',
-                timeIn,
-                timeOut,
-                duration,
-                sitIn.status || 'N/A'
-            ];
-        });
-
-        // Combine headers and rows
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
-
-        // Create and trigger download
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `student_report_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } catch (error) {
-        console.error('Error exporting to CSV:', error);
-        alert('Error exporting to CSV. Please try again.');
-    }
-}
-
-// Function to export to Excel
-function exportToExcel(sitIns) {
-    try {
-        // Create workbook
-        const wb = XLSX.utils.book_new();
-        
-        // Prepare data for Excel
-        const excelData = sitIns.map(sitIn => {
-            const timeIn = sitIn.timeIn || 'N/A';
-            const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
-            let duration = 'N/A';
-            
-            if (sitIn.timeIn && sitIn.timeOut) {
-                const start = new Date(sitIn.date + ' ' + sitIn.timeIn);
-                const end = new Date(sitIn.timeOut);
-                const diff = Math.round((end - start) / (1000 * 60));
-                duration = diff;
-            }
-
-            return {
-                'ID Number': sitIn.idNumber || 'N/A',
-                'Name': sitIn.name || 'N/A',
-                'Course': sitIn.course || 'N/A',
-                'Year': sitIn.year || 'N/A',
-                'Programming Language': sitIn.programmingLanguage || 'N/A',
-                'Laboratory': sitIn.laboratory || 'N/A',
-                'Date': sitIn.date || 'N/A',
-                'Time In': timeIn,
-                'Time Out': timeOut,
-                'Duration (mins)': duration,
-                'Status': sitIn.status || 'N/A'
-            };
-        });
-
-        // Create worksheet
-        const ws = XLSX.utils.json_to_sheet(excelData);
-        
-        // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(wb, ws, 'Student Report');
-        
-        // Generate Excel file
-        XLSX.writeFile(wb, `student_report_${new Date().toISOString().split('T')[0]}.xlsx`);
-    } catch (error) {
-        console.error('Error exporting to Excel:', error);
-        alert('Error exporting to Excel. Please try again.');
-    }
-}
-
-// Function to export to PDF
-function exportToPDF(sitIns) {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Add title
-        doc.setFontSize(16);
-        doc.text('Student Report', 20, 20);
-        doc.setFontSize(12);
-        
-        // Add date range
-        const dateRange = `Generated on: ${new Date().toLocaleDateString()}`;
-        doc.text(dateRange, 20, 30);
-        
-        // Add table headers
-        const headers = [
-            'ID Number',
-            'Name',
-            'Course',
-            'Year',
-            'Programming Language',
-            'Laboratory',
-            'Date',
-            'Time In',
-            'Time Out',
-            'Duration',
-            'Status'
-        ];
-        
-        // Calculate column widths
-        const pageWidth = doc.internal.pageSize.width;
-        const margin = 20;
-        const availableWidth = pageWidth - (margin * 2);
-        const columnWidth = availableWidth / headers.length;
-        
-        // Draw headers
-        headers.forEach((header, i) => {
-            doc.text(header, margin + (i * columnWidth), 40);
-        });
-        
-        // Draw data rows
-        let y = 50;
-        sitIns.forEach(sitIn => {
-            // Check if we need a new page
-            if (y > 280) {
-                doc.addPage();
-                y = 20;
-            }
-            
-            const timeIn = sitIn.timeIn || 'N/A';
-            const timeOut = sitIn.timeOut ? new Date(sitIn.timeOut).toLocaleTimeString() : 'N/A';
-            let duration = 'N/A';
-            
-            if (sitIn.timeIn && sitIn.timeOut) {
-                const start = new Date(sitIn.date + ' ' + sitIn.timeIn);
-                const end = new Date(sitIn.timeOut);
-                const diff = Math.round((end - start) / (1000 * 60));
-                duration = `${diff} mins`;
-            }
-            
-            const row = [
-                sitIn.idNumber || 'N/A',
-                sitIn.name || 'N/A',
-                sitIn.course || 'N/A',
-                sitIn.year || 'N/A',
-                sitIn.programmingLanguage || 'N/A',
-                sitIn.laboratory || 'N/A',
-                sitIn.date || 'N/A',
-                timeIn,
-                timeOut,
-                duration,
-                sitIn.status || 'N/A'
-            ];
-            
-            row.forEach((cell, i) => {
-                doc.text(cell, margin + (i * columnWidth), y);
+        if (resetUserBtn) {
+            resetUserBtn.addEventListener('click', async () => {
+                const idNumber = document.getElementById('user-id-input').value.trim();
+                if (!idNumber) {
+                    alert('Please enter a user ID');
+                    return;
+                }
+                
+                try {
+                    await resetSessions(idNumber);
+                    alert('User sessions reset successfully');
+                } catch (error) {
+                    alert('Error resetting user sessions: ' + error.message);
+                }
             });
-            
-            y += 10;
-        });
+        }
         
-        // Save the PDF
-        doc.save(`student_report_${new Date().toISOString().split('T')[0]}.pdf`);
+        if (resetSemesterBtn) {
+            resetSemesterBtn.addEventListener('click', async () => {
+                const semester = document.getElementById('semester-select').value.trim();
+                if (!semester) {
+                    alert('Please select a semester');
+                    return;
+                }
+                
+                try {
+                    await resetSessions(null, semester);
+                    alert('Semester sessions reset successfully');
+                } catch (error) {
+                    alert('Error resetting semester sessions: ' + error.message);
+                }
+            });
+        }
     } catch (error) {
-        console.error('Error exporting to PDF:', error);
-        alert('Error exporting to PDF. Please try again.');
+        console.error('Error initializing reset session:', error);
+        alert('Error initializing reset session section');
     }
 }
 
-// Function to fetch sit-ins data
+// Function to fetch sit-ins data for reports
 async function fetchSitInsData() {
     try {
         const response = await fetch("http://localhost:3000/sit-ins");
         if (!response.ok) {
-            throw new Error("Failed to fetch sit-in records");
+            throw new Error("Failed to fetch sit-ins data");
         }
         const sitIns = await response.json();
         return sitIns;
@@ -1819,776 +1685,58 @@ async function fetchSitInsData() {
     }
 }
 
-// Function to check for auto-logouts
-async function checkAutoLogouts() {
-    try {
-        const response = await fetch("http://localhost:3000/check-auto-logouts");
-        const data = await response.json();
-        
-        if (data.success && data.loggedOutUsers.length > 0) {
-            // Refresh the sit-ins table if any users were logged out
-            fetchSitIns();
-            
-            // Show notification
-            data.loggedOutUsers.forEach(user => {
-                showNotification(`User ${user.idNumber} was automatically logged out at ${user.timeOut}`);
-            });
-        }
-    } catch (error) {
-        console.error("Error checking auto-logouts:", error);
-    }
-}
-
-// Function to show notifications
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.className = 'fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded shadow-lg';
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    // Remove notification after 5 seconds
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
-}
-
-// Start auto-logout checker
-setInterval(checkAutoLogouts, 60000); // Check every minute
-
-// Add search functionality for unified table
-document.getElementById('unified-search')?.addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const tableBody = document.getElementById('unified-sit-ins-table');
-    const rows = tableBody.getElementsByTagName('tr');
-
-    for (let row of rows) {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-    }
-});
-
-// Function to check admin authentication
-async function checkAdminAuth() {
-    try {
-        const response = await fetch('http://localhost:3000/check-admin', {
-            method: 'GET',
-            credentials: 'include', // Important for session cookies
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Authentication check failed');
-        }
-        
-        const data = await response.json();
-        return data.isAdmin === true;
-    } catch (error) {
-        console.error('Error checking admin auth:', error);
-        return false;
-    }
-}
-
-// Function to update reset statistics
-async function updateResetStatistics() {
-    try {
-        // Check admin auth first
-        const isAdmin = await checkAdminAuth();
-        if (!isAdmin) {
-            console.warn("Not authenticated as admin. Cannot fetch reset statistics.");
-            const statsContainer = document.getElementById('reset-stats-container');
-            if (statsContainer) {
-                statsContainer.innerHTML = `
-                    <div class="text-center text-sm text-red-500">
-                        Please log in as administrator to view reset statistics.
-                    </div>
-                `;
-            }
-            return;
-        }
-
-        const response = await fetch('http://localhost:3000/reset-stats', {
-            method: 'GET',
-            credentials: 'include', // Important for session cookies
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch reset statistics');
-        }
-
-        const stats = await response.json();
-        
-        // Update statistics display
-        const totalResets = document.getElementById('total-resets');
-        const totalReservationsRemoved = document.getElementById('total-reservations-removed');
-        const totalSitInsRemoved = document.getElementById('total-sit-ins-removed');
-        
-        if (totalResets) totalResets.textContent = stats.totalResets || 0;
-        if (totalReservationsRemoved) totalReservationsRemoved.textContent = stats.totalReservationsRemoved || 0;
-        if (totalSitInsRemoved) totalSitInsRemoved.textContent = stats.totalSitInsRemoved || 0;
-        
-    } catch (error) {
-        console.error('Error updating reset statistics:', error);
-        const statsContainer = document.getElementById('reset-stats-container');
-        if (statsContainer) {
-            statsContainer.innerHTML = `
-                <div class="text-center text-sm text-red-500">
-                    Error loading reset statistics. Please try again later.
-                </div>
-            `;
-        }
-    }
-}
-
-// Function to initialize the reset session section
-function initResetSession() {
-    try {
-        console.log("Initializing reset session section...");
-        
-        // Get elements with null checks
-        const resetSemesterBtn = document.getElementById('reset-semester-btn');
-        const resetUserBtn = document.getElementById('reset-user-btn');
-        const semesterSelect = document.getElementById('semester-select');
-        const userIdInput = document.getElementById('user-id-input');
-        const refreshLogsBtn = document.getElementById('refresh-logs');
-        const logsFilter = document.getElementById('logs-filter');
-        const exportLogsBtn = document.getElementById('export-logs');
-        
-        // Check if required elements exist
-        if (!resetSemesterBtn || !resetUserBtn || !semesterSelect || !userIdInput) {
-            console.warn("Some reset session elements not found. Functionality may be limited.");
-        }
-        
-        // Initialize reset statistics
-        updateResetStatistics();
-        
-        // Load reset logs
-        loadResetLogs();
-        
-        // Reset Semester Button Event Listener
-        if (resetSemesterBtn) {
-            resetSemesterBtn.addEventListener('click', async function() {
-                const semester = semesterSelect.value;
-                if (!semester) {
-                    alert('Please select a semester first');
-                    return;
-                }
-
-                if (!confirm(`Are you sure you want to reset all sessions for ${semester}? This action cannot be undone.`)) {
-                    return;
-                }
-
-                try {
-                    // Disable button and show loading state
-                    this.disabled = true;
-                    this.innerHTML = `
-                        <svg class="animate-spin h-5 w-5 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Resetting...
-                    `;
-
-                    const result = await resetSessions(null, semester);
-                    
-                    if (result.success) {
-                        alert(`Successfully reset sessions for ${semester}`);
-                        // Reset the select
-                        semesterSelect.value = '';
-                        // Refresh logs and statistics
-                        await loadResetLogs();
-                        await updateResetStatistics();
-                    } else {
-                        throw new Error(result.message || 'Failed to reset sessions');
-                    }
-                } catch (error) {
-                    console.error('Error resetting semester:', error);
-                    alert(`Failed to reset semester: ${error.message}`);
-                } finally {
-                    // Restore button state
-                    this.disabled = false;
-                    this.innerHTML = 'Reset Semester';
-                }
-            });
-        }
-        
-        // Reset User Button Event Listener
-        if (resetUserBtn) {
-            resetUserBtn.addEventListener('click', async function() {
-                const userId = userIdInput.value.trim();
-                if (!userId) {
-                    alert('Please enter a student ID number');
-                    return;
-                }
-
-                if (!confirm(`Are you sure you want to reset sessions for student ${userId}? This action cannot be undone.`)) {
-                    return;
-                }
-
-                try {
-                    // Disable button and show loading state
-                    this.disabled = true;
-                    this.innerHTML = `
-                        <svg class="animate-spin h-5 w-5 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Resetting...
-                    `;
-
-                    const result = await resetSessions(userId);
-                    
-                    if (result.success) {
-                        alert(`Successfully reset sessions for student ${userId}`);
-                        // Clear the input
-                        userIdInput.value = '';
-                        // Refresh logs and statistics
-                        await loadResetLogs();
-                        await updateResetStatistics();
-                    } else {
-                        throw new Error(result.message || 'Failed to reset user sessions');
-                    }
-                } catch (error) {
-                    console.error('Error resetting user:', error);
-                    alert(`Failed to reset user sessions: ${error.message}`);
-                } finally {
-                    // Restore button state
-                    this.disabled = false;
-                    this.innerHTML = 'Reset User Sessions';
-                }
-            });
-        }
-        
-        // Filter logs event handler
-        if (logsFilter) {
-            logsFilter.addEventListener('change', function() {
-                filterLogs(this.value);
-            });
-        }
-        
-        // Export logs event handler
-        if (exportLogsBtn) {
-            exportLogsBtn.addEventListener('click', function() {
-                exportResetLogs();
-            });
-        }
-
-        // Refresh logs button event handler
-        if (refreshLogsBtn) {
-            refreshLogsBtn.addEventListener('click', async function() {
-                try {
-                    this.disabled = true;
-                    this.innerHTML = `
-                        <svg class="animate-spin h-4 w-4 mr-1 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Refreshing...
-                    `;
-                    await loadResetLogs();
-                    await updateResetStatistics();
-                } finally {
-                    this.disabled = false;
-                    this.innerHTML = `
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                        <span>Refresh</span>
-                    `;
-                }
-            });
-        }
-
-        console.log("Reset session section initialized successfully");
-        
-    } catch (error) {
-        console.error("Error initializing reset session section:", error);
-    }
-}
-
 // Function to load today's sit-in records
 async function loadTodaysSitInRecords() {
     try {
-        console.log("Loading today's sit-in records...");
-        const response = await fetch("http://localhost:3000/sit-ins");
-        if (!response.ok) {
-            throw new Error("Failed to fetch sit-in records");
-        }
-
-        const sitIns = await response.json();
-        
-        // Filter for today's records and active sit-ins
-        const today = new Date().toISOString().split('T')[0];
-        const todaysSitIns = sitIns.filter(sitIn => 
-            sitIn.date === today && 
-            sitIn.status === 'active'
-        );
-
-        console.log("Today's active sit-ins:", todaysSitIns);
-
-        // Get chart canvases
-        const programmingLanguageCanvas = document.getElementById('programmingLanguageChart');
-        const labRoomCanvas = document.getElementById('labRoomChart');
-
-        if (!programmingLanguageCanvas || !labRoomCanvas) {
-            console.error("Chart canvases not found");
-            return;
-        }
-
-        // Destroy existing charts if they exist
-        const existingProgrammingChart = Chart.getChart(programmingLanguageCanvas);
-        if (existingProgrammingChart) {
-            existingProgrammingChart.destroy();
-        }
-        
-        const existingLabChart = Chart.getChart(labRoomCanvas);
-        if (existingLabChart) {
-            existingLabChart.destroy();
-        }
-
-        // Count programming languages for active sit-ins
-        const languageStats = {};
-        todaysSitIns.forEach(record => {
-            const lang = record.programmingLanguage || 'Not Specified';
-            languageStats[lang] = (languageStats[lang] || 0) + 1;
-        });
-
-        // Count lab rooms for active sit-ins
-        const labStats = {};
-        todaysSitIns.forEach(record => {
-            const lab = record.laboratory || 'Not Specified';
-            labStats[lab] = (labStats[lab] || 0) + 1;
-        });
-
-        // Add default data if no active sit-ins
-        if (Object.keys(languageStats).length === 0) {
-            languageStats['No Data'] = 1;
-        }
-        if (Object.keys(labStats).length === 0) {
-            labStats['No Data'] = 1;
-        }
-
-        // Create programming language chart
-        new Chart(programmingLanguageCanvas, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(languageStats),
-                datasets: [{
-                    data: Object.values(languageStats),
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(199, 199, 199, 0.7)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            padding: 20,
-                            font: {
-                                size: 12
-                            },
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                if (data.labels.length && data.datasets.length) {
-                                    return data.labels.map((label, i) => {
-                                        const value = data.datasets[0].data[i];
-                                        const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        return {
-                                            text: `${label} (${percentage}%)`,
-                                            fillStyle: data.datasets[0].backgroundColor[i],
-                                            index: i
-                                        };
-                                    });
-                                }
-                                return [];
-                            }
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: 'Programming Language Distribution',
-                        font: {
-                            size: 16
-                        }
-                    }
-                }
-            }
-        });
-
-        // Create lab room chart
-        new Chart(labRoomCanvas, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(labStats),
-                datasets: [{
-                    data: Object.values(labStats),
-                    backgroundColor: [
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(255, 159, 64, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(199, 199, 199, 0.7)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            padding: 20,
-                            font: {
-                                size: 12
-                            },
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                if (data.labels.length && data.datasets.length) {
-                                    return data.labels.map((label, i) => {
-                                        const value = data.datasets[0].data[i];
-                                        const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        return {
-                                            text: `${label} (${percentage}%)`,
-                                            fillStyle: data.datasets[0].backgroundColor[i],
-                                            index: i
-                                        };
-                                    });
-                                }
-                                return [];
-                            }
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: 'Lab Room Distribution',
-                        font: {
-                            size: 16
-                        }
-                    }
-                }
-            }
-        });
-
-        // Update records table with active sit-ins
-        displaySitInRecords(todaysSitIns);
-
-        // Update total sessions count for today
-        const totalSessionsToday = document.getElementById('total-sessions-today');
-        if (totalSessionsToday) {
-            totalSessionsToday.textContent = todaysSitIns.length;
-        }
-
+        // Just call the updateRecordsCharts function which already has the logic we need
+        await updateRecordsCharts();
     } catch (error) {
-        console.error("Error loading sit-in records:", error);
+        console.error("Error loading records data:", error);
+        alert("Error loading records data: " + error.message);
     }
 }
 
-// Function to display sit-in records
-function displaySitInRecords(records) {
-    const tableBody = document.getElementById("sit-in-records-table");
-    if (!tableBody) return;
-
-    if (records.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="10" class="text-center py-4 text-gray-500">
-                    No records found for today
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    tableBody.innerHTML = "";
-    records.forEach(record => {
-        const timeIn = record.timeIn || 'N/A';
-        const timeOut = record.timeOut ? new Date(record.timeOut).toLocaleTimeString() : 'N/A';
-        let duration = 'N/A';
-        
-        if (record.timeIn && record.timeOut) {
-            const start = new Date(record.date + ' ' + record.timeIn);
-            const end = new Date(record.timeOut);
-            const diff = Math.round((end - start) / (1000 * 60)); // Duration in minutes
-            duration = `${diff} mins`;
-        }
-
-        const row = document.createElement("tr");
-        row.className = record.status === 'active' ? 'bg-green-50' : 'bg-gray-50';
-        row.innerHTML = `
-            <td class="border px-4 py-2">${record.idNumber || 'N/A'}</td>
-            <td class="border px-4 py-2">${record.name || 'N/A'}</td>
-            <td class="border px-4 py-2">${record.course || 'N/A'}</td>
-            <td class="border px-4 py-2">${record.year || 'N/A'}</td>
-            <td class="border px-4 py-2">${record.programmingLanguage || 'N/A'}</td>
-            <td class="border px-4 py-2">${record.laboratory || 'N/A'}</td>
-            <td class="border px-4 py-2">${timeIn}</td>
-            <td class="border px-4 py-2">${timeOut}</td>
-            <td class="border px-4 py-2">${duration}</td>
-            <td class="border px-4 py-2">
-                <span class="px-2 py-1 rounded text-sm ${
-                    record.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }">
-                    ${record.status}
-                </span>
-            </td>
-        `;
-        tableBody.appendChild(row);
-    });
-}
-
-// Function to update programming language distribution chart
-function updateProgrammingLanguageChart(records) {
-    const canvas = document.getElementById('programmingLanguageChart');
-    if (!canvas) return;
-
-    // Count programming languages
-    const languageStats = {};
-    records.forEach(record => {
-        const lang = record.programmingLanguage || 'Not Specified';
-        languageStats[lang] = (languageStats[lang] || 0) + 1;
-    });
-
-    // Prepare data for chart
-    const labels = Object.keys(languageStats);
-    const data = Object.values(languageStats);
-
-    // Define colors
-    const backgroundColors = [
-        'rgba(255, 99, 132, 0.7)',
-        'rgba(54, 162, 235, 0.7)',
-        'rgba(255, 206, 86, 0.7)',
-        'rgba(75, 192, 192, 0.7)',
-        'rgba(153, 102, 255, 0.7)',
-        'rgba(255, 159, 64, 0.7)',
-        'rgba(199, 199, 199, 0.7)'
-    ];
-
-    // Get existing chart instance
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) {
-        existingChart.destroy();
-    }
-
-    // Create new chart
-    new Chart(canvas, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: backgroundColors.slice(0, labels.length),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            layout: {
-                padding: 20
-            },
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        padding: 20,
-                        font: {
-                            size: 12
-                        },
-                        generateLabels: function(chart) {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    const value = data.datasets[0].data[i];
-                                    const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return {
-                                        text: `${label} (${percentage}%)`,
-                                        fillStyle: data.datasets[0].backgroundColor[i],
-                                        index: i
-                                    };
-                                });
-                            }
-                            return [];
-                        }
-                    }
-                },
-                title: {
-                    display: true,
-                    font: {
-                        size: 16
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Function to update lab room distribution chart
-function updateLabRoomChart(records) {
-    const canvas = document.getElementById('labRoomChart');
-    if (!canvas) return;
-
-    // Count lab room usage
-    const labStats = {};
-    records.forEach(record => {
-        const lab = record.laboratory || 'Not Specified';
-        labStats[lab] = (labStats[lab] || 0) + 1;
-    });
-
-    // Prepare data for chart
-    const labels = Object.keys(labStats);
-    const data = Object.values(labStats);
-
-    // Define colors
-    const backgroundColors = [
-        'rgba(75, 192, 192, 0.7)',
-        'rgba(255, 159, 64, 0.7)',
-        'rgba(54, 162, 235, 0.7)',
-        'rgba(255, 99, 132, 0.7)',
-        'rgba(153, 102, 255, 0.7)',
-        'rgba(255, 206, 86, 0.7)',
-        'rgba(199, 199, 199, 0.7)'
-    ];
-
-    // Get existing chart instance
-    const existingChart = Chart.getChart(canvas);
-    if (existingChart) {
-        existingChart.destroy();
-    }
-
-    // Create new chart
-    new Chart(canvas, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: backgroundColors.slice(0, labels.length),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            layout: {
-                padding: 20
-            },
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        padding: 20,
-                        font: {
-                            size: 12
-                        },
-                        generateLabels: function(chart) {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    const value = data.datasets[0].data[i];
-                                    const total = data.datasets[0].data.reduce((acc, val) => acc + val, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return {
-                                        text: `${label} (${percentage}%)`,
-                                        fillStyle: data.datasets[0].backgroundColor[i],
-                                        index: i
-                                    };
-                                });
-                            }
-                            return [];
-                        }
-                    }
-                },
-                title: {
-                    display: true,
-                    font: {
-                        size: 16
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Add search functionality for records
-document.getElementById('records-search')?.addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const tableBody = document.getElementById('sit-in-records-table');
-    const rows = tableBody.getElementsByTagName('tr');
-
-    for (let row of rows) {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-    }
-});
-
-// Function to load and display user feedback
+// Function to load feedback
 async function loadFeedback() {
     try {
         const response = await fetch("http://localhost:3000/feedback");
         if (!response.ok) {
-            throw new Error("Failed to fetch feedback");
+            throw new Error("Failed to fetch feedback data");
         }
-
         const feedback = await response.json();
-        const feedbackTableBody = document.getElementById('feedbackTableBody');
         
-        if (!feedbackTableBody) {
-            console.error('Feedback table body not found');
-            return;
-        }
+        // Sort feedback by date (newest first)
+        feedback.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // Display feedback in the table
+        const feedbackTableBody = document.getElementById('feedbackTableBody');
+        if (!feedbackTableBody) return;
 
         if (feedback.length === 0) {
             feedbackTableBody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="text-center py-4 text-gray-500">
-                        No feedback received yet
+                    <td colspan="4" class="px-4 py-3 text-center text-sm text-gray-500">
+                        No feedback found
                     </td>
                 </tr>
             `;
             return;
         }
 
-        // Sort feedback by date (newest first)
-        feedback.sort((a, b) => new Date(b.date) - new Date(a.date));
+        let html = '';
+        feedback.forEach(item => {
+            const date = new Date(item.date).toLocaleString();
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm text-gray-900">${item.userId || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${item.laboratory || 'N/A'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${date}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">${item.message}</td>
+                </tr>
+            `;
+        });
 
-        // Generate feedback HTML
-        const feedbackHTML = feedback.map(item => `
-            <tr>
-                <td class="border border-gray-300 px-4 py-2">${item.userId || 'Anonymous'}</td>
-                <td class="border border-gray-300 px-4 py-2">${item.laboratory || 'N/A'}</td>
-                <td class="border border-gray-300 px-4 py-2">${new Date(item.date).toLocaleString()}</td>
-                <td class="border border-gray-300 px-4 py-2">${item.message}</td>
-            </tr>
-        `).join('');
-
-        feedbackTableBody.innerHTML = feedbackHTML;
-
-        // Clear feedback notification after viewing
-        clearFeedbackNotification();
+        feedbackTableBody.innerHTML = html;
         
     } catch (error) {
         console.error("Error loading feedback:", error);
@@ -2596,8 +1744,8 @@ async function loadFeedback() {
         if (feedbackTableBody) {
             feedbackTableBody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="text-center py-4 text-red-500">
-                        Error loading feedback. Please try again later.
+                    <td colspan="4" class="px-4 py-3 text-center text-sm text-red-500">
+                        Error loading feedback: ${error.message}
                     </td>
                 </tr>
             `;
@@ -2605,198 +1753,758 @@ async function loadFeedback() {
     }
 }
 
-// Function to search for a student by ID
-async function searchStudentById(idNumber) {
-    try {
-        const response = await fetch(`http://localhost:3000/get-profile?id=${idNumber}`);
-        if (!response.ok) {
-            throw new Error('Student not found');
-        }
-        const student = await response.json();
-        return student;
-    } catch (error) {
-        console.error('Error searching for student:', error);
-        return null;
-    }
-}
-
-// Function to handle walk-in form display
-function setupWalkInForm() {
-    const searchBtn = document.getElementById('search-student-btn');
-    const walkinPurpose = document.getElementById('walkin-purpose');
-    const otherPurposeContainer = document.getElementById('other-purpose-container');
-    const walkinProgLanguage = document.getElementById('walkin-prog-language');
-    const progLanguageOtherContainer = document.getElementById('prog-language-other-container');
-    const addWalkinBtn = document.getElementById('add-walkin-btn');
-
-    if (!searchBtn || !walkinPurpose || !otherPurposeContainer || 
-        !walkinProgLanguage || !progLanguageOtherContainer || !addWalkinBtn) {
-        console.error('Walk-in form elements not found');
+// Function to delete feedback
+async function deleteFeedback(id) {
+    if (!confirm("Are you sure you want to delete this feedback?")) {
         return;
     }
 
-    // Handle student search
-    searchBtn.addEventListener('click', async () => {
-        const studentId = document.getElementById('walkin-student-id').value.trim();
-        const statusElement = document.getElementById('student-search-status');
-        const studentInfo = document.getElementById('student-info');
-
-        if (!studentId) {
-            statusElement.textContent = 'Please enter a student ID';
-            return;
-        }
-
-        statusElement.textContent = 'Searching...';
-        const student = await searchStudentById(studentId);
-
-        if (student) {
-            document.getElementById('walkin-student-name').textContent = `${student.firstName} ${student.lastName}`;
-            document.getElementById('walkin-student-course').textContent = student.course;
-            document.getElementById('walkin-student-year').textContent = student.year;
-            studentInfo.classList.remove('hidden');
-            addWalkinBtn.disabled = false;
-            statusElement.textContent = 'Student found';
-        } else {
-            statusElement.textContent = 'Student not found';
-            studentInfo.classList.add('hidden');
-            addWalkinBtn.disabled = true;
-        }
-    });
-
-    // Handle purpose selection
-    walkinPurpose.addEventListener('change', () => {
-        otherPurposeContainer.classList.toggle('hidden', walkinPurpose.value !== 'Other');
-    });
-
-    // Handle programming language selection
-    walkinProgLanguage.addEventListener('change', () => {
-        progLanguageOtherContainer.classList.toggle('hidden', walkinProgLanguage.value !== 'Other');
-    });
-
-    // Handle walk-in submission
-    addWalkinBtn.addEventListener('click', async () => {
-        const studentId = document.getElementById('walkin-student-id').value.trim();
-        const purpose = document.getElementById('walkin-purpose').value;
-        const otherPurpose = document.getElementById('walkin-other-purpose').value;
-        const programmingLanguage = document.getElementById('walkin-prog-language').value;
-        const otherLanguage = document.getElementById('walkin-other-language').value;
-
-        if (!studentId || !purpose) {
-            alert('Please fill in all required fields');
-            return;
-        }
-
-        if (purpose === 'Other' && !otherPurpose) {
-            alert('Please specify the other purpose');
-            return;
-        }
-
-        if (programmingLanguage === 'Other' && !otherLanguage) {
-            alert('Please specify the other programming language');
-            return;
-        }
-
-        const student = await searchStudentById(studentId);
-        if (!student) {
-            alert('Student not found');
-            return;
-        }
-
-        try {
-            const response = await fetch('http://localhost:3000/create-walkin', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    idNumber: studentId,
-                    name: `${student.firstName} ${student.lastName}`,
-                    course: student.course,
-                    year: student.year,
-                    purpose: purpose === 'Other' ? otherPurpose : purpose,
-                    programmingLanguage: programmingLanguage === 'Other' ? otherLanguage : programmingLanguage,
-                    otherPurpose: purpose === 'Other' ? otherPurpose : null,
-                    otherLanguage: programmingLanguage === 'Other' ? otherLanguage : null
-                })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                alert('Walk-in student added successfully');
-                // Reset form
-                document.getElementById('walkin-student-id').value = '';
-                document.getElementById('walkin-purpose').value = '';
-                document.getElementById('walkin-other-purpose').value = '';
-                document.getElementById('walkin-prog-language').value = '';
-                document.getElementById('walkin-other-language').value = '';
-                document.getElementById('student-info').classList.add('hidden');
-                document.getElementById('add-walkin-btn').disabled = true;
-                // Refresh sit-ins table
-                fetchSitIns();
-            } else {
-                throw new Error(data.message || 'Failed to add walk-in student');
-            }
-        } catch (error) {
-            console.error('Error adding walk-in student:', error);
-            alert(error.message || 'Failed to add walk-in student');
-        }
-    });
-}
-
-// Add walk-in form setup to the DOMContentLoaded event
-document.addEventListener("DOMContentLoaded", function() {
-    // ... existing DOMContentLoaded code ...
-    
-    // Set up walk-in form
-    setupWalkInForm();
-    
-    // ... rest of existing DOMContentLoaded code ...
-});
-
-// Function to export and reset logs
-async function exportResetLogs() {
     try {
-        // First, export the logs
-        const response = await fetch('http://localhost:3000/export-logs', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const response = await fetch(`http://localhost:3000/delete-feedback/${id}`, {
+            method: "DELETE"
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to export logs');
+        if (response.ok) {
+            alert("Feedback deleted successfully!");
+            await loadFeedback(); // Reload the feedback table
+        } else {
+            throw new Error("Failed to delete feedback");
         }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `logs_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        // After successful export, reset the logs
-        const resetResponse = await fetch('http://localhost:3000/reset-logs', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!resetResponse.ok) {
-            throw new Error('Failed to reset logs');
-        }
-
-        // Show success message
-        alert('Logs exported and reset successfully!');
-        
-        // Refresh the logs table
-        loadResetLogs();
     } catch (error) {
-        console.error('Error exporting/resetting logs:', error);
-        alert('Failed to export or reset logs. Please try again.');
+        console.error("Error deleting feedback:", error);
+        alert("Failed to delete feedback. Please try again.");
     }
 }
+
+// Function to generate student report
+async function generateStudentReport() {
+    try {
+        const startDate = document.getElementById('report-date-start').value;
+        const endDate = document.getElementById('report-date-end').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+
+        // ... rest of the function ...
+    } catch (error) {
+        console.error("Error generating student report:", error);
+        alert("Error generating student report. Please try again.");
+    }
+}
+
+// Function to initialize walk-in form
+function initializeWalkinForm() {
+    const searchStudentBtn = document.getElementById('search-student-btn');
+    const walkinStudentId = document.getElementById('walkin-student-id');
+    const addWalkinBtn = document.getElementById('add-walkin-btn');
+    const walkinProgLanguage = document.getElementById('walkin-prog-language');
+    const walkinOtherLanguage = document.getElementById('walkin-other-language');
+    const walkinLabRoom = document.getElementById('walkin-lab-room');
+    const otherLanguageContainer = document.getElementById('prog-language-other-container');
+    
+    // Hide other language input initially
+    if (otherLanguageContainer) {
+        otherLanguageContainer.style.display = 'none';
+    }
+    
+    // Show/hide other language input when "Other" is selected
+    if (walkinProgLanguage) {
+        walkinProgLanguage.addEventListener('change', function() {
+            if (otherLanguageContainer) {
+                otherLanguageContainer.style.display = this.value === 'Other' ? 'block' : 'none';
+            }
+        });
+    }
+    
+    // Search for student when search button is clicked
+    if (searchStudentBtn && walkinStudentId) {
+        searchStudentBtn.addEventListener('click', async function() {
+            const studentId = walkinStudentId.value.trim();
+            if (!studentId) {
+                alert('Please enter a student ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`http://localhost:3000/get-user?id=${studentId}`);
+                if (!response.ok) {
+                    throw new Error('Student not found');
+                }
+                
+                const data = await response.json();
+                if (!data.success || !data.user) {
+                    throw new Error('Student not found');
+                }
+                
+                const student = data.user;
+                
+                // Display student info
+                const studentInfoContainer = document.getElementById('student-info');
+                if (studentInfoContainer) {
+                    studentInfoContainer.classList.remove('hidden');
+                }
+                
+                document.getElementById('walkin-student-name').textContent = `${student.firstName} ${student.lastName}`;
+                document.getElementById('walkin-student-course').textContent = student.course || 'N/A';
+                document.getElementById('walkin-student-year').textContent = student.year || 'N/A';
+                
+                // Enable add button
+                if (addWalkinBtn) {
+                    addWalkinBtn.disabled = false;
+                }
+                
+            } catch (error) {
+                console.error('Error searching for student:', error);
+                alert('Student not found. Please check the ID and try again.');
+                
+                // Hide student info container
+                const studentInfoContainer = document.getElementById('student-info');
+                if (studentInfoContainer) {
+                    studentInfoContainer.classList.add('hidden');
+                }
+                
+                // Reset student info
+                document.getElementById('walkin-student-name').textContent = '-';
+                document.getElementById('walkin-student-course').textContent = '-';
+                document.getElementById('walkin-student-year').textContent = '-';
+                
+                // Disable add button
+                if (addWalkinBtn) {
+                    addWalkinBtn.disabled = true;
+                }
+            }
+        });
+    }
+    
+    // Handle walk-in submission
+    if (addWalkinBtn) {
+        addWalkinBtn.addEventListener('click', async function() {
+            const studentId = walkinStudentId.value.trim();
+            if (!studentId) {
+                alert('Please enter a student ID');
+                return;
+            }
+            
+            try {
+                let programmingLanguage = walkinProgLanguage ? walkinProgLanguage.value : 'Not Specified';
+                if (programmingLanguage === 'Other' && walkinOtherLanguage) {
+                    programmingLanguage = walkinOtherLanguage.value.trim();
+                    if (!programmingLanguage) {
+                        alert('Please specify the programming language');
+                        return;
+                    }
+                }
+                
+                const labRoom = walkinLabRoom ? walkinLabRoom.value : '524';
+                
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date().toISOString().split('T')[0];
+                const currentTime = new Date().toTimeString().slice(0, 5); // Current time in HH:MM format
+
+                // Use the dedicated walkin endpoint to create an active session directly
+                const response = await fetch('http://localhost:3000/create-walkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        idNumber: studentId,
+                        name: document.getElementById('walkin-student-name').textContent,
+                        course: document.getElementById('walkin-student-course').textContent,
+                        year: document.getElementById('walkin-student-year').textContent,
+                        purpose: 'Computer laboratory use', // Add default purpose
+                        programmingLanguage: programmingLanguage,
+                        otherLanguage: programmingLanguage === 'Other' ? walkinOtherLanguage.value : '',
+                        labRoom: labRoom,
+                        // These fields will be set on the server side
+                        // timeIn: currentTime, 
+                        // status: 'active'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || data.message || 'Failed to create walk-in');
+                }
+                
+                // Show success message
+                alert('Walk-in successfully created and activated!');
+                
+                // Reset form
+                walkinStudentId.value = '';
+                if (walkinProgLanguage) walkinProgLanguage.value = 'Not Specified';
+                if (walkinOtherLanguage) {
+                    walkinOtherLanguage.value = '';
+                }
+                if (walkinLabRoom) {
+                    walkinLabRoom.value = '524';
+                }
+                
+                // Hide the additional input containers
+                if (otherLanguageContainer) otherLanguageContainer.style.display = 'none';
+                
+                // Reset student info
+                document.getElementById('walkin-student-name').textContent = '-';
+                document.getElementById('walkin-student-course').textContent = '-';
+                document.getElementById('walkin-student-year').textContent = '-';
+                
+                // Hide student info container
+                const studentInfoContainer = document.getElementById('student-info');
+                if (studentInfoContainer) {
+                    studentInfoContainer.classList.add('hidden');
+                }
+                
+                // Disable add button
+                addWalkinBtn.disabled = true;
+                
+                // Refresh sit-ins table
+                await fetchSitIns();
+                
+                // Update dashboard counts
+                const dashboardSitInCount = document.getElementById('current-sit-in');
+                if (dashboardSitInCount) {
+                    const currentCount = parseInt(dashboardSitInCount.textContent || '0');
+                    dashboardSitInCount.textContent = currentCount + 1;
+                }
+                
+                // Update the records charts to reflect the new sit-in
+                await updateRecordsCharts();
+                
+            } catch (error) {
+                console.error('Error creating walk-in:', error);
+                alert('Error creating walk-in: ' + error.message);
+            }
+        });
+    }
+}
+
+// Function to update the charts in Records section with new data
+async function updateRecordsCharts() {
+    try {
+        // Fetch the latest reservations data (which includes both online reservations and walk-ins)
+        const reservationsResponse = await fetch("http://localhost:3000/reservations");
+        if (!reservationsResponse.ok) {
+            throw new Error("Failed to fetch reservations data");
+        }
+        const reservations = await reservationsResponse.json();
+        
+        // Filter for approved reservations and active sessions
+        const approvedReservations = reservations.filter(reservation => 
+            reservation.status === 'approved' || reservation.status === 'active'
+        );
+        
+        console.log("Total sessions for charts:", approvedReservations.length);
+        
+        // Get chart canvases
+        const programmingLanguageCanvas = document.getElementById('programmingLanguageChart');
+        const labRoomCanvas = document.getElementById('labRoomChart');
+        
+        // Update total sessions count
+        const totalSessionsToday = document.getElementById('total-sessions-today');
+        if (totalSessionsToday) {
+            totalSessionsToday.textContent = approvedReservations.length;
+        }
+        
+        if (programmingLanguageCanvas || labRoomCanvas) {
+            // Count programming languages
+            const languageStats = {};
+            approvedReservations.forEach(record => {
+                let lang = 'Not Specified';
+                
+                // Handle different field names and formats
+                if (record.programmingLanguage) {
+                    lang = record.programmingLanguage;
+                }
+                
+                languageStats[lang] = (languageStats[lang] || 0) + 1;
+            });
+            
+            // Count lab rooms
+            const labStats = {};
+            approvedReservations.forEach(record => {
+                // Handle different possible field names for lab rooms
+                let lab = 'Not Specified';
+                
+                if (record.labRoom) {
+                    lab = record.labRoom;
+                } else if (record.laboratory) {
+                    lab = record.laboratory;
+                }
+                
+                // Convert numeric lab values to room names for consistency
+                if (lab === '524') lab = 'Room 524 - Programming Lab';
+                else if (lab === '526') lab = 'Room 526 - Networking Lab';
+                else if (lab === '530') lab = 'Room 530 - Database Lab';
+                else if (lab === '542') lab = 'Room 542 - Web Development Lab';
+                else if (lab === '544') lab = 'Room 544 - General Computing Lab';
+                else if (lab === 'Walk-in') lab = 'Walk-in Session';
+                
+                labStats[lab] = (labStats[lab] || 0) + 1;
+            });
+            
+            console.log("Language stats:", languageStats);
+            console.log("Lab stats:", labStats);
+            
+            // Update programming language chart
+            if (programmingLanguageCanvas) {
+                // Safely destroy existing chart if it exists
+                if (window.programmingLanguageChart && typeof window.programmingLanguageChart.destroy === 'function') {
+                    window.programmingLanguageChart.destroy();
+                }
+                
+                window.programmingLanguageChart = new Chart(programmingLanguageCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(languageStats),
+                        datasets: [{
+                            data: Object.values(languageStats),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.7)',
+                                'rgba(54, 162, 235, 0.7)',
+                                'rgba(255, 206, 86, 0.7)',
+                                'rgba(75, 192, 192, 0.7)',
+                                'rgba(153, 102, 255, 0.7)',
+                                'rgba(255, 159, 64, 0.7)',
+                                'rgba(199, 199, 199, 0.7)',
+                            ],
+                            borderColor: [
+                                'rgb(255, 99, 132)',
+                                'rgb(54, 162, 235)',
+                                'rgb(255, 206, 86)',
+                                'rgb(75, 192, 192)',
+                                'rgb(153, 102, 255)',
+                                'rgb(255, 159, 64)',
+                                'rgb(199, 199, 199)',
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Programming Languages Distribution'
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Update lab room chart
+            if (labRoomCanvas) {
+                // Safely destroy existing chart if it exists
+                if (window.labRoomChart && typeof window.labRoomChart.destroy === 'function') {
+                    window.labRoomChart.destroy();
+                }
+                
+                window.labRoomChart = new Chart(labRoomCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(labStats),
+                        datasets: [{
+                            data: Object.values(labStats),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.7)',
+                                'rgba(54, 162, 235, 0.7)',
+                                'rgba(255, 206, 86, 0.7)',
+                                'rgba(75, 192, 192, 0.7)',
+                                'rgba(153, 102, 255, 0.7)',
+                                'rgba(255, 159, 64, 0.7)',
+                                'rgba(199, 199, 199, 0.7)',
+                            ],
+                            borderColor: [
+                                'rgb(255, 99, 132)',
+                                'rgb(54, 162, 235)',
+                                'rgb(255, 206, 86)',
+                                'rgb(75, 192, 192)',
+                                'rgb(153, 102, 255)',
+                                'rgb(255, 159, 64)',
+                                'rgb(199, 199, 199)',
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Laboratory Room Distribution'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error updating records charts:", error);
+    }
+}
+
+// Document ready event listener
+document.addEventListener('DOMContentLoaded', function() {
+    // Verify admin authentication
+    checkAdminAuth();
+    
+    // Initialize the dashboard data by default
+    initializeDashboard();
+    initializeWalkinForm();
+    
+    // Set up navigation links
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetSection = this.getAttribute('data-section');
+            if (targetSection) {
+                showSection(targetSection);
+            }
+        });
+    });
+});
+
+async function approveReservation(reservationId) {
+    if (!confirm("Approve this reservation?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch("http://localhost:3000/update-reservation", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                id: reservationId,
+                status: "approved"
+            })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || data.message || "Failed to approve reservation");
+        }
+
+        alert("Reservation approved successfully!");
+        
+        // Update the dashboard count for pending reservations
+        const pendingCountElement = document.getElementById('pending-reservations');
+        if (pendingCountElement && data.user && typeof data.user.pendingReservations === 'number') {
+            // We're displaying the total pending reservations, not just for this user
+            // So we need to refresh the data to get the new count
+            await fetchSitIns();
+        }
+        
+        // Refresh data
+        await fetchSitIns();
+        await updateRecordsCharts();
+    } catch (error) {
+        console.error("Error approving reservation:", error);
+        alert("Error: " + error.message);
+    }
+}
+
+async function rejectReservation(reservationId) {
+    if (!confirm("Reject this reservation?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch("http://localhost:3000/update-reservation", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                id: reservationId,
+                status: "rejected"
+            })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || data.message || "Failed to reject reservation");
+        }
+
+        alert("Reservation rejected successfully!");
+        
+        // Update the dashboard count for pending reservations
+        const pendingCountElement = document.getElementById('pending-reservations');
+        if (pendingCountElement && data.user && typeof data.user.pendingReservations === 'number') {
+            // We're displaying the total pending reservations, not just for this user
+            // So we need to refresh the data to get the new count
+            await fetchSitIns();
+        }
+        
+        // Refresh data
+        await fetchSitIns();
+        await updateRecordsCharts();
+    } catch (error) {
+        console.error("Error rejecting reservation:", error);
+        alert("Error: " + error.message);
+    }
+}
+
+// Initialize search functionality for the sit-ins table
+function initializeSearch() {
+    const searchInput = document.getElementById('sit-in-search');
+    if (!searchInput) {
+        console.error("Search input not found");
+        return;
+    }
+    
+    console.log("Initializing search functionality");
+    
+    // Clear existing listeners to avoid duplicates
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+    
+    // Add new listener
+    newSearchInput.addEventListener('input', function() {
+        if (!window.allSitInEntries) {
+            console.warn("No sit-in entries available for search");
+            return;
+        }
+        
+        const searchTerm = this.value.trim().toLowerCase();
+        if (!searchTerm) {
+            displayUnifiedTable(window.allSitInEntries);
+            return;
+        }
+        
+        // Filter entries by ID or name
+        const filteredEntries = window.allSitInEntries.filter(entry => 
+            (entry.idNumber && entry.idNumber.toLowerCase().includes(searchTerm)) || 
+            (entry.name && entry.name.toLowerCase().includes(searchTerm))
+        );
+        
+        displayUnifiedTable(filteredEntries);
+    });
+    
+    console.log("Search functionality initialized");
+}
+
+function updateCharts(entries) {
+    try {
+        // Get today's date in YYYY-MM-DD format for filtering
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        
+        // Count entries by type for pie chart
+        const walkInCount = entries.filter(entry => entry.entryType === 'walk-in' || entry.isWalkIn).length;
+        const reservationCount = entries.filter(entry => entry.entryType === 'reservation' && !entry.isWalkIn).length;
+        
+        // Count entries by language for bar chart
+        const languageCounts = {};
+        entries.forEach(entry => {
+            const language = entry.programmingLanguage || 'Unknown';
+            if (!languageCounts[language]) {
+                languageCounts[language] = 0;
+            }
+            languageCounts[language]++;
+        });
+        
+        // Count entries by status
+        const statusCounts = {
+            'active': 0,
+            'pending': 0,
+            'approved': 0,
+            'completed': 0,
+            'rejected': 0
+        };
+        
+        entries.forEach(entry => {
+            const status = entry.status || 'Unknown';
+            if (statusCounts.hasOwnProperty(status)) {
+                statusCounts[status]++;
+            }
+        });
+        
+        // Count entries for today
+        const todayEntries = entries.filter(entry => entry.date === formattedToday);
+        const todayWalkInCount = todayEntries.filter(entry => entry.entryType === 'walk-in' || entry.isWalkIn).length;
+        const todayReservationCount = todayEntries.filter(entry => entry.entryType === 'reservation' && !entry.isWalkIn).length;
+        
+        // Update pie chart (entry types)
+        const typeCtxElement = document.getElementById('pieChartTypes');
+        if (typeCtxElement) {
+            const typeCtx = typeCtxElement.getContext('2d');
+            if (window.typeChart) {
+                window.typeChart.destroy();
+            }
+            window.typeChart = new Chart(typeCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Walk-in', 'Reservation'],
+                    datasets: [{
+                        data: [walkInCount, reservationCount],
+                        backgroundColor: ['#6366F1', '#8B5CF6'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Entry Types Distribution'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update bar chart (programming languages)
+        const langCtxElement = document.getElementById('barChartLanguages');
+        if (langCtxElement) {
+            const langCtx = langCtxElement.getContext('2d');
+            if (window.langChart) {
+                window.langChart.destroy();
+            }
+            
+            const languages = Object.keys(languageCounts);
+            const languageData = languages.map(lang => languageCounts[lang]);
+            
+            window.langChart = new Chart(langCtx, {
+                type: 'bar',
+                data: {
+                    labels: languages,
+                    datasets: [{
+                        label: 'Language Usage',
+                        data: languageData,
+                        backgroundColor: '#4F46E5',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Language Usage Distribution'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update doughnut chart (status distribution)
+        const statusCtxElement = document.getElementById('doughnutChartStatus');
+        if (statusCtxElement) {
+            const statusCtx = statusCtxElement.getContext('2d');
+            if (window.statusChart) {
+                window.statusChart.destroy();
+            }
+            
+            window.statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active', 'Pending', 'Approved', 'Completed', 'Rejected'],
+                    datasets: [{
+                        data: [
+                            statusCounts.active,
+                            statusCounts.pending,
+                            statusCounts.approved,
+                            statusCounts.completed,
+                            statusCounts.rejected
+                        ],
+                        backgroundColor: [
+                            '#10B981', // green for active
+                            '#F59E0B', // yellow for pending
+                            '#3B82F6', // blue for approved
+                            '#6B7280', // gray for completed
+                            '#EF4444'  // red for rejected
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Status Distribution'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update line chart (today's entries)
+        const todayCtxElement = document.getElementById('lineChartToday');
+        if (todayCtxElement) {
+            const todayCtx = todayCtxElement.getContext('2d');
+            if (window.todayChart) {
+                window.todayChart.destroy();
+            }
+            
+            window.todayChart = new Chart(todayCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Walk-in', 'Reservation'],
+                    datasets: [{
+                        label: 'Today\'s Entries',
+                        data: [todayWalkInCount, todayReservationCount],
+                        fill: false,
+                        borderColor: '#8B5CF6',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Today's Entries (${formattedToday})`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        console.log('Charts updated successfully');
+        
+    } catch (error) {
+        console.error('Error updating charts:', error);
+    }
+}
+
