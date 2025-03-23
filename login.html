@@ -129,6 +129,12 @@
                 // Store userId in sessionStorage
                 sessionStorage.setItem("loggedInUserId", result.userId);
 
+                // If admin login, store admin session information in localStorage
+                if (result.isAdmin) {
+                    localStorage.setItem("adminSessionValid", "true");
+                    localStorage.setItem("lastAdminAuthCheck", new Date().getTime().toString());
+                }
+
                 // Save to localStorage if remember me is checked
                 if (document.getElementById("remember").checked) {
                     localStorage.setItem("rememberedUser", identifier);

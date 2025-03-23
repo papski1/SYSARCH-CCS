@@ -1,195 +1,510 @@
 [
   {
-    "id": 1742314684022,
-    "timestamp": "2025-03-18T16:18:04.022Z",
+    "timestamp": "2025-03-23T12:53:43.085Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-03-23T12:53:41.835Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "id": 1742734419974,
+    "timestamp": "2025-03-23T12:53:39.974Z",
     "adminId": "admin",
     "resetType": "user",
     "details": {
       "userId": "2223",
-      "reservationsRemoved": 4,
-      "sitInsRemoved": 4,
-      "userReset": true
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 0,
+      "userReset": true,
+      "sessionCountReset": true
     }
   },
   {
-    "id": 1742313177500,
-    "timestamp": "2025-03-18T15:52:57.500Z",
+    "timestamp": "2025-03-23T12:19:13.124Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
     "adminId": "admin",
-    "resetType": "semester",
-    "details": {
-      "semester": "Second Semester",
-      "dateRange": {
-        "start": "2025-01-01",
-        "end": "2025-05-31"
-      },
-      "reservationsRemoved": 0,
-      "sitInsRemoved": 2,
-      "usersReset": 5
-    }
+    "adminEmail": "admin@example.com"
   },
   {
-    "id": 1742312327839,
-    "timestamp": "2025-03-18T15:38:47.839Z",
+    "timestamp": "2025-03-23T12:19:12.260Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "id": 1742732350592,
+    "timestamp": "2025-03-23T12:19:10.592Z",
     "adminId": "admin",
     "resetType": "user",
     "details": {
-      "userId": "22635452",
+      "userId": "2223",
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 0,
+      "userReset": true,
+      "sessionCountReset": true
+    }
+  },
+  {
+    "timestamp": "2025-03-23T12:03:24.442Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-03-23T12:03:23.812Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-03-23T12:03:22.460Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "id": 1742731400462,
+    "timestamp": "2025-03-23T12:03:20.462Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "2223",
       "reservationsRemoved": 0,
       "sitInsRemoved": 0,
-      "userReset": true
+      "userReset": true,
+      "sessionCountReset": true
     }
   },
   {
-    "id": 1742312326565,
-    "timestamp": "2025-03-18T15:38:46.565Z",
+    "id": 1742731392532,
+    "timestamp": "2025-03-23T12:03:12.532Z",
     "adminId": "admin",
     "resetType": "user",
     "details": {
-      "userId": "22635452",
-      "reservationsRemoved": 1,
+      "userId": "2223",
+      "reservationsRemoved": 0,
       "sitInsRemoved": 1,
-      "userReset": true
+      "userReset": true,
+      "sessionCountReset": true
     }
   },
   {
-    "id": 1742204009514,
-    "timestamp": "2025-03-17T09:33:29.514Z",
+    "timestamp": "2025-03-23T12:00:34.015Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
     "adminId": "admin",
-    "resetType": "semester",
-    "details": {
-      "semester": "Second Semester",
-      "dateRange": {
-        "start": "2025-01-01",
-        "end": "2025-05-31"
-      },
-      "reservationsRemoved": 1,
-      "sitInsRemoved": 1
-    }
+    "adminEmail": null
   },
   {
-    "id": 1742203803815,
-    "timestamp": "2025-03-17T09:30:03.815Z",
-    "adminId": "admin",
-    "resetType": "semester",
-    "details": {
-      "semester": "Second Semester",
-      "dateRange": {
-        "start": "2025-01-01",
-        "end": "2025-05-31"
-      },
-      "reservationsRemoved": 1,
-      "sitInsRemoved": 1
-    }
-  },
-  {
-    "id": 1742203555499,
-    "timestamp": "2025-03-17T09:25:55.499Z",
-    "adminId": "admin",
-    "resetType": "semester",
-    "details": {
-      "semester": "Second Semester",
-      "dateRange": {
-        "start": "2025-01-01",
-        "end": "2025-05-31"
-      },
-      "reservationsRemoved": 0,
-      "sitInsRemoved": 0
-    }
-  },
-  {
-    "id": 1742203545227,
-    "timestamp": "2025-03-17T09:25:45.227Z",
+    "id": 1742731227104,
+    "timestamp": "2025-03-23T12:00:27.104Z",
     "adminId": "admin",
     "resetType": "user",
     "details": {
-      "userId": "22635452",
+      "userId": "2223",
       "reservationsRemoved": 0,
-      "sitInsRemoved": 0
+      "sitInsRemoved": 1,
+      "userReset": true,
+      "sessionCountReset": true
     }
   },
   {
-    "id": 1742203403814,
-    "timestamp": "2025-03-17T09:23:23.814Z",
+    "timestamp": "2025-03-23T11:59:25.831Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:59:25.729Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:59:25.726Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:59:25.728Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:59:25.714Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "id": 1742731155399,
+    "timestamp": "2025-03-23T11:59:15.399Z",
     "adminId": "admin",
     "resetType": "semester",
     "details": {
       "semester": "Second Semester",
-      "dateRange": {
-        "start": "2025-01-01",
-        "end": "2025-05-31"
-      },
-      "reservationsRemoved": 1,
-      "sitInsRemoved": 2
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 2,
+      "usersReset": 6
     }
   },
   {
-    "id": 1742203297074,
-    "timestamp": "2025-03-17T09:21:37.074Z",
+    "timestamp": "2025-03-23T11:58:04.538Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:58:03.695Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:56:03.498Z",
+    "resetType": "user",
+    "resetTarget": "2223",
+    "action": "Reset user 2223",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "id": 1742730962782,
+    "timestamp": "2025-03-23T11:56:02.782Z",
     "adminId": "admin",
     "resetType": "user",
     "details": {
-      "userId": "22635452",
+      "userId": "2223",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "userReset": true,
+      "sessionCountReset": true
+    }
+  },
+  {
+    "id": 1742730962140,
+    "timestamp": "2025-03-23T11:56:02.140Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "2223",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "userReset": true,
+      "sessionCountReset": true
+    }
+  },
+  {
+    "id": 1742730961440,
+    "timestamp": "2025-03-23T11:56:01.440Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "2223",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "userReset": true,
+      "sessionCountReset": true
+    }
+  },
+  {
+    "timestamp": "2025-03-23T11:55:58.369Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "id": 1742730942460,
+    "timestamp": "2025-03-23T11:55:42.460Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 6
+    }
+  },
+  {
+    "timestamp": "2025-03-23T11:55:07.442Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:55:06.745Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "timestamp": "2025-03-23T11:55:06.090Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": null
+  },
+  {
+    "id": 1742730905422,
+    "timestamp": "2025-03-23T11:55:05.422Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 6
+    }
+  },
+  {
+    "id": 1742730904522,
+    "timestamp": "2025-03-23T11:55:04.522Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 6
+    }
+  },
+  {
+    "id": 1742730903624,
+    "timestamp": "2025-03-23T11:55:03.624Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
       "reservationsRemoved": 2,
-      "sitInsRemoved": 2
+      "sitInsRemoved": 1,
+      "usersReset": 6
     }
   },
   {
-    "id": 1741755053295,
-    "timestamp": "2025-03-12T04:50:53.295Z",
+    "timestamp": "2025-03-23T11:37:44.330Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
     "adminId": "admin",
-    "resetType": "user",
-    "details": {
-      "userId": "22635452",
-      "reservationsRemoved": 4,
-      "sitInsRemoved": 4
-    }
+    "adminEmail": null
   },
   {
-    "id": 1741580715317,
-    "timestamp": "2025-03-10T04:25:15.317Z",
+    "timestamp": "2025-03-23T11:37:44.277Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
     "adminId": "admin",
-    "resetType": "user",
-    "details": {
-      "userId": "22635452",
-      "reservationsRemoved": 5,
-      "sitInsRemoved": 5
-    }
+    "adminEmail": null
   },
   {
-    "id": 1741450562210,
-    "timestamp": "2025-03-08T16:16:02.210Z",
-    "adminId": "admin",
-    "resetType": "user",
-    "details": {
-      "userId": "0992",
-      "reservationsRemoved": 0,
-      "sitInsRemoved": 0
-    }
-  },
-  {
-    "id": 1741450550033,
-    "timestamp": "2025-03-08T16:15:50.033Z",
+    "id": 1742729863046,
+    "timestamp": "2025-03-23T11:37:43.046Z",
     "adminId": "admin",
     "resetType": "semester",
     "details": {
       "semester": "Second Semester",
-      "dateRange": {
-        "start": "2025-01-01",
-        "end": "2025-05-31"
-      },
       "reservationsRemoved": 0,
-      "sitInsRemoved": 0
+      "sitInsRemoved": 0,
+      "usersReset": 6
     }
   },
   {
-    "id": 1741450316631,
-    "timestamp": "2025-03-08T16:11:56.631Z",
+    "id": 1742729862410,
+    "timestamp": "2025-03-23T11:37:42.410Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 0,
+      "usersReset": 6
+    }
+  },
+  {
+    "timestamp": "2025-03-23T11:12:53.618Z",
+    "resetType": "student",
+    "resetTarget": "2223",
+    "action": "Reset student 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-03-23T11:12:53.019Z",
+    "resetType": "student",
+    "resetTarget": "2223",
+    "action": "Reset student 2223",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "id": 1742728372354,
+    "timestamp": "2025-03-23T11:12:52.354Z",
     "adminId": "admin",
     "resetType": "user",
     "details": {
-      "userId": "0992",
+      "userId": "2223",
       "reservationsRemoved": 0,
-      "sitInsRemoved": 0
+      "sitInsRemoved": 0,
+      "userReset": true,
+      "sessionCountReset": true
+    }
+  },
+  {
+    "id": 1742728371624,
+    "timestamp": "2025-03-23T11:12:51.624Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "2223",
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 2,
+      "userReset": true,
+      "sessionCountReset": true
+    }
+  },
+  {
+    "timestamp": "2025-03-23T11:11:30.682Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin"
+  },
+  {
+    "timestamp": "2025-03-23T11:11:29.482Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin"
+  },
+  {
+    "id": 1742728288119,
+    "timestamp": "2025-03-23T11:11:28.119Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 6
+    }
+  },
+  {
+    "id": 1742728284736,
+    "timestamp": "2025-03-23T11:11:24.736Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 6,
+      "usersReset": 6
+    }
+  },
+  {
+    "id": 1742727927359,
+    "timestamp": "2025-03-23T11:05:27.359Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 6
+    }
+  },
+  {
+    "id": 1742727926522,
+    "timestamp": "2025-03-23T11:05:26.522Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 6
+    }
+  },
+  {
+    "id": 1742727925701,
+    "timestamp": "2025-03-23T11:05:25.701Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 3,
+      "usersReset": 6
+    }
+  },
+  {
+    "id": 1742727910855,
+    "timestamp": "2025-03-23T11:05:10.855Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "2223",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "userReset": true,
+      "sessionCountReset": true
+    }
+  },
+  {
+    "id": 1742727908823,
+    "timestamp": "2025-03-23T11:05:08.823Z",
+    "adminId": "admin",
+    "resetType": "user",
+    "details": {
+      "userId": "2223",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 1,
+      "userReset": true,
+      "sessionCountReset": true
     }
   }
 ]

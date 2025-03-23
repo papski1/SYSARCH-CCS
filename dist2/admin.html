@@ -185,14 +185,14 @@
                     <!-- Charts and Announcements -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Statistics Chart -->
-                        <div class="bg-white rounded-xl shadow-sm p-6 card-hover">
+                        <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col">
                             <div class="bg-blue-500 text-white rounded-t-lg p-3 mb-4 flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                 </svg>
                                 <span>Statistics</span>
                             </div>
-                            <div class="h-[500px] w-full">
+                            <div class="h-[380px] w-full flex-1 flex items-center justify-center">
                                 <canvas id="studentStatsChart"></canvas>
                             </div>
                         </div>
@@ -217,7 +217,7 @@
                             </div>
                             <div class="mt-6">
                                 <h4 class="font-medium text-gray-700 mb-3">Recent Announcements</h4>
-                                <div id="recentAnnouncements" class="space-y-3 max-h-[400px] overflow-y-auto">
+                                <div id="announcements-container" class="space-y-3 max-h-[400px] overflow-y-auto">
                                     <!-- Announcements will be loaded here -->
                                 </div>
                             </div>
@@ -269,64 +269,93 @@
                         <!-- Walk-in Form -->
                         <div class="bg-gray-50 rounded-lg p-6 mb-6">
                             <h3 class="text-lg font-semibold text-gray-700 mb-4">Add Walk-in Student</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <!-- Student Search -->
-                                <div>
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
-                                        <div class="flex">
-                                            <input type="text" id="walkin-student-id" placeholder="Enter student ID..." class="flex-1 p-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <button id="search-student-btn" class="bg-blue-500 text-white px-4 py-3 rounded-r-lg hover:bg-blue-600 transition-colors">
-                                                Search
-                                            </button>
-                                        </div>
-                                        <p id="student-search-status" class="mt-1 text-sm text-gray-500"></p>
-                                    </div>
-                                    
-                                    <div id="student-info" class="bg-white p-4 rounded-lg shadow-sm hidden">
-                                        <h4 class="font-medium text-gray-700 mb-3">Student Information</h4>
-                                        <div class="space-y-2">
-                                            <p class="text-sm"><span class="font-medium">Name:</span> <span id="walkin-student-name">-</span></p>
-                                            <p class="text-sm"><span class="font-medium">Course:</span> <span id="walkin-student-course">-</span></p>
-                                            <p class="text-sm"><span class="font-medium">Year:</span> <span id="walkin-student-year">-</span></p>
+                            
+                            <!-- Initial Search Field Only -->
+                            <div id="walkin-search-container">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Search Student</label>
+                                    <div class="relative">
+                                        <input type="text" id="walkin-student-search" placeholder="Enter student ID or name..." 
+                                            class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <div class="absolute left-3 top-3 text-gray-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <!-- Sit-in Details -->
-                                <div>
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Programming Language</label>
-                                        <select id="walkin-prog-language" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <option value="Not Specified">Not Specified</option>
-                                            <option value="Java">Java</option>
-                                            <option value="Python">Python</option>
-                                            <option value="C++">C++</option>
-                                            <option value="JavaScript">JavaScript</option>
-                                            <option value="PHP">PHP</option>
-                                            <option value="Other">Other</option>
-                                        </select>
+                                <!-- Search Results Container -->
+                                <div id="walkin-search-results" class="bg-white rounded-lg shadow-sm mt-2 hidden max-h-64 overflow-y-auto">
+                                    <!-- Search results will be populated here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden Walk-in Form Modal -->
+                            <div id="walkin-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                                <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-700">Add Walk-in Session</h3>
+                                        <button id="close-walkin-modal" class="text-gray-400 hover:text-gray-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
                                     </div>
                                     
-                                    <div id="prog-language-other-container" class="mb-4 hidden">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Specify Language</label>
-                                        <input type="text" id="walkin-other-language" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter language...">
-                                    </div>
-                                    
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Laboratory Room</label>
-                                        <select id="walkin-lab-room" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <option value="524">Room 524 - Programming Lab</option>
-                                            <option value="526">Room 526 - Networking Lab</option>
-                                            <option value="530">Room 530 - Database Lab</option>
-                                            <option value="542">Room 542 - Web Development Lab</option>
-                                            <option value="544">Room 544 - General Computing Lab</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <button id="add-walkin-btn" disabled class="w-full bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                        Add Walk-in Student
-                                    </button>
+                                    <form id="walkin-form">
+                                        <!-- Hidden Student ID field -->
+                                        <input type="hidden" id="walkin-student-id">
+                                        
+                                        <!-- Student Info Display -->
+                                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                                            <h4 class="font-medium text-gray-700 mb-2">Student Information</h4>
+                                            <div class="space-y-1">
+                                                <p class="text-sm"><span class="font-medium">ID:</span> <span id="modal-student-id">-</span></p>
+                                                <p class="text-sm"><span class="font-medium">Name:</span> <span id="modal-student-name">-</span></p>
+                                                <p class="text-sm"><span class="font-medium">Course:</span> <span id="modal-student-course">-</span></p>
+                                                <p class="text-sm"><span class="font-medium">Year:</span> <span id="modal-student-year">-</span></p>
+                                                <p class="text-sm"><span class="font-medium">Remaining Sessions:</span> <span id="modal-remaining-sessions" class="font-bold text-blue-600">-</span></p>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sit-in Details -->
+                                        <div class="space-y-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Programming Language</label>
+                                                <select id="walkin-programming-language" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                                    <option value="Not Specified">Not Specified</option>
+                                                    <option value="Java">Java</option>
+                                                    <option value="Python">Python</option>
+                                                    <option value="C++">C++</option>
+                                                    <option value="JavaScript">JavaScript</option>
+                                                    <option value="PHP">PHP</option>
+                                                    <option value="C Programming">C Programming</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div id="prog-language-other-container" class="hidden">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Specify Language</label>
+                                                <input type="text" id="walkin-other-language" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter language...">
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Laboratory Room</label>
+                                                <select id="walkin-lab-room" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                                    <option value="524">Room 524</option>
+                                                    <option value="526">Room 526</option>
+                                                    <option value="530">Room 530</option>
+                                                    <option value="542">Room 542</option>
+                                                    <option value="544">Room 544</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <button type="submit" id="add-walkin-btn" class="w-full bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition-colors">
+                                                Add Walk-in Session
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -374,32 +403,33 @@
 
                 <!-- Sit-in Records Section -->
                 <section id="sit-in-records" class="hidden animate-fade-in">
-                    <div class="bg-white rounded-xl shadow-sm p-6">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-6">Today's Sit-in Records</h2>
-                        
-                        <!-- Charts -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                            <div class="bg-gray-50 rounded-lg p-6 h-full">
-                                <div class="bg-blue-500 text-white rounded-t-lg p-3 mb-4 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                    </svg>
-                                    <span>Programming Languages</span>
-                                </div>
-                                <div class="relative h-[400px] w-full">
-                                    <canvas id="programmingLanguageChart"></canvas>
-                                </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Sit-in Records</h2>
+                    
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <!-- Programming Language Distribution Chart -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col">
+                            <div class="bg-blue-500 text-white rounded-t-lg p-3 mb-4 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                </svg>
+                                <span>Programming Language Distribution</span>
                             </div>
-                            <div class="bg-gray-50 rounded-lg p-6 h-full">
-                                <div class="bg-blue-500 text-white rounded-t-lg p-3 mb-4 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
-                                    <span>Laboratory Rooms</span>
-                                </div>
-                                <div class="relative h-[400px] w-full">
-                                    <canvas id="labRoomChart"></canvas>
-                                </div>
+                            <div class="h-[380px] w-full flex-1 flex items-center justify-center">
+                                <canvas id="programmingLanguageChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Lab Room Distribution Chart -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col">
+                            <div class="bg-blue-500 text-white rounded-t-lg p-3 mb-4 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                <span>Lab Room Usage</span>
+                            </div>
+                            <div class="h-[380px] w-full flex-1 flex items-center justify-center">
+                                <canvas id="labRoomChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -431,6 +461,7 @@
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Laboratory</th>
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
                                         </tr>
                                     </thead>
@@ -479,7 +510,6 @@
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-xl font-semibold text-gray-800">Reset Sessions</h2>
                             <div class="flex items-center space-x-4">
-                                <span id="last-reset" class="text-sm text-gray-500"></span>
                                 <button id="refresh-logs" class="text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -489,83 +519,77 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <!-- Reset by Semester -->
-                            <div class="bg-gray-50 rounded-lg p-6">
-                                <h3 class="text-lg font-semibold text-gray-700 mb-4">Reset by Semester</h3>
-                                <select id="semester-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4">
-                                    <option value="">Select a semester...</option>
-                                    <option value="First Semester">First Semester</option>
-                                    <option value="Second Semester">Second Semester</option>
-                                    <option value="Summer">Summer</option>
-                                </select>
-                                <button id="reset-semester-btn" class="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                            <div class="bg-gray-50 rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+                                <div class="flex items-center mb-4 text-blue-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <h3 class="text-lg font-semibold text-gray-700">Reset by Semester</h3>
+                                </div>
+                                <p class="text-gray-600 mb-4 text-sm">Reset all sessions for an entire semester. This action will reset remaining sessions for all students in the selected semester.</p>
+                                <div class="mb-4">
+                                    <select id="semester-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">Select a semester...</option>
+                                        <option value="First Semester">First Semester</option>
+                                        <option value="Second Semester">Second Semester</option>
+                                        <option value="Summer">Summer</option>
+                                    </select>
+                                </div>
+                                <button type="button" id="reset-semester-btn" class="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
                                     Reset Semester
                                 </button>
                             </div>
 
                             <!-- Reset by User -->
-                            <div class="bg-gray-50 rounded-lg p-6">
-                                <h3 class="text-lg font-semibold text-gray-700 mb-4">Reset by User</h3>
+                            <div class="bg-gray-50 rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+                                <div class="flex items-center mb-4 text-purple-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <h3 class="text-lg font-semibold text-gray-700">Reset by User</h3>
+                                </div>
+                                <p class="text-gray-600 mb-4 text-sm">Reset sessions for an individual student. This action will reset remaining sessions for the specified student.</p>
                                 <div class="relative mb-4">
                                     <input type="text" id="user-id-input" placeholder="Enter student ID number" class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                     <svg class="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                     </svg>
                                 </div>
-                                <button id="reset-user-btn" class="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                                
+                                <!-- Student search results will appear here -->
+                                <div id="student-search-results" class="mb-4 max-h-32 overflow-y-auto hidden">
+                                    <div class="text-sm text-gray-500 mb-2">Search Results:</div>
+                                    <ul class="divide-y divide-gray-200" id="student-results-list">
+                                        <!-- Results will be populated dynamically -->
+                                    </ul>
+                                </div>
+                                
+                                <!-- Selected student info will appear here -->
+                                <div id="selected-student-info" class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 hidden">
+                                    <div class="flex items-center">
+                                        <div class="bg-blue-100 p-2 rounded-full mr-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-sm text-gray-900" id="selected-student-name">-</p>
+                                            <p class="text-xs text-gray-500" id="selected-student-details">-</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="button" id="reset-user-btn" class="w-full bg-purple-500 text-white px-4 py-3 rounded-lg hover:bg-purple-600 transition-colors flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
                                     Reset User Sessions
                                 </button>
-                            </div>
-
-                            <!-- Reset Statistics -->
-                            <div class="lg:col-span-2 bg-gray-50 rounded-lg p-6">
-                                <h3 class="text-lg font-semibold text-gray-700 mb-4">Reset Statistics</h3>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="bg-white p-4 rounded-lg shadow-sm">
-                                        <p class="text-sm text-gray-500">Total Resets</p>
-                                        <p class="text-2xl font-bold text-gray-900" id="total-resets">0</p>
-                                    </div>
-                                    <div class="bg-white p-4 rounded-lg shadow-sm">
-                                        <p class="text-sm text-gray-500">Today's Resets</p>
-                                        <p class="text-2xl font-bold text-gray-900" id="today-resets">0</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Reset Logs -->
-                        <div class="mt-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-700">Reset History</h3>
-                                <button id="export-logs" class="text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    <span>Export Logs</span>
-                                </button>
-                            </div>
-                            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="reset-logs-table" class="bg-white divide-y divide-gray-200">
-                                            <!-- Reset logs will be loaded here -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                                    <div class="flex justify-between items-center">
-                                        <span id="logs-count" class="text-sm text-gray-500">0 logs found</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>

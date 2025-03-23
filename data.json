@@ -23,9 +23,9 @@
     "course": "BS Information Technology",
     "password": "$2b$10$Q0LgYdpN1QrE89dD3S88TOzY66jEzzfG3LEWEHJrby1veRWDueCwq",
     "totalSessions": 15,
-    "completedSessions": 0,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 30,
+    "remainingSessions": 29,
     "profileImage": "/uploads/1742675119342-22.jpg"
   },
   {
@@ -64,9 +64,9 @@
     "year": "2nd Year",
     "course": "BS Information Systems",
     "password": "$2b$10$awRbFfmKiSS8bWbXwW5tP.N5u/dMa1JMUbOukuPsLxiCNN8SJSUKi",
-    "completedSessions": 0,
-    "pendingReservations": 0,
-    "remainingSessions": 29,
+    "completedSessions": 1,
+    "pendingReservations": 1,
+    "remainingSessions": 28,
     "profileImage": "/uploads/1742312950299-22.jpg"
   },
   {
@@ -78,9 +78,9 @@
     "year": "4th Year",
     "course": "BS Business Administration",
     "password": "$2b$10$gIvfTGl2tqHZgAHiUGp9auZfHf9YSPyssLarSjC.aoAkn0w.SnC8a",
-    "completedSessions": 0,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 15,
+    "remainingSessions": 14,
     "profileImage": "/uploads/1742666547991-22.jpg"
   }
 ]

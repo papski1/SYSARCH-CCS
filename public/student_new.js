@@ -333,7 +333,7 @@ function updateSessionsWarning(remainingSessions) {
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                     </div>
                     <div class="ml-3">
@@ -364,6 +364,78 @@ async function loadDashboardData() {
 
         // Update dashboard stats
         await updateDashboardStats(userId);
+
+        // Fetch active sessions for this user (both walk-ins and reservations)
+        try {
+            const [sitInsResponse, reservationsResponse] = await Promise.all([
+                fetch(`http://localhost:3000/sit-ins`),
+                fetch(`http://localhost:3000/reservations`)
+            ]);
+
+            if (!sitInsResponse.ok || !reservationsResponse.ok) {
+                throw new Error('Failed to fetch session data');
+            }
+
+            const sitIns = await sitInsResponse.json();
+            const reservations = await reservationsResponse.json();
+            
+            // Find active sessions for this user
+            const activeSitIn = sitIns.find(s => s.idNumber === userId && s.status === 'active');
+            const activeReservation = reservations.find(r => r.idNumber === userId && r.status === 'active');
+            
+            // Current active session can be either a sit-in or reservation
+            const currentActiveSession = activeSitIn || activeReservation;
+            
+            console.log('Current active session:', currentActiveSession);
+            
+            // Update last session display
+            const lastSessionElement = document.getElementById('lastSession');
+            if (lastSessionElement) {
+                if (currentActiveSession) {
+                    // Format date for display
+                    const date = new Date(currentActiveSession.date);
+                    const formattedDate = date.toLocaleDateString();
+                    
+                    // Get session type
+                    const sessionType = activeSitIn ? 'Walk-in' : 'Reservation';
+                    
+                    // Update display
+                    lastSessionElement.innerHTML = `
+                        <span class="text-green-600 font-medium">Active: ${sessionType}</span>
+                        <br>
+                        <span class="text-sm font-normal">${formattedDate}</span>
+                    `;
+                    
+                    lastSessionElement.parentElement.parentElement.parentElement.classList.add('bg-green-50');
+                    lastSessionElement.parentElement.parentElement.parentElement.classList.add('border-green-500');
+                } else {
+                    // No active session, find most recent completed session
+                    const completedSessions = [
+                        ...sitIns.filter(s => s.idNumber === userId && s.status === 'completed'),
+                        ...reservations.filter(r => r.idNumber === userId && r.status === 'completed')
+                    ];
+                    
+                    if (completedSessions.length > 0) {
+                        // Sort by date (most recent first)
+                        completedSessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        const lastSession = completedSessions[0];
+                        
+                        // Format date for display
+                        const date = new Date(lastSession.date);
+                        const formattedDate = date.toLocaleDateString();
+                        
+                        lastSessionElement.textContent = formattedDate;
+                    } else {
+                        lastSessionElement.textContent = 'No sessions yet';
+                    }
+                    
+                    // Reset any special styling
+                    lastSessionElement.parentElement.parentElement.parentElement.classList.remove('bg-green-50');
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching session data:', error);
+        }
 
         // Load recent activity preview
         const response = await fetch(`http://localhost:3000/get-recent-activity/${userId}`);
@@ -1269,24 +1341,28 @@ function logout() {
 // Function to load reservation history
 async function loadReservationHistory() {
     try {
-        // Get user data
+        console.log("Loading reservation history...");
+        
+        // Get user data - try multiple sources
+        const idNumber = localStorage.getItem('idNumber') || localStorage.getItem('currentUserId');
         const userData = localStorage.getItem('user');
-        if (!userData) {
-            document.getElementById('reservation-history-body').innerHTML = `
-                <tr>
-                    <td colspan="7" class="px-6 py-3 text-center text-gray-500">User data not found. Please log in again.</td>
-                </tr>
-            `;
-            return;
+        let userId = idNumber;
+        
+        if (!userId && userData) {
+            try {
+                const user = JSON.parse(userData);
+                userId = user.idNumber || user.id;
+                console.log("Retrieved user ID from user data:", userId);
+            } catch (e) {
+                console.error("Error parsing user data:", e);
+            }
         }
-
-        const user = JSON.parse(userData);
-        const userId = user.id || localStorage.getItem('currentUserId');
         
         if (!userId) {
-            document.getElementById('reservation-history-body').innerHTML = `
+            console.error("No user ID found in localStorage");
+            document.getElementById('reservationTableBody').innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-6 py-3 text-center text-gray-500">User ID not found. Please log in again.</td>
+                    <td colspan="5" class="px-6 py-3 text-center text-gray-500">User data not found. Please log in again.</td>
                 </tr>
             `;
             return;
@@ -1294,94 +1370,50 @@ async function loadReservationHistory() {
 
         console.log("Loading reservation history for user ID:", userId);
 
-        // Fetch both reservations and walk-ins in parallel
-        const [reservationsResponse, walkInsResponse] = await Promise.all([
-            fetch('/reservations'),
-            fetch('/sit-ins')
-        ]);
+        // Show loading state
+        document.getElementById('reservationTableBody').innerHTML = `
+            <tr>
+                <td colspan="5" class="px-6 py-3 text-center text-gray-500">
+                    <div class="flex justify-center items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading history...
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        // Use the new unified endpoint to get both reservations and walk-ins
+        console.log("Fetching history from unified endpoint...");
+        const response = await fetch('/student-history/' + userId);
         
-        if (!reservationsResponse.ok || !walkInsResponse.ok) {
-            throw new Error("Failed to fetch reservation data");
+        if (!response.ok) {
+            console.error("Failed to fetch history:", response.status);
+            throw new Error("Failed to fetch history data");
         }
         
-        const reservations = await reservationsResponse.json();
-        const walkIns = await walkInsResponse.json();
-
-        console.log("Retrieved reservations:", reservations.length);
-        console.log("Retrieved walk-ins:", walkIns.length);
-
-        // Tag each entry with its type for identification
-        const taggedReservations = reservations.map(res => ({
-            ...res,
-            entryType: 'reservation',
-            isWalkIn: false,
-            displayTime: res.time
-        }));
+        const result = await response.json();
         
-        const taggedWalkIns = walkIns.map(walkIn => ({
-            ...walkIn,
-            entryType: 'walk-in',
-            isWalkIn: true,
-            displayTime: walkIn.timeIn || walkIn.time
-        }));
-
-        // Combine both data sources
-        const allEntries = [...taggedReservations, ...taggedWalkIns];
+        if (!result.success) {
+            throw new Error(result.error || "Unknown error occurred");
+        }
         
-        // Filter for the current user and status (approved or active)
-        const userEntries = allEntries.filter(entry => {
-            const entryUserId = entry.userId || entry.idNumber;
-            return entryUserId === userId && 
-                   (entry.status === 'approved' || entry.status === 'active');
-        });
+        const allEntries = result.history;
+        console.log(`Retrieved ${allEntries.length} history entries`);
         
-        console.log(`Found ${userEntries.length} entries for user ID ${userId}`);
-
-        // Deduplicate entries
-        const uniqueEntries = [];
-        const seenKeys = new Set();
-        
-        userEntries.forEach(entry => {
-            const timeValue = entry.displayTime || entry.time || entry.timeIn || '00:00';
-            const key = `${entry.idNumber || entry.userId}_${entry.date}_${timeValue}_${entry.entryType}_${entry.programmingLanguage || ''}`;
-            
-            if (!seenKeys.has(key)) {
-                seenKeys.add(key);
-                uniqueEntries.push(entry);
-                console.log(`Added entry with key: ${key}`);
-            } else {
-                console.log(`Skipped duplicate entry with key: ${key}`);
-            }
-        });
-        
-        console.log(`Deduplicated to ${uniqueEntries.length} unique entries`);
-
-        // Sort by date and time (newest first)
-        uniqueEntries.sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            
-            if (dateA.getTime() !== dateB.getTime()) {
-                return dateB - dateA; // Sort dates descending (newest first)
-            }
-            
-            // If dates are equal, compare times
-            const timeA = a.displayTime || a.time || a.timeIn || '00:00';
-            const timeB = b.displayTime || b.time || b.timeIn || '00:00';
-            return timeB.localeCompare(timeA); // Sort times descending
-        });
-
-        // Display in table
-        const tableBody = document.getElementById('reservation-history-body');
+        // Update the table
+        const tableBody = document.getElementById('reservationTableBody');
         if (!tableBody) {
             console.error("Reservation history table body not found");
             return;
         }
         
-        if (uniqueEntries.length === 0) {
+        if (allEntries.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-6 py-3 text-center text-gray-500">No approved or active sessions found.</td>
+                    <td colspan="5" class="px-6 py-3 text-center text-gray-500">No history found.</td>
                 </tr>
             `;
             return;
@@ -1389,27 +1421,34 @@ async function loadReservationHistory() {
 
         let html = '';
         
-        uniqueEntries.forEach(entry => {
+        allEntries.forEach(entry => {
             const date = entry.date || 'N/A';
             const time = entry.displayTime || entry.time || entry.timeIn || 'N/A';
-            const purpose = entry.programmingLanguage || 'N/A';
+            const purpose = entry.programmingLanguage || entry.purpose || 'N/A';
             const status = entry.status || 'N/A';
+            const laboratory = entry.labRoom || entry.laboratory || 'N/A';
+            const id = entry._id || entry.id || '';
             
-            // Format entry type with proper capitalization
-            const entryType = entry.entryType ?
-                entry.entryType.charAt(0).toUpperCase() + entry.entryType.slice(1) :
-                (entry.isWalkIn ? 'Walk-in' : 'Reservation');
+            // Determine styling based on type
+            const entryType = entry.type || 'N/A';
+            const typeClass = entryType === 'Walk-in' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800';
             
             // Determine status badge class
-            let statusClass = '';
+            let statusClass = 'bg-gray-100 text-gray-800';
             if (status === 'approved') {
                 statusClass = 'bg-blue-100 text-blue-800';
             } else if (status === 'active') {
                 statusClass = 'bg-green-100 text-green-800';
+            } else if (status === 'completed') {
+                statusClass = 'bg-gray-100 text-gray-800';
+            } else if (status === 'pending') {
+                statusClass = 'bg-yellow-100 text-yellow-800';
+            } else if (status === 'rejected') {
+                statusClass = 'bg-red-100 text-red-800';
             }
 
             html += `
-                <tr class="hover:bg-gray-100">
+                <tr class="hover:bg-gray-100" data-entry-id="${id}" data-entry-type="${entryType}">
                     <td class="px-6 py-4 whitespace-nowrap">${date}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${time}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${purpose}</td>
@@ -1419,26 +1458,41 @@ async function loadReservationHistory() {
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            entryType === 'Walk-in' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800'
-                        }">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">
                             ${entryType}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        ${
-                            status === 'approved' ? 
-                            `<button onclick="markAsActive('${entry.id}')" class="text-indigo-600 hover:text-indigo-900">
-                                Check In
-                            </button>` : 
-                            status === 'active' ?
-                            `<button onclick="markAsCompleted('${entry.id}')" class="text-blue-600 hover:text-blue-900">
-                                Check Out
-                            </button>` : ''
-                        }
-                    </td>
                 </tr>
             `;
+            
+            // Add feedback row for all reservations that haven't been rated
+            if (!entry.feedback) {
+                html += `
+                    <tr class="bg-gray-50 dark:bg-gray-800 feedback-row" data-for-entry-id="${id}">
+                        <td colspan="5" class="px-6 py-4">
+                            <div class="space-y-4">
+                                <div class="space-y-2">
+                                    <label class="block text-sm text-gray-600 dark:text-gray-400">How was your experience? Please leave your feedback:</label>
+                                    <div class="flex items-center space-x-2">
+                                        <textarea 
+                                            class="w-full px-2 py-1 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600" 
+                                            rows="2" 
+                                            placeholder="Add your comments..."
+                                            data-entry-id="${id}"
+                                        ></textarea>
+                                        <button 
+                                            onclick="submitReservationFeedback('${id}', '${laboratory}')" 
+                                            class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                        >
+                                            Submit
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
         });
 
         tableBody.innerHTML = html;
@@ -1446,9 +1500,9 @@ async function loadReservationHistory() {
         
     } catch (error) {
         console.error('Error loading reservation history:', error);
-        document.getElementById('reservation-history-body').innerHTML = `
+        document.getElementById('reservationTableBody').innerHTML = `
             <tr>
-                <td colspan="7" class="px-6 py-3 text-center text-red-500">Error loading reservation history: ${error.message}</td>
+                <td colspan="5" class="px-6 py-3 text-center text-red-500">Error loading reservation history: ${error.message}</td>
             </tr>
         `;
     }
@@ -1467,45 +1521,141 @@ async function submitFeedback(sitInId) {
 
         const userData = JSON.parse(localStorage.getItem('userData'));
         const userId = userData?.idNumber || localStorage.getItem('currentUserId');
-
-        if (!userId) {
-            alert('User ID not found. Please log in again.');
-            return;
-        }
-
-        const sitInRow = textarea.closest('tr').previousElementSibling;
-        const laboratory = sitInRow.querySelector('td:first-child').textContent;
-
+        
         const response = await fetch('http://localhost:3000/submit-feedback', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                sitInId,
                 userId,
+                sitInId,
+                type: 'Sit-In',
                 message,
-                laboratory,
-                type: 'general',
+                laboratory: 'Computer Laboratory',
                 date: new Date().toISOString()
             })
         });
 
+        // Check for errors
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'Failed to submit feedback');
         }
 
         // Remove the feedback form
-        textarea.closest('tr').remove();
+        const feedbackRow = textarea.closest('tr');
+        feedbackRow.remove();
         
         alert('Feedback submitted successfully!');
-        
-        // Reload sit-in history to reflect changes
-        await loadSitInHistory();
+
     } catch (error) {
         console.error('Error submitting feedback:', error);
         alert('Failed to submit feedback. Please try again.');
+    }
+}
+
+// Function to submit reservation feedback
+async function submitReservationFeedback(entryId, laboratory) {
+    try {
+        // Get the textarea for this entry
+        const textarea = document.querySelector(`textarea[data-entry-id="${entryId}"]`);
+        const message = textarea?.value?.trim() || '';
+        
+        if (!message) {
+            alert('Please enter your feedback before submitting.');
+            return;
+        }
+        
+        // Get user ID
+        const userData = localStorage.getItem('user');
+        const idNumber = localStorage.getItem('idNumber') || localStorage.getItem('currentUserId');
+        let userId = idNumber;
+        
+        if (!userId && userData) {
+            try {
+                const user = JSON.parse(userData);
+                userId = user.idNumber || user.id;
+            } catch (e) {
+                console.error("Error parsing user data:", e);
+            }
+        }
+        
+        if (!userId) {
+            alert('User information not found. Please log in again.');
+            return;
+        }
+        
+        // Get the actual session type from the entry row
+        const entryRow = document.querySelector(`tr[data-entry-id="${entryId}"]`);
+        let sessionType = 'Reservation'; // Default
+        
+        if (entryRow) {
+            // Get the type from the data attribute
+            sessionType = entryRow.getAttribute('data-entry-type') || 'Reservation';
+        }
+        
+        console.log(`Submitting feedback for ${sessionType} session ${entryId}`);
+        
+        // Show loading state on the button
+        const button = textarea.nextElementSibling;
+        const originalButtonText = button.textContent;
+        button.innerHTML = '<div class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mx-auto"></div>';
+        button.disabled = true;
+        
+        // Submit the feedback
+        const response = await fetch('/submit-feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId,
+                sitInId: entryId,
+                type: sessionType,
+                message,
+                laboratory: laboratory || 'Computer Laboratory',
+                date: new Date().toISOString()
+            })
+        });
+        
+        // Check for errors
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to submit feedback');
+        }
+        
+        // Process successful response
+        const result = await response.json();
+        
+        if (result.success) {
+            // Remove the feedback row
+            const feedbackRow = textarea.closest('.feedback-row');
+            if (feedbackRow) {
+                feedbackRow.remove();
+            }
+            
+            // Mark the entry as having feedback in the DOM
+            const entryRow = document.querySelector(`tr[data-entry-id="${entryId}"]`);
+            if (entryRow) {
+                entryRow.setAttribute('data-has-feedback', 'true');
+            }
+            
+            alert('Thank you! Your feedback has been submitted successfully.');
+        } else {
+            throw new Error(result.message || 'Failed to submit feedback');
+        }
+    } catch (error) {
+        console.error('Error submitting reservation feedback:', error);
+        alert(`Failed to submit feedback: ${error.message}`);
+        
+        // Reset the button state
+        const textarea = document.querySelector(`textarea[data-entry-id="${entryId}"]`);
+        const button = textarea?.nextElementSibling;
+        if (button) {
+            button.textContent = 'Submit';
+            button.disabled = false;
+        }
     }
 }
 
@@ -3076,7 +3226,7 @@ function updateProfileSessionsIndicator(profileSection, remainingSessions) {
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
                 </div>
                 <div class="ml-3">
@@ -3090,7 +3240,7 @@ function updateProfileSessionsIndicator(profileSection, remainingSessions) {
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v4a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
                 </div>
                 <div class="ml-3">
@@ -3148,4 +3298,94 @@ function updateAllProfileImages(imageSrc) {
             };
         }
     });
+}
+
+// Function to mark a reservation as active (check-in)
+async function markAsActive(reservationId) {
+    try {
+        if (!reservationId) {
+            alert('Reservation ID is missing');
+            return;
+        }
+        
+        const confirmed = confirm('Are you sure you want to check in for this reservation?');
+        if (!confirmed) return;
+        
+        const response = await fetch(`http://localhost:3000/update-reservation-status/${reservationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: 'active' })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update reservation status');
+        }
+        
+        const result = await response.json();
+        
+        // Update UI to reflect the changes
+        alert('Successfully checked in!');
+        
+        // Reload reservation history to update the table
+        await loadReservationHistory();
+        
+        // If the dashboard is visible, update it too
+        if (!document.getElementById('dashboard').classList.contains('hidden')) {
+            await loadDashboardData();
+        }
+        
+        // If this function was called from another section, show the dashboard
+        if (document.getElementById('sit-in-history') && 
+            !document.getElementById('dashboard').classList.contains('hidden')) {
+            showSection('dashboard');
+        }
+        
+    } catch (error) {
+        console.error('Error checking in:', error);
+        alert('Error checking in: ' + error.message);
+    }
+}
+
+// Function to mark a reservation as completed (check-out)
+async function markAsCompleted(reservationId) {
+    try {
+        if (!reservationId) {
+            alert('Reservation ID is missing');
+            return;
+        }
+        
+        const confirmed = confirm('Are you sure you want to check out from this session?');
+        if (!confirmed) return;
+        
+        const response = await fetch(`http://localhost:3000/update-reservation-status/${reservationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: 'completed' })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update reservation status');
+        }
+        
+        const result = await response.json();
+        
+        // Update UI to reflect the changes
+        alert('Successfully checked out!');
+        
+        // Reload reservation history to update the table
+        await loadReservationHistory();
+        
+        // If the dashboard is visible, update it too
+        if (!document.getElementById('dashboard').classList.contains('hidden')) {
+            await loadDashboardData();
+        }
+        
+    } catch (error) {
+        console.error('Error checking out:', error);
+        alert('Error checking out: ' + error.message);
+    }
 }
