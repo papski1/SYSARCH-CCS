@@ -2431,14 +2431,14 @@ app.get('/student-reservations/:userId', (req, res) => {
   const userId = req.params.userId;
   
   // Check if reservations.json exists
-  if (!fs.existsSync('data/reservations.json')) {
+  if (!fs.existsSync('./reservations.json')) {
     console.log("Warning: reservations.json does not exist. Returning empty array.");
     return res.json([]);
   }
   
   try {
     // Read reservations from file
-    const reservationsData = fs.readFileSync('data/reservations.json', 'utf8');
+    const reservationsData = fs.readFileSync('./reservations.json', 'utf8');
     let reservations = [];
     
     try {
@@ -2468,14 +2468,14 @@ app.get('/student-walkins/:userId', (req, res) => {
   const userId = req.params.userId;
   
   // Check if sit-ins.json exists
-  if (!fs.existsSync('data/sit-ins.json')) {
+  if (!fs.existsSync('./sit-ins.json')) {
     console.log("Warning: sit-ins.json does not exist. Returning empty array.");
     return res.json([]);
   }
   
   try {
     // Read walk-ins from file
-    const walkInsData = fs.readFileSync('data/sit-ins.json', 'utf8');
+    const walkInsData = fs.readFileSync('./sit-ins.json', 'utf8');
     let walkIns = [];
     
     try {
@@ -2511,9 +2511,9 @@ app.get('/student-history/:userId', (req, res) => {
     let sitIns = [];
     
     // Read reservations if file exists
-    if (fs.existsSync('data/reservations.json')) {
+    if (fs.existsSync('./reservations.json')) {
       try {
-        const reservationsData = fs.readFileSync('data/reservations.json', 'utf8');
+        const reservationsData = fs.readFileSync('./reservations.json', 'utf8');
         const parsedReservations = JSON.parse(reservationsData);
         
         if (Array.isArray(parsedReservations)) {
@@ -2531,9 +2531,9 @@ app.get('/student-history/:userId', (req, res) => {
     }
     
     // Read sit-ins if file exists
-    if (fs.existsSync('data/sit-ins.json')) {
+    if (fs.existsSync('./sit-ins.json')) {
       try {
-        const sitInsData = fs.readFileSync('data/sit-ins.json', 'utf8');
+        const sitInsData = fs.readFileSync('./sit-ins.json', 'utf8');
         const parsedSitIns = JSON.parse(sitInsData);
         
         if (Array.isArray(parsedSitIns)) {
@@ -2596,4 +2596,279 @@ app.get('/student-history/:userId', (req, res) => {
     console.error("Error processing history data:", error);
     return res.status(500).json({ success: false, error: "Failed to process history data" });
   }
+});
+
+// Route to get completed sessions
+app.get("/completed-sessions", (req, res) => {
+    try {
+        // Get all users first
+        const users = readData();
+        
+        // Get all reservations
+        let reservations = [];
+        try {
+            if (fs.existsSync("./reservations.json")) {
+                const data = fs.readFileSync("./reservations.json", "utf8");
+                reservations = JSON.parse(data);
+                console.log(`Read ${reservations.length} reservations`);
+            }
+        } catch (error) {
+            console.error("Error reading reservations:", error);
+        }
+        
+        // Get all sit-ins
+        let sitIns = [];
+        try {
+            if (fs.existsSync("./sit-ins.json")) {
+                const data = fs.readFileSync("./sit-ins.json", "utf8");
+                sitIns = JSON.parse(data);
+                console.log(`Read ${sitIns.length} sit-ins`);
+            }
+        } catch (error) {
+            console.error("Error reading sit-ins:", error);
+        }
+        
+        // Helper function to enrich session data with user details
+        const enrichWithUserDetails = (session) => {
+            const user = users.find(u => u.idNumber === session.idNumber);
+            if (user) {
+                return {
+                    ...session,
+                    name: user.firstName + ' ' + (user.middleName ? user.middleName + ' ' : '') + user.lastName,
+                    course: user.course || 'N/A',
+                    year: user.year || 'N/A',
+                    type: session.isWalkIn ? 'Walk-in' : 'Reservation'
+                };
+            }
+            return session;
+        };
+        
+        // Filter and enrich completed sessions
+        const completedReservations = reservations
+            .filter(r => r.status === 'completed')
+            .map(enrichWithUserDetails);
+        
+        const completedSitIns = sitIns
+            .filter(s => s.status === 'completed')
+            .map(enrichWithUserDetails);
+        
+        // Combine and sort by date (newest first)
+        const allCompletedSessions = [...completedReservations, ...completedSitIns].sort((a, b) => {
+            return new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt);
+        });
+        
+        res.json({
+            success: true,
+            sessions: allCompletedSessions
+        });
+    } catch (error) {
+        console.error("Error fetching completed sessions:", error);
+        res.status(500).json({ success: false, message: "Error fetching completed sessions" });
+    }
+});
+
+// Route to get completed sessions for a specific student
+app.get("/student-completed-sessions/:idNumber", (req, res) => {
+    try {
+        const idNumber = req.params.idNumber;
+        
+        // Get all reservations
+        let reservations = [];
+        try {
+            if (fs.existsSync("./reservations.json")) {
+                const data = fs.readFileSync("./reservations.json", "utf8");
+                reservations = JSON.parse(data);
+            }
+        } catch (error) {
+            console.error("Error reading reservations:", error);
+        }
+        
+        // Get all sit-ins
+        let sitIns = [];
+        try {
+            if (fs.existsSync("./sit-ins.json")) {
+                const data = fs.readFileSync("./sit-ins.json", "utf8");
+                sitIns = JSON.parse(data);
+            }
+        } catch (error) {
+            console.error("Error reading sit-ins:", error);
+        }
+        
+        // Filter for completed sessions for this student
+        const completedReservations = reservations
+            .filter(r => r.idNumber === idNumber && r.status === 'completed')
+            .map(r => ({
+                ...r,
+                type: r.isWalkIn ? 'Walk-in' : 'Reservation'
+            }));
+        
+        const completedSitIns = sitIns
+            .filter(s => s.idNumber === idNumber && s.status === 'completed')
+            .map(s => ({
+                ...s,
+                type: 'Walk-in'
+            }));
+        
+        // Combine and sort by date (newest first)
+        const allCompletedSessions = [...completedReservations, ...completedSitIns].sort((a, b) => {
+            return new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt);
+        });
+        
+        res.json({
+            success: true,
+            sessions: allCompletedSessions
+        });
+    } catch (error) {
+        console.error("Error fetching student completed sessions:", error);
+        res.status(500).json({ success: false, message: "Error fetching completed sessions" });
+    }
+});
+
+// Validate ID Number Endpoint (for forgot password)
+app.post("/validate-id", (req, res) => {
+    const { idNumber } = req.body;
+    
+    if (!idNumber) {
+        return res.status(400).json({ 
+            valid: false, 
+            message: "ID number is required" 
+        });
+    }
+    
+    // Read user data
+    const users = readData();
+    const user = users.find(u => u.idNumber === idNumber);
+    
+    if (!user) {
+        return res.status(404).json({ 
+            valid: false, 
+            message: "No account found with this ID number" 
+        });
+    }
+    
+    // If user is found, return success
+    res.json({ 
+        valid: true, 
+        message: "ID verified successfully" 
+    });
+});
+
+// Route to update a student
+app.post("/update-student", (req, res) => {
+    try {
+        const updatedStudent = req.body;
+        
+        // Validate required fields
+        if (!updatedStudent.idNumber || !updatedStudent.firstName || !updatedStudent.lastName || !updatedStudent.email) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "ID Number, First Name, Last Name, and Email are required" 
+            });
+        }
+        
+        // Read current users
+        const users = readData();
+        
+        // Find the student to update
+        const index = users.findIndex(user => user.idNumber === updatedStudent.idNumber);
+        
+        if (index === -1) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Student not found" 
+            });
+        }
+        
+        // Get the existing user to preserve fields not in the update (like password)
+        const existingUser = users[index];
+        
+        // Merge the existing user with the updates
+        users[index] = {
+            ...existingUser,
+            firstName: updatedStudent.firstName,
+            middleName: updatedStudent.middleName,
+            lastName: updatedStudent.lastName,
+            email: updatedStudent.email,
+            course: updatedStudent.course,
+            year: updatedStudent.year,
+            remainingSessions: existingUser.remainingSessions || 0,
+            completedSessions: existingUser.completedSessions || 0,
+            pendingReservations: existingUser.pendingReservations || 0
+        };
+        
+        // Save updated users
+        writeData(users);
+        
+        // Log the activity
+        logUserActivity("admin", "update_student", { 
+            idNumber: updatedStudent.idNumber, 
+            name: `${updatedStudent.firstName} ${updatedStudent.lastName}` 
+        });
+        
+        res.json({ 
+            success: true, 
+            message: "Student updated successfully" 
+        });
+        
+    } catch (error) {
+        console.error("Error updating student:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Internal server error" 
+        });
+    }
+});
+
+// Route to delete a student
+app.post("/delete-student", (req, res) => {
+    try {
+        const { idNumber } = req.body;
+        
+        if (!idNumber) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Student ID is required" 
+            });
+        }
+        
+        // Read current users
+        const users = readData();
+        
+        // Find the student to delete
+        const index = users.findIndex(user => user.idNumber === idNumber);
+        
+        if (index === -1) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Student not found" 
+            });
+        }
+        
+        // Get student details for logging
+        const deletedStudent = users[index];
+        
+        // Remove student from array
+        users.splice(index, 1);
+        
+        // Save updated users
+        writeData(users);
+        
+        // Log the activity
+        logUserActivity("admin", "delete_student", { 
+            idNumber, 
+            name: `${deletedStudent.firstName} ${deletedStudent.lastName}` 
+        });
+        
+        res.json({ 
+            success: true, 
+            message: "Student deleted successfully" 
+        });
+        
+    } catch (error) {
+        console.error("Error deleting student:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Internal server error" 
+        });
+    }
 });

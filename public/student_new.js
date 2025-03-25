@@ -250,37 +250,32 @@ async function updateDashboardStats(userId) {
         }
         const userData = await response.json();
         
-        // Fetch sit-ins and reservations data to update counts
-        const [sitInsResponse, reservationsResponse] = await Promise.all([
-            fetch(`http://localhost:3000/sit-ins`),
-            fetch(`http://localhost:3000/reservations`)
-        ]);
-
-        if (!sitInsResponse.ok || !reservationsResponse.ok) {
-            throw new Error('Failed to fetch data');
+        // Fetch completed sessions from the new endpoint
+        const completedSessionsResponse = await fetch(`http://localhost:3000/student-completed-sessions/${userId}`);
+        if (!completedSessionsResponse.ok) {
+            throw new Error('Failed to fetch completed sessions data');
         }
-
-        const sitIns = await sitInsResponse.json();
-        const reservations = await reservationsResponse.json();
-        
-        // Ensure we have arrays to work with
-        const sitInsArray = Array.isArray(sitIns) ? sitIns : [];
-        const reservationsArray = Array.isArray(reservations) ? reservations : [];
-        
-        // Filter sit-ins and reservations for this user
-        const userSitIns = sitInsArray.filter(s => s.idNumber === userId);
-        const userReservations = reservationsArray.filter(r => r.idNumber === userId);
+        const completedSessionsData = await completedSessionsResponse.json();
         
         // Update completed sessions count
         if (document.getElementById('completedSessions')) {
-            const completedCount = userSitIns.filter(s => s.status === 'completed').length;
+            const completedCount = completedSessionsData.sessions.length;
             document.getElementById('completedSessions').textContent = completedCount;
-        }
-        
-        // Update pending sessions count
-        if (document.getElementById('pendingSessions')) {
-            const pendingCount = userReservations.filter(r => r.status === 'pending').length;
-            document.getElementById('pendingSessions').textContent = pendingCount;
+            
+            // Make the completed sessions card clickable to show details
+            const completedSessionsCard = document.getElementById('completedSessions').closest('.bg-white');
+            if (completedSessionsCard && !completedSessionsCard.classList.contains('sessions-clickable')) {
+                completedSessionsCard.classList.add('sessions-clickable');
+                completedSessionsCard.style.cursor = 'pointer';
+                completedSessionsCard.addEventListener('click', function() {
+                    // Redirect to history tab with completed sessions filter
+                    showSection('sit-in-history');
+                    // Set a flag in localStorage to indicate we want to show completed sessions
+                    localStorage.setItem('showCompletedSessions', 'true');
+                    // Ensure the history tabs function is called
+                    setupHistoryTabs();
+                });
+            }
         }
         
         // Update remaining sessions count everywhere
@@ -387,6 +382,8 @@ async function loadDashboardData() {
             const currentActiveSession = activeSitIn || activeReservation;
             
             console.log('Current active session:', currentActiveSession);
+            console.log('Active sit-in:', activeSitIn);
+            console.log('Active reservation:', activeReservation);
             
             // Update last session display
             const lastSessionElement = document.getElementById('lastSession');
@@ -396,8 +393,15 @@ async function loadDashboardData() {
                     const date = new Date(currentActiveSession.date);
                     const formattedDate = date.toLocaleDateString();
                     
-                    // Get session type
-                    const sessionType = activeSitIn ? 'Walk-in' : 'Reservation';
+                    // Determine if this is a reservation or walk-in
+                    let sessionType = 'Walk-in'; // Default to walk-in
+                    
+                    // Check if the current active session is the active reservation
+                    if (activeReservation && currentActiveSession.id === activeReservation.id) {
+                        sessionType = 'Reservation';
+                    }
+                    
+                    console.log('Session type determined as:', sessionType);
                     
                     // Update display
                     lastSessionElement.innerHTML = `
@@ -424,7 +428,16 @@ async function loadDashboardData() {
                         const date = new Date(lastSession.date);
                         const formattedDate = date.toLocaleDateString();
                         
-                        lastSessionElement.textContent = formattedDate;
+                        // Determine session type for completed sessions by checking if it exists in sitIns
+                        // We need to check by ID to determine the correct type
+                        const isWalkIn = sitIns.some(s => s.id === lastSession.id);
+                        const sessionType = isWalkIn ? 'Walk-in' : 'Reservation';
+                        
+                        lastSessionElement.innerHTML = `
+                            <span class="text-gray-600 font-medium">Completed: ${sessionType}</span>
+                            <br>
+                            <span class="text-sm font-normal">${formattedDate}</span>
+                        `;
                     } else {
                         lastSessionElement.textContent = 'No sessions yet';
                     }
@@ -1339,7 +1352,7 @@ function logout() {
 }
 
 // Function to load reservation history
-async function loadReservationHistory() {
+async function loadReservationHistory(statusFilter = null) {
     try {
         console.log("Loading reservation history...");
         
@@ -1400,8 +1413,15 @@ async function loadReservationHistory() {
             throw new Error(result.error || "Unknown error occurred");
         }
         
-        const allEntries = result.history;
+        let allEntries = result.history;
         console.log(`Retrieved ${allEntries.length} history entries`);
+        
+        // Apply status filter if provided
+        if (statusFilter) {
+            console.log(`Filtering entries by status: ${statusFilter}`);
+            allEntries = allEntries.filter(entry => entry.status === statusFilter);
+            console.log(`After filtering, ${allEntries.length} entries remain`);
+        }
         
         // Update the table
         const tableBody = document.getElementById('reservationTableBody');
@@ -1413,7 +1433,9 @@ async function loadReservationHistory() {
         if (allEntries.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="px-6 py-3 text-center text-gray-500">No history found.</td>
+                    <td colspan="5" class="px-6 py-3 text-center text-gray-500">
+                        ${statusFilter ? `No ${statusFilter} sessions found.` : 'No history found.'}
+                    </td>
                 </tr>
             `;
             return;
@@ -1466,7 +1488,7 @@ async function loadReservationHistory() {
             `;
             
             // Add feedback row for all reservations that haven't been rated
-            if (!entry.feedback) {
+            if (!entry.feedback && status === 'completed') {
                 html += `
                     <tr class="bg-gray-50 dark:bg-gray-800 feedback-row" data-for-entry-id="${id}">
                         <td colspan="5" class="px-6 py-4">
@@ -1937,8 +1959,24 @@ function setupHistoryTabs() {
         });
     }
     
-    // Load reservation history by default
-    loadReservationHistory();
+    // Check if we should show completed sessions
+    const showCompletedSessions = localStorage.getItem('showCompletedSessions') === 'true';
+    
+    // Load reservation history with filter if needed
+    if (showCompletedSessions) {
+        // Remove the flag so it doesn't persist across page refreshes
+        localStorage.removeItem('showCompletedSessions');
+        // Update header to show we're looking at completed sessions
+        const historyHeader = document.querySelector('#sit-in-history h2');
+        if (historyHeader) {
+            historyHeader.textContent = 'Completed Sessions';
+        }
+        // Load history with completed filter
+        loadReservationHistory('completed');
+    } else {
+        // Load all reservation history
+        loadReservationHistory();
+    }
 }
 
 // Function to setup lab rules toggle
@@ -3031,6 +3069,14 @@ function initializeCalendar() {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) return;
 
+    // Get the current user ID
+    const userId = localStorage.getItem('userId') || localStorage.getItem('currentUserId') || new URLSearchParams(window.location.search).get("id");
+    
+    if (!userId) {
+        console.error("No user ID found for calendar initialization");
+        return;
+    }
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: {
@@ -3051,22 +3097,73 @@ function initializeCalendar() {
         },
         events: async function(info, successCallback, failureCallback) {
             try {
-                const response = await fetch('http://localhost:3000/reservations');
-                const data = await response.json();
+                // Only fetch user's own reservations
+                const reservationsResponse = await fetch(`http://localhost:3000/student-reservations/${userId}`);
+                const reservationsData = await reservationsResponse.json();
                 
-                const events = data.map(reservation => ({
-                    id: reservation.id,
-                    title: `Room ${reservation.labRoom}`,
+                // Also fetch user's walk-ins
+                const walkInsResponse = await fetch(`http://localhost:3000/student-walkins/${userId}`);
+                const walkInsData = await walkInsResponse.json();
+                
+                // Create events for reservations
+                const reservationEvents = reservationsData.map(reservation => ({
+                    id: `reservation-${reservation.id}`,
+                    title: `Reservation: Room ${reservation.labRoom}`,
                     start: `${reservation.date}T${reservation.time}`,
                     backgroundColor: getStatusColor(reservation.status),
-                    borderColor: getStatusColor(reservation.status)
+                    borderColor: getStatusColor(reservation.status),
+                    extendedProps: {
+                        type: 'reservation',
+                        purpose: reservation.purpose,
+                        programmingLanguage: reservation.programmingLanguage,
+                        status: reservation.status,
+                        labRoom: reservation.labRoom
+                    }
                 }));
                 
-                successCallback(events);
+                // Create events for walk-ins
+                const walkInEvents = walkInsData.map(walkIn => ({
+                    id: `walkin-${walkIn.id}`,
+                    title: `Walk-in: Room ${walkIn.labRoom}`,
+                    start: `${walkIn.date}T${walkIn.timeIn || walkIn.time}`,
+                    backgroundColor: '#3b82f6', // blue for walk-ins
+                    borderColor: '#3b82f6',
+                    extendedProps: {
+                        type: 'walkin',
+                        purpose: walkIn.purpose,
+                        programmingLanguage: walkIn.programmingLanguage,
+                        status: 'completed',
+                        labRoom: walkIn.labRoom
+                    }
+                }));
+                
+                // Combine all events
+                const allEvents = [...reservationEvents, ...walkInEvents];
+                
+                successCallback(allEvents);
+                
             } catch (error) {
                 console.error('Error fetching events:', error);
                 failureCallback(error);
             }
+        },
+        eventClick: function(info) {
+            const eventType = info.event.extendedProps.type;
+            const status = info.event.extendedProps.status;
+            const purpose = info.event.extendedProps.purpose;
+            const programmingLanguage = info.event.extendedProps.programmingLanguage;
+            const labRoom = info.event.extendedProps.labRoom;
+            
+            let message = `Details for your ${eventType === 'reservation' ? 'reservation' : 'walk-in session'}:\n`;
+            message += `Room: ${labRoom}\n`;
+            message += `Purpose: ${purpose || 'Not specified'}\n`;
+            message += `Programming Language: ${programmingLanguage || 'Not specified'}\n`;
+            
+            if (eventType === 'reservation') {
+                message += `Status: ${status}\n`;
+            }
+            
+            alert(message);
         }
     });
 
