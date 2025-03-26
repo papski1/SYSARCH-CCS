@@ -41,10 +41,11 @@
     "time": "08:47",
     "labRoom": "544",
     "programmingLanguage": "Java",
-    "status": "active",
+    "status": "completed",
     "createdAt": "2025-03-25T12:47:43.953Z",
     "isWalkIn": false,
-    "entryType": "reservation"
+    "entryType": "reservation",
+    "timeOut": "11:47"
   },
   {
     "id": 1742907390140,
@@ -56,10 +57,11 @@
     "time": "08:56",
     "labRoom": "542",
     "programmingLanguage": "Python",
-    "status": "active",
+    "status": "completed",
     "createdAt": "2025-03-25T12:56:30.140Z",
     "isWalkIn": false,
-    "entryType": "reservation"
+    "entryType": "reservation",
+    "timeOut": "11:47"
   },
   {
     "id": 1742907646370,
@@ -71,10 +73,11 @@
     "time": "09:00",
     "labRoom": "526",
     "programmingLanguage": "C#",
-    "status": "active",
+    "status": "completed",
     "createdAt": "2025-03-25T13:00:46.370Z",
     "isWalkIn": false,
-    "entryType": "reservation"
+    "entryType": "reservation",
+    "timeOut": "11:47"
   },
   {
     "id": 1742907889399,
@@ -118,10 +121,11 @@
     "time": "09:11",
     "labRoom": "544",
     "programmingLanguage": "C++",
-    "status": "active",
+    "status": "completed",
     "createdAt": "2025-03-25T13:11:50.523Z",
     "isWalkIn": false,
-    "entryType": "reservation"
+    "entryType": "reservation",
+    "timeOut": "11:47"
   },
   {
     "id": 1742908637745,
@@ -133,8 +137,24 @@
     "time": "09:17",
     "labRoom": "544",
     "programmingLanguage": "PHP",
-    "status": "active",
+    "status": "completed",
     "createdAt": "2025-03-25T13:17:17.745Z",
+    "isWalkIn": false,
+    "entryType": "reservation",
+    "timeOut": "11:47"
+  },
+  {
+    "id": 1742961673264,
+    "email": "rizadajohn5@gmail.com",
+    "idNumber": "22631824",
+    "name": "john rizada",
+    "purpose": "Programming Session",
+    "date": "2025-03-26",
+    "time": "12:01",
+    "labRoom": "526",
+    "programmingLanguage": "JavaScript",
+    "status": "active",
+    "createdAt": "2025-03-26T04:01:13.264Z",
     "isWalkIn": false,
     "entryType": "reservation"
   }

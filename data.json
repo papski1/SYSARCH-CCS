@@ -9,9 +9,9 @@
     "course": "BS Civil Engineering",
     "password": "$2b$10$qVQqprWxFiaAWPizb9YdEuPAsJcKiTRNOD3oRaAOWQ1c0.VV22UKS",
     "totalSessions": 10,
-    "completedSessions": 0,
+    "completedSessions": 1,
     "pendingReservations": 1,
-    "remainingSessions": 14
+    "remainingSessions": 13
   },
   {
     "idNumber": "22635452",
@@ -23,9 +23,9 @@
     "course": "BS Information Technology",
     "password": "$2b$10$Q0LgYdpN1QrE89dD3S88TOzY66jEzzfG3LEWEHJrby1veRWDueCwq",
     "totalSessions": 15,
-    "completedSessions": 4,
+    "completedSessions": 5,
     "pendingReservations": 4,
-    "remainingSessions": 22,
+    "remainingSessions": 21,
     "profileImage": "/uploads/1742675119342-22.jpg"
   },
   {
@@ -37,9 +37,9 @@
     "year": "3rd Year",
     "course": "BS Information Technology",
     "password": "$2b$10$P3/cJ6bUltI87iDL4LmINeumR7C8K/1pADzOObXH8TG7FaFWOu6dC",
-    "completedSessions": 0,
+    "completedSessions": 1,
     "pendingReservations": 1,
-    "remainingSessions": 29,
+    "remainingSessions": 28,
     "profileImage": "/uploads/1741581696160-doblas.jpg"
   },
   {
@@ -51,9 +51,9 @@
     "year": "4th Year",
     "course": "BS Business Administration",
     "password": "$2b$10$fjawJ56v3YCZ7CiO7.bMQOngXpQXGEWNr0qXSlLt4CduAcGip3x3O",
-    "completedSessions": 0,
+    "completedSessions": 1,
     "pendingReservations": 1,
-    "remainingSessions": 29
+    "remainingSessions": 28
   },
   {
     "idNumber": "2223",
@@ -64,9 +64,9 @@
     "year": "3rd Year",
     "course": "BS Computer Science",
     "password": "$2b$10$awRbFfmKiSS8bWbXwW5tP.N5u/dMa1JMUbOukuPsLxiCNN8SJSUKi",
-    "completedSessions": 3,
+    "completedSessions": 4,
     "pendingReservations": 2,
-    "remainingSessions": 25,
+    "remainingSessions": 24,
     "profileImage": "/uploads/1742312950299-22.jpg"
   },
   {
@@ -78,9 +78,36 @@
     "year": "4th Year",
     "course": "BS Electrical Engineering",
     "password": "$2b$10$gIvfTGl2tqHZgAHiUGp9auZfHf9YSPyssLarSjC.aoAkn0w.SnC8a",
-    "completedSessions": 2,
+    "completedSessions": 3,
     "pendingReservations": 0,
-    "remainingSessions": 13,
+    "remainingSessions": 12,
     "profileImage": "/uploads/1742666547991-22.jpg"
+  },
+  {
+    "idNumber": "21578786",
+    "firstName": "Marianne Mae",
+    "middleName": "",
+    "lastName": "Calderon",
+    "email": "mariannemaecalderon04@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Information Technology",
+    "password": "$2b$10$r9pmPrLzgFAc91mnDXJ4keTAzDAJvYLnFvdFeDvRbNK4.n9LjyBFm",
+    "completedSessions": 0,
+    "pendingReservations": 0,
+    "remainingSessions": 30,
+    "profileImage": "/uploads/1742961353129-sss.jpg"
+  },
+  {
+    "idNumber": "22631824",
+    "firstName": "john",
+    "middleName": "canama",
+    "lastName": "rizada",
+    "email": "rizadajohn5@gmail.com",
+    "year": "1st Year",
+    "course": "BS Information Systems",
+    "password": "$2b$10$b9cZ2eA0iUTA1AC.SSU9KOM1dhODXkD7sXwQfv6VKgi6JZp5l22LW",
+    "completedSessions": 0,
+    "pendingReservations": 1,
+    "remainingSessions": 29
   }
 ]

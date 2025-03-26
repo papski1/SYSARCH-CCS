@@ -283,6 +283,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         // Load reset functionality
         initResetSession();
         
+        // Load completed sessions history
+        loadCompletedSessionsHistory();
+        
         // Check for hash in URL to determine which section to show
         const hash = window.location.hash.substring(1);
         if (hash) {
@@ -3551,8 +3554,8 @@ async function loadCompletedSessionsHistory() {
         
         tableBody.innerHTML = html;
         
-        // Setup search functionality
-        setupCompletedSessionsSearch();
+        // Setup export buttons
+        setupExportFunctions(data.sessions);
         
     } catch (error) {
         console.error('Error loading completed sessions:', error);
@@ -3567,27 +3570,191 @@ async function loadCompletedSessionsHistory() {
     }
 }
 
-// Function to setup search functionality for completed sessions
-function setupCompletedSessionsSearch() {
-    const searchInput = document.getElementById('completed-sessions-search');
-    if (!searchInput) return;
+// Function to setup export functionality for completed sessions
+function setupExportFunctions(sessionsData) {
+    // Setup CSV Export
+    const exportCsvBtn = document.getElementById('export-csv');
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', () => exportToCSV(sessionsData));
+    }
     
-    searchInput.addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        const rows = document.querySelectorAll('#completed-sessions-table tr');
-        
-        rows.forEach(row => {
-            const idNumber = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
-            const name = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
-            
-            if (idNumber.includes(searchTerm) || name.includes(searchTerm)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    });
+    // Setup Excel Export
+    const exportExcelBtn = document.getElementById('export-excel');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', () => exportToExcel(sessionsData));
+    }
+    
+    // Setup PDF Export
+    const exportPdfBtn = document.getElementById('export-pdf');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', () => exportToPDF(sessionsData));
+    }
+    
+    // Setup Print
+    const printTableBtn = document.getElementById('print-table');
+    if (printTableBtn) {
+        printTableBtn.addEventListener('click', printTable);
+    }
 }
+
+// Function to export data to CSV
+function exportToCSV(data) {
+    // Format data for CSV
+    const headers = ['ID Number', 'Name', 'Course', 'Year', 'Purpose', 'Date', 'Time', 'Lab Room', 'Type'];
+    
+    // Create rows
+    const rows = data.map(session => [
+        session.idNumber || 'N/A',
+        session.name || 'N/A',
+        session.course || 'N/A',
+        session.year || 'N/A',
+        session.programmingLanguage || 'N/A',
+        session.date || 'N/A',
+        session.time || session.timeIn || 'N/A',
+        session.labRoom || session.laboratory || 'N/A',
+        session.type || (session.isWalkIn ? 'Walk-in' : 'Reservation')
+    ]);
+    
+    // Add headers
+    rows.unshift(headers);
+    
+    // Convert to CSV string
+    let csvContent = "data:text/csv;charset=utf-8," 
+        + rows.map(row => row.join(',')).join('\n');
+    
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "completed_sessions.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Function to export data to Excel
+function exportToExcel(data) {
+    // Format data for Excel
+    const headers = ['ID Number', 'Name', 'Course', 'Year', 'Purpose', 'Date', 'Time', 'Lab Room', 'Type'];
+    
+    // Create rows
+    const rows = data.map(session => [
+        session.idNumber || 'N/A',
+        session.name || 'N/A',
+        session.course || 'N/A',
+        session.year || 'N/A',
+        session.programmingLanguage || 'N/A',
+        session.date || 'N/A',
+        session.time || session.timeIn || 'N/A',
+        session.labRoom || session.laboratory || 'N/A',
+        session.type || (session.isWalkIn ? 'Walk-in' : 'Reservation')
+    ]);
+    
+    // Create worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Completed Sessions");
+    
+    // Generate Excel file and trigger download
+    XLSX.writeFile(workbook, "completed_sessions.xlsx");
+}
+
+// Function to export data to PDF
+function exportToPDF(data) {
+    // Create headers for PDF
+    const headers = [['ID Number', 'Name', 'Course', 'Year', 'Purpose', 'Date', 'Time', 'Lab Room', 'Type']];
+    
+    // Create rows for PDF
+    const rows = data.map(session => [
+        session.idNumber || 'N/A',
+        session.name || 'N/A',
+        session.course || 'N/A',
+        session.year || 'N/A',
+        session.programmingLanguage || 'N/A',
+        session.date || 'N/A',
+        session.time || session.timeIn || 'N/A',
+        session.labRoom || session.laboratory || 'N/A',
+        session.type || (session.isWalkIn ? 'Walk-in' : 'Reservation')
+    ]);
+    
+    // Create PDF document
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape orientation
+    
+    // Add title
+    doc.text('Completed Sessions History', 14, 15);
+    
+    // Add current date
+    const today = new Date();
+    const dateStr = today.toLocaleDateString();
+    doc.text(`Generated on: ${dateStr}`, 14, 20);
+    
+    // Add table
+    doc.autoTable({
+        head: headers,
+        body: rows,
+        startY: 25,
+        theme: 'grid',
+        styles: {
+            fontSize: 8,
+            cellPadding: 2
+        },
+        headStyles: {
+            fillColor: [66, 139, 202],
+            textColor: [255, 255, 255]
+        }
+    });
+    
+    // Save PDF
+    doc.save('completed_sessions.pdf');
+}
+
+// Function to print the table
+function printTable() {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Create HTML content
+    const tableHtml = document.querySelector('.overflow-x-auto').innerHTML;
+    
+    // Create a styled HTML document
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Completed Sessions History</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                h2 { color: #333; }
+                .print-header { display: flex; justify-content: space-between; }
+                .date { text-align: right; margin-bottom: 20px; }
+                @media print {
+                    button { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-header">
+                <h2>Completed Sessions History</h2>
+                <div class="date">Generated on: ${new Date().toLocaleDateString()}</div>
+            </div>
+            <button onclick="window.print(); window.close();" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; cursor: pointer; margin-bottom: 20px;">Print</button>
+            ${tableHtml}
+        </body>
+        </html>
+    `);
+    
+    // Close document
+    printWindow.document.close();
+}
+
+// Function to setup search functionality for completed sessions (removed as requested)
+// function setupCompletedSessionsSearch() { ... }
 
 // Function to edit student
 async function editStudent(idNumber) {

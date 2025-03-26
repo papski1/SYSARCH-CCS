@@ -1,5 +1,160 @@
 [
   {
+    "id": 1742961687713,
+    "userId": "22631824",
+    "type": "Reservation Status Updated",
+    "details": {
+      "recordId": "1742961673264",
+      "newStatus": "active",
+      "previousStatus": "active",
+      "timeOut": null
+    },
+    "date": "2025-03-26T04:01:27.713Z"
+  },
+  {
+    "id": 1742961673267,
+    "userId": "22631824",
+    "type": "Reservation Created",
+    "details": {
+      "date": "2025-03-26",
+      "time": "12:01",
+      "labRoom": "526",
+      "status": "pending",
+      "remainingSessions": 30
+    },
+    "date": "2025-03-26T04:01:13.267Z"
+  },
+  {
+    "id": 1742961017829,
+    "userId": "5555",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-03-26",
+      "time": "11:50",
+      "labRoom": "544",
+      "programmingLanguage": "C Programming",
+      "purpose": "Programming assistance (C Programming)",
+      "remainingSessions": 12
+    },
+    "date": "2025-03-26T03:50:17.829Z"
+  },
+  {
+    "id": 1742960994449,
+    "userId": "2222",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-03-26",
+      "time": "11:49",
+      "labRoom": "542",
+      "programmingLanguage": "C++",
+      "purpose": "Programming assistance (C++)",
+      "remainingSessions": 28
+    },
+    "date": "2025-03-26T03:49:54.449Z"
+  },
+  {
+    "id": 1742960982530,
+    "userId": "242424",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-03-26",
+      "time": "11:49",
+      "labRoom": "530",
+      "programmingLanguage": "Python",
+      "purpose": "Programming assistance (Python)",
+      "remainingSessions": 28
+    },
+    "date": "2025-03-26T03:49:42.530Z"
+  },
+  {
+    "id": 1742960969652,
+    "userId": "22635452",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-03-26",
+      "time": "11:49",
+      "labRoom": "526",
+      "programmingLanguage": "Java",
+      "purpose": "Programming assistance (Java)",
+      "remainingSessions": 21
+    },
+    "date": "2025-03-26T03:49:29.652Z"
+  },
+  {
+    "id": 1742960949842,
+    "userId": "54321",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-03-26",
+      "time": "11:49",
+      "labRoom": "524",
+      "programmingLanguage": "PHP",
+      "purpose": "Programming assistance (PHP)",
+      "remainingSessions": 13
+    },
+    "date": "2025-03-26T03:49:09.842Z"
+  },
+  {
+    "id": 1742960861078,
+    "userId": "22635452",
+    "type": "Reservation Status Updated",
+    "details": {
+      "recordId": "1742908310523",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "11:47"
+    },
+    "date": "2025-03-26T03:47:41.078Z"
+  },
+  {
+    "id": 1742960858327,
+    "userId": "54321",
+    "type": "Reservation Status Updated",
+    "details": {
+      "recordId": "1742907390140",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "11:47"
+    },
+    "date": "2025-03-26T03:47:38.327Z"
+  },
+  {
+    "id": 1742960855863,
+    "userId": "5555",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1742907812798",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "11:47"
+    },
+    "date": "2025-03-26T03:47:35.863Z"
+  },
+  {
+    "id": 1742960853262,
+    "userId": "242424",
+    "type": "Reservation Status Updated",
+    "details": {
+      "recordId": "1742907646370",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "11:47"
+    },
+    "date": "2025-03-26T03:47:33.262Z"
+  },
+  {
+    "id": 1742960850262,
+    "userId": "2222",
+    "type": "Reservation Status Updated",
+    "details": {
+      "recordId": "1742906863953",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "11:47"
+    },
+    "date": "2025-03-26T03:47:30.262Z"
+  },
+  {
     "id": 1742910858944,
     "userId": "admin",
     "type": "update_student",
