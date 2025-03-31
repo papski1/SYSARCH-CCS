@@ -85,5 +85,14 @@
     "message": "ok ra",
     "laboratory": "542",
     "date": "2025-03-23T13:29:12.396Z"
+  },
+  {
+    "id": "d2749998-43ef-499b-878b-23c94500313c",
+    "userId": "222222",
+    "sitInId": "1743393275286",
+    "type": "Walk-in",
+    "message": "OK FINE!",
+    "laboratory": "544",
+    "date": "2025-03-31T03:58:16.937Z"
   }
 ]

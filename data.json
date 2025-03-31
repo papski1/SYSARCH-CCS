@@ -10,8 +10,8 @@
     "password": "$2b$10$qVQqprWxFiaAWPizb9YdEuPAsJcKiTRNOD3oRaAOWQ1c0.VV22UKS",
     "totalSessions": 10,
     "completedSessions": 1,
-    "pendingReservations": 1,
-    "remainingSessions": 13
+    "pendingReservations": 0,
+    "remainingSessions": 14
   },
   {
     "idNumber": "22635452",
@@ -23,9 +23,9 @@
     "course": "BS Information Technology",
     "password": "$2b$10$Q0LgYdpN1QrE89dD3S88TOzY66jEzzfG3LEWEHJrby1veRWDueCwq",
     "totalSessions": 15,
-    "completedSessions": 5,
-    "pendingReservations": 4,
-    "remainingSessions": 21,
+    "completedSessions": 0,
+    "pendingReservations": 1,
+    "remainingSessions": 29,
     "profileImage": "/uploads/1742675119342-22.jpg"
   },
   {
@@ -38,8 +38,8 @@
     "course": "BS Information Technology",
     "password": "$2b$10$P3/cJ6bUltI87iDL4LmINeumR7C8K/1pADzOObXH8TG7FaFWOu6dC",
     "completedSessions": 1,
-    "pendingReservations": 1,
-    "remainingSessions": 28,
+    "pendingReservations": 0,
+    "remainingSessions": 29,
     "profileImage": "/uploads/1741581696160-doblas.jpg"
   },
   {
@@ -52,8 +52,8 @@
     "course": "BS Business Administration",
     "password": "$2b$10$fjawJ56v3YCZ7CiO7.bMQOngXpQXGEWNr0qXSlLt4CduAcGip3x3O",
     "completedSessions": 1,
-    "pendingReservations": 1,
-    "remainingSessions": 28
+    "pendingReservations": 0,
+    "remainingSessions": 14
   },
   {
     "idNumber": "2223",
@@ -64,9 +64,9 @@
     "year": "3rd Year",
     "course": "BS Computer Science",
     "password": "$2b$10$awRbFfmKiSS8bWbXwW5tP.N5u/dMa1JMUbOukuPsLxiCNN8SJSUKi",
-    "completedSessions": 4,
-    "pendingReservations": 2,
-    "remainingSessions": 24,
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29,
     "profileImage": "/uploads/1742312950299-22.jpg"
   },
   {
@@ -78,9 +78,9 @@
     "year": "4th Year",
     "course": "BS Electrical Engineering",
     "password": "$2b$10$gIvfTGl2tqHZgAHiUGp9auZfHf9YSPyssLarSjC.aoAkn0w.SnC8a",
-    "completedSessions": 3,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 12,
+    "remainingSessions": 14,
     "profileImage": "/uploads/1742666547991-22.jpg"
   },
   {
@@ -92,9 +92,9 @@
     "year": "3rd Year",
     "course": "BS Information Technology",
     "password": "$2b$10$r9pmPrLzgFAc91mnDXJ4keTAzDAJvYLnFvdFeDvRbNK4.n9LjyBFm",
-    "completedSessions": 0,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 30,
+    "remainingSessions": 29,
     "profileImage": "/uploads/1742961353129-sss.jpg"
   },
   {
@@ -106,8 +106,73 @@
     "year": "1st Year",
     "course": "BS Information Systems",
     "password": "$2b$10$b9cZ2eA0iUTA1AC.SSU9KOM1dhODXkD7sXwQfv6VKgi6JZp5l22LW",
-    "completedSessions": 0,
-    "pendingReservations": 1,
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29
+  },
+  {
+    "idNumber": "20216826",
+    "firstName": "lazaga",
+    "middleName": "B",
+    "lastName": "prince",
+    "email": "BLASD@gmail.com",
+    "year": "1st Year",
+    "course": "BS Software Engineering",
+    "password": "$2b$10$K/.KPB1Kxfffoju.FnvfduL9odsOJnw/uK0HPA7SsITxXyqjg/yMy",
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29
+  },
+  {
+    "idNumber": "22633614",
+    "firstName": "Eldrin",
+    "middleName": "A",
+    "lastName": "Trapa",
+    "email": "baggy@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Information Technology",
+    "password": "$2b$10$CFSsOL89YRLtOH9e2hLVpeSCQ4bDJegkzACySCpa6lAY8nFnI4fVG",
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29
+  },
+  {
+    "idNumber": "222222",
+    "firstName": "asdas",
+    "middleName": "asdas",
+    "lastName": "asdas",
+    "email": "asdasd@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Information Systems",
+    "password": "$2b$10$wH0U32ecsfPXmmVByWs4V.mTKSSIOeTLD4OAcEMscw4V4VwhY9Ldu",
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29
+  },
+  {
+    "idNumber": "66666",
+    "firstName": "baggt",
+    "middleName": "y",
+    "lastName": "trapa",
+    "email": "trapa@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Information Technology",
+    "password": "$2b$10$.SGY9CM9GhTMNVMaTdfmWuukmJxAlH.QMTxQtLdpzTnh4LOg6eKsG",
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29
+  },
+  {
+    "idNumber": "20951950",
+    "firstName": "jumel",
+    "middleName": "bisagunsa",
+    "lastName": "labe",
+    "email": "ohaha@gmail.com",
+    "year": "3rd Year",
+    "course": "BS Information Technology",
+    "password": "$2b$10$1ezBGFU.dgxgDZttTzIqnOfjX7P644ep6Yb9rQ23Rwq9AEXXJwLpu",
+    "completedSessions": 1,
+    "pendingReservations": 0,
     "remainingSessions": 29
   }
 ]

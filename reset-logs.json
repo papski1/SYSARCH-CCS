@@ -1,5 +1,33 @@
 [
   {
+    "timestamp": "2025-03-31T03:59:14.614Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-03-31T03:59:13.102Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "id": 1743393548681,
+    "timestamp": "2025-03-31T03:59:08.681Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 11,
+      "sitInsRemoved": 8,
+      "usersReset": 13
+    }
+  },
+  {
     "timestamp": "2025-03-23T12:53:43.085Z",
     "resetType": "user",
     "resetTarget": "2223",
