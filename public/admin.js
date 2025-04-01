@@ -2722,6 +2722,14 @@ function displayAnnouncements(announcements) {
         const date = new Date(announcement.date).toLocaleDateString();
         const updatedDate = announcement.updatedAt ? new Date(announcement.updatedAt).toLocaleDateString() : null;
         
+        // Convert newlines to HTML line breaks and format message content
+        let formattedMessage = (announcement.message || announcement.content || '');
+        
+        // Create HTML for formatted message with line breaks preserved
+        formattedMessage = formattedMessage
+            .replace(/\n\n/g, '</p><p class="text-gray-600 my-2">')
+            .replace(/\n/g, '<br>');
+        
         html += `
             <div class="bg-white rounded-lg shadow p-4 mb-4" data-id="${announcement.id}">
                 <div class="flex justify-between items-start">
@@ -2741,7 +2749,11 @@ function displayAnnouncements(announcements) {
                         </button>
                     </div>
                 </div>
-                <p class="text-gray-600 mt-1">${announcement.message || announcement.content || ''}</p>
+                
+                <div class="announcement-content mt-2 text-gray-600 bg-gray-50 p-3 rounded-lg">
+                    <p class="text-gray-600">${formattedMessage}</p>
+                </div>
+                
                 <div class="text-xs text-gray-500 mt-2">
                     Posted on ${date}
                     ${updatedDate ? `<span class="ml-2">(Edited: ${updatedDate})</span>` : ''}

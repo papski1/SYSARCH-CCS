@@ -216,13 +216,21 @@ async function loadAnnouncements() {
 
         // Display only the 3 most recent announcements in the dashboard
         announcements.slice(0, 3).forEach(announcement => {
+            // Format announcement message for preview (truncated)
+            let previewMessage = announcement.message || '';
+            // Remove line breaks and limit to 100 characters for preview
+            previewMessage = previewMessage.replace(/\n/g, ' ').trim();
+            if (previewMessage.length > 100) {
+                previewMessage = previewMessage.substring(0, 100) + '...';
+            }
+            
             const announcementElement = document.createElement('div');
             announcementElement.className = 'p-4 bg-white rounded-lg shadow-md mb-4 hover:bg-gray-50 transition-colors duration-200 cursor-pointer dark:bg-dark-card dark:hover:bg-gray-700';
             announcementElement.onclick = () => openAnnouncementsModal();
             announcementElement.innerHTML = `
                 <p class="text-blue-600 font-medium mb-1 dark:text-blue-400">CCS | Admin</p>
                 <h3 class="text-lg font-semibold text-gray-800 mb-2 dark:text-gray-100">${announcement.title}</h3>
-                <p class="text-gray-600 mb-2 dark:text-gray-300 line-clamp-2">${announcement.message}</p>
+                <p class="text-gray-600 mb-2 dark:text-gray-300 line-clamp-2">${previewMessage}</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(announcement.date).toLocaleString()}</p>
             `;
             announcementsContainer.appendChild(announcementElement);
@@ -2587,13 +2595,26 @@ async function loadAnnouncementsIntoModal() {
         }
 
         announcements.forEach(announcement => {
+            // Format the message content with line breaks preserved
+            let formattedMessage = (announcement.message || '');
+            formattedMessage = formattedMessage
+                .replace(/\n\n/g, '</p><p class="text-gray-600 my-2">')
+                .replace(/\n/g, '<br>');
+            
+            const updatedDate = announcement.updatedAt ? new Date(announcement.updatedAt).toLocaleDateString() : null;
+            
             const announcementElement = document.createElement('div');
-            announcementElement.className = 'p-4 bg-white rounded-lg shadow mb-4';
+            announcementElement.className = 'p-4 bg-white rounded-lg shadow-md mb-4 dark:bg-gray-800 dark:text-gray-100';
             announcementElement.innerHTML = `
-                <p class="text-blue-600 font-medium mb-1">CCS | Admin</p>
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">${announcement.title}</h3>
-                <p class="text-gray-600 mb-2">${announcement.message}</p>
-                <p class="text-sm text-gray-500">${new Date(announcement.date).toLocaleString()}</p>
+                <div class="flex justify-between items-start">
+                    <p class="text-blue-600 font-medium mb-1 dark:text-blue-400">CCS | Admin</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${new Date(announcement.date).toLocaleString()}</p>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-3 dark:text-white">${announcement.title}</h3>
+                <div class="announcement-content bg-gray-50 p-3 rounded-lg dark:bg-gray-700">
+                    <p class="text-gray-600 dark:text-gray-300">${formattedMessage}</p>
+                </div>
+                ${updatedDate ? `<p class="text-xs text-gray-500 mt-2 dark:text-gray-400">Edited on ${updatedDate}</p>` : ''}
             `;
             modalContent.appendChild(announcementElement);
         });
