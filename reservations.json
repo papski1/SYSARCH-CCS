@@ -9,9 +9,10 @@
     "time": "12:00",
     "labRoom": "544",
     "programmingLanguage": "C#",
-    "status": "active",
+    "status": "completed",
     "createdAt": "2025-03-31T04:00:31.104Z",
     "isWalkIn": false,
-    "entryType": "reservation"
+    "entryType": "reservation",
+    "timeOut": "12:44"
   }
 ]

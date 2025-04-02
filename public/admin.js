@@ -1,3 +1,4 @@
+// Global showSection function to navigate between sections
 // Function to hide all sections
 function hideAllSections() {
     document.querySelectorAll("section").forEach(section => {
@@ -6,7 +7,7 @@ function hideAllSections() {
 }
 
 // Function to show a specific section
-function showSection(sectionId) {
+window.showSection = function(sectionId) {
     console.log(`Showing section: ${sectionId}`);
     hideAllSections();
     
@@ -21,11 +22,18 @@ function showSection(sectionId) {
             fetchSitIns();
         } else if (sectionId === "sit-in-records") {
             loadRecordsCharts(); // Load charts for records section
-            loadCompletedSessionsHistory(); // Load completed sessions history
         } else if (sectionId === "reports") {
             // Initialize reports section and show default tab
             setupReportsTabs();
-            // User feedback will be shown by default through setupReportsTabs
+            // If we came from sit-in-records notification, show completed sessions tab
+            const fromRecords = localStorage.getItem("fromSitInRecords");
+            if (fromRecords === "true") {
+                const completedSessionsTab = document.getElementById('tab-completed-sessions');
+                if (completedSessionsTab) {
+                    completedSessionsTab.click();
+                }
+                localStorage.removeItem("fromSitInRecords");
+            }
         } else if (sectionId === "dashboard") {
             initializeDashboard();
             loadRecentAnnouncements(); // Load announcements when dashboard is shown
@@ -248,49 +256,36 @@ document.addEventListener("DOMContentLoaded", async function() {
             } else {
                 console.warn("Auto-login failed, redirecting to login page");
                 window.location.href = "/login.html";
-                return; // Stop initialization if not authenticated
+                return;
             }
         }
-
-        // Show the last active section or default to dashboard
-        const lastActiveSection = localStorage.getItem("adminActiveSection") || "dashboard";
-        showSection(lastActiveSection);
-
-        // Add click event listeners to sidebar links
-        document.querySelectorAll('a[href^="#"]').forEach(link => {
-            link.addEventListener('click', function(event) {
+        
+        // Add click event listeners for navigation
+        const navLinks = document.querySelectorAll("nav a");
+        navLinks.forEach(link => {
+            link.addEventListener("click", function(event) {
                 event.preventDefault();
-                const sectionId = this.getAttribute('href').substring(1);
-                showSection(sectionId);
+                const targetId = this.getAttribute("href").substring(1);
+                if (targetId) {
+                    showSection(targetId);
+                }
             });
         });
-
-        // Initialize dashboard data
+        
+        // Show the dashboard by default or restore the last active section
+        const savedSection = localStorage.getItem("adminActiveSection");
+        if (savedSection && document.getElementById(savedSection)) {
+            showSection(savedSection);
+        } else {
+            showSection("dashboard");
+        }
+        
+        // Initialize the dashboard charts
         initializeDashboard();
         
-        // Initialize walk-in form
-        initializeWalkinForm();
-        
-        // Load announcements on page load
-        loadRecentAnnouncements();
-        
-        // Initialize search functionality
-        initializeSearch();
-        
-        // Setup reports tabs
-        setupReportsTabs();
-        
-        // Load reset functionality
+        // Initialize reset session functionality
         initResetSession();
         
-        // Load completed sessions history
-        loadCompletedSessionsHistory();
-        
-        // Check for hash in URL to determine which section to show
-        const hash = window.location.hash.substring(1);
-        if (hash) {
-            showSection(hash);
-        }
     } catch (error) {
         console.error("Error initializing admin dashboard:", error);
     }
@@ -2107,82 +2102,52 @@ async function loadRecordsCharts() {
     }
 }
 
-// Function to set up the Reports tabs
+// Function to setup report tabs
 function setupReportsTabs() {
-    console.log("Setting up reports tabs");
+    // Get tab buttons
+    const tabUserFeedback = document.getElementById('tab-user-feedback');
+    const tabCompletedSessions = document.getElementById('tab-completed-sessions');
     
-    // Get tab buttons - Using existing buttons from the HTML
-    const userFeedbackTab = document.getElementById('tab-user-feedback');
-    const studentReportsTab = document.getElementById('tab-student-reports');
+    // Get tab content areas
+    const contentUserFeedback = document.getElementById('content-user-feedback');
+    const contentCompletedSessions = document.getElementById('content-completed-sessions');
     
-    // Get tab content containers
-    const userFeedbackContent = document.getElementById('content-user-feedback');
-    const studentReportsContent = document.getElementById('content-student-reports');
-    
-    if (!userFeedbackTab || !studentReportsTab) {
-        console.error("Report tab buttons not found", {
-            userFeedbackTab,
-            studentReportsTab
+    // Function to set active tab
+    function setActiveTab(activeButton, activeContent) {
+        // Reset all buttons
+        [tabUserFeedback, tabCompletedSessions].forEach(btn => {
+            if (btn === activeButton) {
+                btn.classList.add('border-blue-500', 'text-blue-600');
+                btn.classList.remove('border-transparent', 'text-gray-500');
+            } else {
+                btn.classList.remove('border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            }
         });
-        return;
-    }
-    
-    if (!userFeedbackContent || !studentReportsContent) {
-        console.error("Report content containers not found", {
-            userFeedbackContent,
-            studentReportsContent
+        
+        // Reset all content
+        [contentUserFeedback, contentCompletedSessions].forEach(content => {
+            if (content === activeContent) {
+                content.classList.remove('hidden');
+            } else {
+                content.classList.add('hidden');
+            }
         });
-        return;
     }
     
-    // Function to activate a specific tab
-    function activateTab(tabId) {
-        console.log(`Activating tab: ${tabId}`);
-        
-        // Reset all tabs
-        userFeedbackTab.classList.remove('border-blue-500', 'text-blue-600');
-        userFeedbackTab.classList.add('border-transparent', 'text-gray-500');
-        studentReportsTab.classList.remove('border-blue-500', 'text-blue-600');
-        studentReportsTab.classList.add('border-transparent', 'text-gray-500');
-        
-        // Hide all content
-        userFeedbackContent.classList.add('hidden');
-        studentReportsContent.classList.add('hidden');
-        
-        // Activate the selected tab
-        if (tabId === 'user-feedback') {
-            userFeedbackTab.classList.remove('border-transparent', 'text-gray-500');
-            userFeedbackTab.classList.add('border-blue-500', 'text-blue-600');
-            userFeedbackContent.classList.remove('hidden');
-            fetchFeedback();
-        } else if (tabId === 'student-reports') {
-            studentReportsTab.classList.remove('border-transparent', 'text-gray-500');
-            studentReportsTab.classList.add('border-blue-500', 'text-blue-600');
-            studentReportsContent.classList.remove('hidden');
-            loadStudentReports();
-        }
-        
-        // Save the active tab to localStorage
-        localStorage.setItem('activeReportsTab', tabId);
-    }
-    
-    // Add click event listeners to tab buttons
-    userFeedbackTab.addEventListener('click', () => {
-        activateTab('user-feedback');
+    // Set up click handlers
+    tabUserFeedback.addEventListener('click', () => {
+        setActiveTab(tabUserFeedback, contentUserFeedback);
+        loadUserFeedback();
     });
     
-    studentReportsTab.addEventListener('click', () => {
-        activateTab('student-reports');
+    tabCompletedSessions.addEventListener('click', () => {
+        setActiveTab(tabCompletedSessions, contentCompletedSessions);
+        loadCompletedSessionsReports();
     });
     
-    // Activate the default tab or the last selected tab
-    const savedTab = localStorage.getItem('activeReportsTab');
-    if (savedTab && (savedTab === 'user-feedback' || savedTab === 'student-reports')) {
-        activateTab(savedTab);
-    } else {
-        // Default to user feedback tab
-        activateTab('user-feedback');
-    }
+    // Load user feedback by default
+    loadUserFeedback();
 }
 
 // Function to load student reports data
@@ -2192,67 +2157,6 @@ function loadStudentReports() {
     if (container) {
         container.innerHTML = '<p class="text-center text-gray-500 py-5">Please select a student and date range to generate a report.</p>';
     }
-}
-
-// Placeholder functions for loading data in reports tabs
-function fetchFeedback() {
-    console.log("Fetching user feedback");
-    
-    // Get the table body for feedback
-    const tableBody = document.getElementById('feedbackTableBody');
-    if (!tableBody) {
-        console.error("Feedback table body not found");
-        return;
-    }
-    
-    // Show loading indicator
-    tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading feedback data...</td></tr>';
-    
-    // Fetch feedback data from server
-    fetch('/feedback')
-        .then(response => response.json())
-        .then(data => {
-            if (!data || data.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No feedback data available.</td></tr>';
-                return;
-            }
-            
-            // Sort data by date (newest first)
-            data.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            // Build the table rows
-            const rows = data.map(feedback => {
-                // Determine feedback type badge styling
-                const type = feedback.type || 'General';
-                let typeClass = 'bg-gray-100 text-gray-800';
-                
-                if (type === 'Sit-In') {
-                    typeClass = 'bg-blue-100 text-blue-800';
-                } else if (type === 'Reservation') {
-                    typeClass = 'bg-green-100 text-green-800';
-                }
-                
-                return `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">${feedback.userId || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${feedback.laboratory || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${new Date(feedback.date).toLocaleString()}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">
-                            ${type}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">${feedback.message || 'No message'}</td>
-                </tr>
-                `;
-            }).join('');
-            
-            tableBody.innerHTML = rows;
-        })
-        .catch(error => {
-            console.error("Error fetching feedback:", error);
-            tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error loading feedback data. Please try again.</td></tr>';
-        });
 }
 
 // Function to initialize the dashboard
@@ -4061,6 +3965,180 @@ function getUserAvatar(profileImagePath) {
                onerror="this.outerHTML = getDefaultAvatarSvg()">`;
     } else {
         return getDefaultAvatarSvg();
+    }
+}
+
+// Function to load completed sessions for the Reports section
+async function loadCompletedSessionsReports() {
+    try {
+        const response = await fetch('http://localhost:3000/completed-sessions');
+        if (!response.ok) {
+            throw new Error('Failed to fetch completed sessions');
+        }
+        
+        const data = await response.json();
+        const tableBody = document.getElementById('completed-sessions-reports-table');
+        
+        if (!tableBody) {
+            console.error('Completed sessions reports table body not found');
+            return;
+        }
+        
+        if (!data.success || !data.sessions || data.sessions.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="px-6 py-4 text-center text-gray-500">No completed sessions found</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        let html = '';
+        data.sessions.forEach(session => {
+            const date = session.date || 'N/A';
+            const time = session.time || session.timeIn || 'N/A';
+            const type = session.type || (session.isWalkIn ? 'Walk-in' : 'Reservation');
+            const typeClass = type === 'Walk-in' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800';
+            
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${session.idNumber || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${session.name || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${session.course || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${session.year || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${session.programmingLanguage || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${time}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${session.labRoom || session.laboratory || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">
+                            ${type}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tableBody.innerHTML = html;
+        
+        // Setup export buttons for reports section
+        setupExportFunctionsReports(data.sessions);
+        
+    } catch (error) {
+        console.error('Error loading completed sessions for reports:', error);
+        const tableBody = document.getElementById('completed-sessions-reports-table');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="px-6 py-4 text-center text-red-500">Error loading completed sessions: ${error.message}</td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// Function to setup export functionality for completed sessions in Reports section
+function setupExportFunctionsReports(sessionsData) {
+    // Setup CSV Export
+    const exportCsvBtn = document.getElementById('export-csv-reports');
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', () => exportToCSV(sessionsData));
+    }
+    
+    // Setup Excel Export
+    const exportExcelBtn = document.getElementById('export-excel-reports');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', () => exportToExcel(sessionsData));
+    }
+    
+    // Setup PDF Export
+    const exportPdfBtn = document.getElementById('export-pdf-reports');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', () => exportToPDF(sessionsData));
+    }
+    
+    // Setup Print
+    const printTableBtn = document.getElementById('print-table-reports');
+    if (printTableBtn) {
+        printTableBtn.addEventListener('click', printTable);
+    }
+}
+
+// Function to load user feedback for the Reports section
+async function loadUserFeedback() {
+    try {
+        // Get the table body for feedback
+        const tableBody = document.getElementById('feedbackTableBody');
+        if (!tableBody) {
+            console.error('Feedback table body not found');
+            return;
+        }
+        
+        // Show loading indicator
+        tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading feedback data...</td></tr>';
+        
+        const response = await fetch('/feedback');
+        if (!response.ok) {
+            throw new Error('Failed to fetch user feedback');
+        }
+        
+        const responseData = await response.json();
+        
+        // Handle different response formats - could be array or {success, feedback}
+        const data = Array.isArray(responseData) ? responseData : 
+                    (responseData.success && responseData.feedback ? responseData.feedback : []);
+        
+        if (!data || data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">No feedback found</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // Sort data by date (newest first)
+        data.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        let html = '';
+        data.forEach(feedback => {
+            // Determine feedback type badge styling
+            const type = feedback.type || 'General';
+            let typeClass = 'bg-gray-100 text-gray-800';
+            
+            if (type === 'Sit-In') {
+                typeClass = 'bg-blue-100 text-blue-800';
+            } else if (type === 'Reservation') {
+                typeClass = 'bg-green-100 text-green-800';
+            }
+            
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${feedback.userId || feedback.idNumber || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${feedback.laboratory || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(feedback.date).toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeClass}">
+                            ${type}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${feedback.message || 'No message'}</td>
+                </tr>
+            `;
+        });
+        
+        tableBody.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading user feedback:', error);
+        const tableBody = document.getElementById('feedbackTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-red-500">Error loading feedback: ${error.message}</td>
+                </tr>
+            `;
+        }
     }
 }
 
