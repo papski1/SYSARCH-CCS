@@ -60,6 +60,11 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+
+        /* Fix for modal centering */
+        #walkin-modal:not(.hidden) {
+            display: flex !important;
+        }
     </style>
 </head>
 <body>
@@ -115,6 +120,12 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                             </svg>
                             Records
+                        </a>
+                        <a href="#leaderboard" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Leaderboard
                         </a>
                         <a href="#reports" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,7 +306,7 @@
                             </div>
                             
                             <!-- Hidden Walk-in Form Modal -->
-                            <div id="walkin-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                            <div id="walkin-modal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
                                 <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
                                     <div class="flex justify-between items-center mb-4">
                                         <h3 class="text-lg font-semibold text-gray-700">Add Walk-in Session</h3>
@@ -383,17 +394,17 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programming Language</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time In</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Out</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID NUMBER</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NAME</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">COURSE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">YEAR</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PURPOSE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">DATE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TIME IN</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TIME OUT</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TYPE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">STATUS</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody id="unified-sit-ins-table" class="bg-white divide-y divide-gray-200">
@@ -437,22 +448,40 @@
                         </div>
                     </div>
 
-                    <!-- Notice about Completed Sessions History now in Reports -->
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    <!-- Today's Sit-in Table -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-700">Today's Sit-in</h3>
+                            <div class="relative">
+                                <input type="search" id="todays-sit-in-search" placeholder="Search by ID or name..." 
+                                    class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <div class="absolute left-3 top-2.5 text-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-blue-700">
-                                    The Completed Sessions History has been moved to the Reports section. 
-                                    <a href="#reports" class="font-medium underline text-blue-700 hover:text-blue-600" onclick="localStorage.setItem('fromSitInRecords', 'true'); showSection('reports'); return false;">
-                                        Click here to view it
-                                    </a>.
-                                </p>
                             </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID NUMBER</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NAME</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">COURSE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">YEAR</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PURPOSE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TIME IN</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">LAB ROOM</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TYPE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="todays-sit-ins-table" class="bg-white divide-y divide-gray-200">
+                                    <!-- Today's sit-ins will be loaded here -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
@@ -469,7 +498,7 @@
                                     User Feedback
                                 </button>
                                 <button id="tab-completed-sessions" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium">
-                                    Completed Sessions
+                                    Sit-in History
                                 </button>
                             </nav>
                         </div>
@@ -495,56 +524,208 @@
                         </div>
                         
                         <!-- Completed Sessions History Content -->
-                        <div id="content-completed-sessions" class="hidden">
+                        <div id="content-completed-sessions" class="mt-6">
+                            <div class="bg-white p-6 rounded-lg shadow mb-6">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-700">Completed Sessions History</h3>
+                                    <h3 class="text-lg font-semibold text-gray-700">SIT-IN HISTORY</h3>
                                 <div class="flex space-x-2">
-                                    <button id="export-csv-reports" class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        <button id="export-csv" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">CSV</button>
+                                        <button id="export-excel" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">Excel</button>
+                                        <button id="export-pdf" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">PDF</button>
+                                        <button id="print-table" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm">Print</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Filter Options -->
+                                <div class="flex flex-wrap gap-4 mb-4">
+                                    <div class="flex items-center">
+                                        <label for="purpose-filter" class="mr-2 text-sm font-medium text-gray-600">Purpose:</label>
+                                        <select id="purpose-filter" class="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="all" selected>All Purposes</option>
+                                            <option value="Java">Java</option>
+                                            <option value="Python">Python</option>
+                                            <option value="C++">C++</option>
+                                            <option value="JavaScript">JavaScript</option>
+                                            <option value="PHP">PHP</option>
+                                            <option value="C Programming">C Programming</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <label for="lab-filter" class="mr-2 text-sm font-medium text-gray-600">Lab Room:</label>
+                                        <select id="lab-filter" class="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="all" selected>All Labs</option>
+                                            <option value="524">Room 524</option>
+                                            <option value="526">Room 526</option>
+                                            <option value="530">Room 530</option>
+                                            <option value="542">Room 542</option>
+                                            <option value="544">Room 544</option>
+                                        </select>
+                                    </div>
+                                    <button id="apply-filters" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">Apply Filters</button>
+                                    <button id="reset-filters" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm">Reset</button>
+                                </div>
+                                
+                                <!-- Completed Sessions Table -->
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-sm">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left font-medium">ID NUMBER</th>
+                                                <th class="px-6 py-3 text-left font-medium">NAME</th>
+                                                <th class="px-6 py-3 text-left font-medium">COURSE</th>
+                                                <th class="px-6 py-3 text-left font-medium">YEAR</th>
+                                                <th class="px-6 py-3 text-left font-medium">PURPOSE</th>
+                                                <th class="px-6 py-3 text-left font-medium">DATE</th>
+                                                <th class="px-6 py-3 text-left font-medium">TIME</th>
+                                                <th class="px-6 py-3 text-left font-medium">LAB ROOM</th>
+                                                <th class="px-6 py-3 text-left font-medium">TYPE</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="completed-sessions-table">
+                                            <tr>
+                                                <td colspan="9" class="px-6 py-4 text-center text-gray-500">Loading sit-in history...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Leaderboard Section -->
+                <section id="leaderboard" class="hidden animate-fade-in">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-semibold text-gray-800">Sit-in Leaderboard</h2>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center">
+                                    <label for="leaderboard-period" class="mr-2 text-sm font-medium text-gray-600">Period:</label>
+                                    <select id="leaderboard-period" class="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="week">This Week</option>
+                                        <option value="month" selected>This Month</option>
+                                        <option value="semester">This Semester</option>
+                                        <option value="alltime">All Time</option>
+                                    </select>
+                                </div>
+                                <button id="refresh-leaderboard" class="text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                         </svg>
-                                        CSV
+                                    <span>Refresh</span>
                                     </button>
-                                    <button id="export-excel-reports" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Most Active Students -->
+                            <div class="bg-white rounded-lg shadow-md p-6">
+                                <div class="flex items-center mb-4 text-blue-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
-                                        Excel
-                                    </button>
-                                    <button id="export-pdf-reports" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        PDF
-                                    </button>
-                                    <button id="print-table-reports" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                        </svg>
-                                        Print
-                                    </button>
+                                    <h3 class="text-lg font-semibold text-gray-700">Most Active Students</h3>
+                                </div>
+                                <p class="text-gray-600 mb-4 text-sm">Students with the highest number of sit-in sessions.</p>
+                                
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-sm">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left font-medium">RANK</th>
+                                                <th class="px-4 py-2 text-left font-medium">STUDENT</th>
+                                                <th class="px-4 py-2 text-left font-medium">COURSE</th>
+                                                <th class="px-4 py-2 text-left font-medium">SESSIONS</th>
+                                                <th class="px-4 py-2 text-left font-medium">BADGE</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="most-active-students">
+                                            <tr>
+                                                <td colspan="5" class="px-4 py-4 text-center text-gray-500">Loading leaderboard data...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                             
+                            <!-- Top Performing Students -->
+                            <div class="bg-white rounded-lg shadow-md p-6">
+                                <div class="flex items-center mb-4 text-green-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <h3 class="text-lg font-semibold text-gray-700">Top Performing Students</h3>
+                                </div>
+                                <p class="text-gray-600 mb-4 text-sm">Students with the highest average session duration and consistency.</p>
+                            
                             <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
+                                    <table class="min-w-full text-sm">
                                     <thead class="bg-gray-50">
                                         <tr>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Number</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab Room</th>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                                <th class="px-4 py-2 text-left font-medium">RANK</th>
+                                                <th class="px-4 py-2 text-left font-medium">STUDENT</th>
+                                                <th class="px-4 py-2 text-left font-medium">COURSE</th>
+                                                <th class="px-4 py-2 text-left font-medium">AVG. DURATION</th>
+                                                <th class="px-4 py-2 text-left font-medium">BADGE</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="completed-sessions-reports-table" class="bg-white divide-y divide-gray-200">
-                                        <!-- Completed sessions will be loaded here -->
+                                        <tbody id="top-performing-students">
+                                            <tr>
+                                                <td colspan="5" class="px-4 py-4 text-center text-gray-500">Loading leaderboard data...</td>
+                                            </tr>
                                     </tbody>
                                 </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Achievement Cards -->
+                            <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+                                <div class="flex items-center mb-4 text-purple-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                    </svg>
+                                    <h3 class="text-lg font-semibold text-gray-700">Notable Achievements</h3>
+                                </div>
+                                <p class="text-gray-600 mb-4 text-sm">Special recognitions and achievements.</p>
+                                
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="student-achievements">
+                                    <div class="bg-gray-50 rounded-lg p-4 flex flex-col items-center text-center">
+                                        <div class="h-16 w-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                        </div>
+                                        <h4 class="font-medium text-gray-800">Most Consistent</h4>
+                                        <p class="text-sm text-gray-500">Loading...</p>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4 flex flex-col items-center text-center">
+                                        <div class="h-16 w-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <h4 class="font-medium text-gray-800">Longest Session</h4>
+                                        <p class="text-sm text-gray-500">Loading...</p>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4 flex flex-col items-center text-center">
+                                        <div class="h-16 w-16 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center mb-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                            </svg>
+                                        </div>
+                                        <h4 class="font-medium text-gray-800">Most Dedicated</h4>
+                                        <p class="text-sm text-gray-500">Loading...</p>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4 flex flex-col items-center text-center">
+                                        <div class="h-16 w-16 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center mb-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                            </svg>
+                                        </div>
+                                        <h4 class="font-medium text-gray-800">Highest Improvement</h4>
+                                        <p class="text-sm text-gray-500">Loading...</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -644,6 +825,303 @@
         </div>
     </div>
 
+    <!-- Main Scripts -->
     <script src="/public/admin.js"></script>
+    <script src="/public/filters.js"></script>
+    <script>
+        // Handle navigation and initialize sections
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('nav a');
+            const sections = document.querySelectorAll('main section');
+            
+            // Store original display property for each section
+            const sectionDisplayStyles = {};
+            sections.forEach(section => {
+                // Get computed style to determine if it should be block, flex, etc.
+                const computedStyle = window.getComputedStyle(section);
+                // Store the display style (but default to 'block' if it's 'none')
+                sectionDisplayStyles[section.id] = 
+                    (computedStyle.display === 'none') ? 'block' : computedStyle.display;
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+
+                    // Hide all sections
+                    sections.forEach(section => {
+                        section.classList.add('hidden');
+                    });
+
+                    // Show target section
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) {
+                        // Remove hidden class
+                        targetSection.classList.remove('hidden');
+                        
+                        // Specific actions for sections
+                        if (targetId === 'dashboard') {
+                            // Refresh dashboard stats
+                        } else if (targetId === 'sit-in') {
+                            // Load sit-in table
+                        } else if (targetId === 'leaderboard') {
+                            // Initialize leaderboard
+                            if (typeof setupLeaderboard === 'function') {
+                                setupLeaderboard();
+                            }
+                        }
+                    }
+
+                    // Update active state in navigation
+                    navLinks.forEach(navLink => {
+                        if (navLink.getAttribute('href') === '#' + targetId) {
+                            navLink.classList.add('bg-blue-50', 'text-blue-600');
+                            navLink.classList.remove('text-gray-700');
+                        } else {
+                            navLink.classList.remove('bg-blue-50', 'text-blue-600');
+                            navLink.classList.add('text-gray-700');
+                        }
+                    });
+                });
+            });
+
+            // Show dashboard by default
+            document.querySelector('nav a[href="#dashboard"]').click();
+        });
+
+        // Function to add the points button
+        function addPointButtonsToStudentTable() {
+            // Get all View Details buttons
+            const viewDetailsButtons = document.querySelectorAll("button");
+            
+            viewDetailsButtons.forEach(btn => {
+                if (btn.textContent.trim() === "View Details") {
+                    // Get the student ID from the onclick attribute
+                    const onclickAttr = btn.getAttribute("onclick");
+                    const idMatch = onclickAttr.match(/'([^']+)'/);
+                    if (!idMatch) return;
+                    
+                    const studentId = idMatch[1];
+                    
+                    // Check if we've already processed this button
+                    if (btn.dataset.processed === "true") {
+                        return;
+                    }
+                    
+                    // Mark as processed
+                    btn.dataset.processed = "true";
+                    
+                    // Get the parent cell
+                    const cell = btn.closest("td");
+                    if (!cell) return;
+                    
+                    // Clear the cell's contents
+                    cell.innerHTML = "";
+                    
+                    // Create container for buttons (horizontal layout)
+                    const buttonContainer = document.createElement("div");
+                    buttonContainer.className = "flex items-center space-x-1 w-full";
+                    cell.appendChild(buttonContainer);
+                    
+                    // Recreate the View Details button
+                    const viewDetailsBtn = document.createElement("button");
+                    viewDetailsBtn.setAttribute("onclick", `viewStudentDetails('${studentId}')`);
+                    viewDetailsBtn.className = "bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600 transition-colors flex-grow";
+                    viewDetailsBtn.textContent = "View Details";
+                    buttonContainer.appendChild(viewDetailsBtn);
+                    
+                    // Create Add Point button
+                    const addPointBtn = document.createElement("button");
+                    addPointBtn.setAttribute("onclick", `addStudentPoint('${studentId}')`);
+                    addPointBtn.className = "add-point-btn bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600 transition-colors flex-grow";
+                    addPointBtn.textContent = "+Point";
+                    buttonContainer.appendChild(addPointBtn);
+                    
+                    // Create dots menu button (as a small icon on the side)
+                    const dotsBtn = document.createElement("button");
+                    dotsBtn.className = "text-gray-600 px-1 flex flex-col items-center justify-center relative";
+                    dotsBtn.innerHTML = `
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="w-1 h-1 bg-gray-600 rounded-full mb-0.5"></div>
+                            <div class="w-1 h-1 bg-gray-600 rounded-full mb-0.5"></div>
+                            <div class="w-1 h-1 bg-gray-600 rounded-full"></div>
+                        </div>
+                    `;
+                    buttonContainer.appendChild(dotsBtn);
+                    
+                    // Create dropdown menu for the three dots
+                    const dropdownMenu = document.createElement("div");
+                    dropdownMenu.className = "absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg hidden z-10";
+                    dropdownMenu.style.top = "100%";
+                    
+                    // Add Edit option
+                    const editOption = document.createElement("a");
+                    editOption.href = "#";
+                    editOption.className = "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100";
+                    editOption.textContent = "Edit";
+                    editOption.onclick = function(e) {
+                        e.preventDefault();
+                        editStudent(studentId);
+                    };
+                    
+                    // Add Delete option
+                    const deleteOption = document.createElement("a");
+                    deleteOption.href = "#";
+                    deleteOption.className = "block px-4 py-2 text-sm text-red-600 hover:bg-gray-100";
+                    deleteOption.textContent = "Delete";
+                    deleteOption.onclick = function(e) {
+                        e.preventDefault();
+                        deleteStudent(studentId);
+                    };
+                    
+                    // Add options to dropdown
+                    dropdownMenu.appendChild(editOption);
+                    dropdownMenu.appendChild(deleteOption);
+                    
+                    // Add dropdown to button container
+                    dotsBtn.appendChild(dropdownMenu);
+                    
+                    // Toggle dropdown on click
+                    dotsBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        dropdownMenu.classList.toggle('hidden');
+                    });
+                    
+                    // Close dropdown when clicking outside
+                    document.addEventListener('click', function() {
+                        dropdownMenu.classList.add('hidden');
+                    });
+                }
+            });
+        }
+
+        // Run it when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Call once on page load
+            setTimeout(addPointButtonsToStudentTable, 1000);
+            
+            // Set interval to check and add buttons periodically
+            setInterval(addPointButtonsToStudentTable, 3000);
+            
+            // Also add the addStudentPoint function if it doesn't exist
+            if (typeof window.addStudentPoint !== "function") {
+                window.addStudentPoint = async function(idNumber) {
+                    try {
+                        // Get the available sessions for this student
+                        const pointCheckResponse = await fetch(`http://localhost:3000/check-student-point?idNumber=${idNumber}`);
+                        const pointCheckResult = await pointCheckResponse.json();
+                        
+                        if (!pointCheckResponse.ok) {
+                            alert("Error checking student sessions: " + (pointCheckResult.message || "Unknown error"));
+                            return;
+                        }
+                        
+                        if (!pointCheckResult.hasAvailableSessions) {
+                            alert("This student has no completed sessions available to add points to.");
+                            return;
+                        }
+                        
+                        // If there's just one session, use it directly
+                        if (pointCheckResult.availableSessions.length === 1) {
+                            const session = pointCheckResult.availableSessions[0];
+                            await addPointToSession(idNumber, session.id, session.type);
+                            return;
+                        }
+                        
+                        // If multiple sessions, show a selection dialog
+                        const sessionHtml = pointCheckResult.availableSessions.map((session, index) => `
+                            <div class="p-2 border-b border-gray-200 hover:bg-gray-50 cursor-pointer session-option" 
+                                 data-session-id="${session.id}" 
+                                 data-session-type="${session.type}">
+                                <div class="font-medium">${session.type === 'sit-in' ? 'Walk-in' : 'Reservation'} - ${session.date}</div>
+                                <div class="text-sm text-gray-500">Time: ${session.timeIn} to ${session.timeOut}</div>
+                            </div>
+                        `).join('');
+                        
+                        // Create modal for session selection
+                        const modal = document.createElement('div');
+                        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                        modal.innerHTML = `
+                            <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-700">Select Session to Add Point</h3>
+                                    <button id="close-session-modal" class="text-gray-400 hover:text-gray-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="mb-4">
+                                    <p class="text-sm text-gray-600 mb-2">Select a completed session to add points to:</p>
+                                    <div class="max-h-60 overflow-y-auto border border-gray-200 rounded">
+                                        ${sessionHtml}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(modal);
+                        
+                        // Set up event listeners
+                        document.getElementById('close-session-modal').addEventListener('click', () => {
+                            document.body.removeChild(modal);
+                        });
+                        
+                        modal.querySelectorAll('.session-option').forEach(option => {
+                            option.addEventListener('click', async () => {
+                                const sessionId = option.getAttribute('data-session-id');
+                                const sessionType = option.getAttribute('data-session-type');
+                                document.body.removeChild(modal);
+                                await addPointToSession(idNumber, sessionId, sessionType);
+                            });
+                        });
+                        
+                    } catch (error) {
+                        console.error("Error checking student point eligibility:", error);
+                        alert("Error checking student sessions. Please try again.");
+                    }
+                };
+            }
+        });
+
+        // Helper function to add a point to a specific session
+        async function addPointToSession(idNumber, sessionId, sessionType) {
+            try {
+                const response = await fetch("http://localhost:3000/add-student-points", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        idNumber,
+                        sessionId,
+                        sessionType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    alert("Error: " + (result.message || "Failed to add point"));
+                    return;
+                }
+                
+                // Show a success message
+                const message = result.pointsConverted 
+                    ? `Point added! 3 points converted to 1 session. Student now has ${result.newRemainingSessions} remaining sessions.`
+                    : `Point added! Student now has ${result.newPoints}/3 points.`;
+                
+                alert(message);
+                
+                // Refresh the students list to update the display
+                fetchStudents();
+                
+            } catch (error) {
+                console.error("Error adding student point:", error);
+                alert("Error adding point. Please try again.");
+            }
+        }
+    </script>
 </body>
 </html>

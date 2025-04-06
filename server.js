@@ -1068,7 +1068,8 @@ app.get("/get-all-users", (req, res) => {
                 return {
                     ...baseUserData,
                     remainingSessions: user.remainingSessions || 0,
-                    totalSessions: user.totalSessions || 0
+                    totalSessions: user.totalSessions || 0,
+                    points: user.points || 0
                 };
             }
             
@@ -2869,6 +2870,350 @@ app.post("/delete-student", (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: "Internal server error" 
+        });
+    }
+});
+
+// Route to add points to a student - Removed
+// app.post("/add-student-points", (req, res) => {
+//    // Route implementation removed
+// });
+
+// Add points to a student and convert to sessions if needed
+app.post("/add-student-points", (req, res) => {
+    try {
+        const { idNumber, sessionId, sessionType } = req.body;
+        
+        if (!idNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student ID is required'
+            });
+        }
+        
+        if (!sessionId || !sessionType) {
+            return res.status(400).json({
+                success: false,
+                message: 'Session ID and type are required'
+            });
+        }
+        
+        // Read all users
+        const users = readData();
+        
+        // Find the specific student
+        const studentIndex = users.findIndex(user => user.idNumber === idNumber);
+        
+        if (studentIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+        
+        // Find and update the specific session
+        let sessionUpdated = false;
+        
+        if (sessionType === 'sit-in') {
+            try {
+                if (fs.existsSync("./sit-ins.json")) {
+                    const sitInsData = fs.readFileSync("./sit-ins.json", "utf8");
+                    const allSitIns = JSON.parse(sitInsData);
+                    
+                    // Find the session by ID
+                    const sessionIndex = allSitIns.findIndex(entry => entry.id === sessionId);
+                    
+                    if (sessionIndex !== -1) {
+                        // Check if this session is for the correct student and is completed
+                        if (allSitIns[sessionIndex].idNumber !== idNumber) {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'Session does not belong to this student'
+                            });
+                        }
+                        
+                        if (allSitIns[sessionIndex].status !== 'completed') {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'Cannot add points to incomplete sessions'
+                            });
+                        }
+                        
+                        if (allSitIns[sessionIndex].pointAdded) {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'A point has already been added for this session'
+                            });
+                        }
+                        
+                        // Mark the session as having received a point
+                        allSitIns[sessionIndex].pointAdded = true;
+                        fs.writeFileSync("./sit-ins.json", JSON.stringify(allSitIns, null, 2));
+                        sessionUpdated = true;
+                    } else {
+                        return res.status(404).json({
+                            success: false,
+                            message: 'Session not found'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error updating sit-in record:", error);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error updating sit-in record',
+                    error: error.message
+                });
+            }
+        } else if (sessionType === 'reservation') {
+            try {
+                if (fs.existsSync("./reservations.json")) {
+                    const reservationsData = fs.readFileSync("./reservations.json", "utf8");
+                    const allReservations = JSON.parse(reservationsData);
+                    
+                    // Find the session by ID
+                    const sessionIndex = allReservations.findIndex(entry => entry.id === sessionId);
+                    
+                    if (sessionIndex !== -1) {
+                        // Check if this session is for the correct student and is completed
+                        if (allReservations[sessionIndex].idNumber !== idNumber) {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'Session does not belong to this student'
+                            });
+                        }
+                        
+                        if (allReservations[sessionIndex].status !== 'completed') {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'Cannot add points to incomplete sessions'
+                            });
+                        }
+                        
+                        if (allReservations[sessionIndex].pointAdded) {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'A point has already been added for this session'
+                            });
+                        }
+                        
+                        // Mark the session as having received a point
+                        allReservations[sessionIndex].pointAdded = true;
+                        fs.writeFileSync("./reservations.json", JSON.stringify(allReservations, null, 2));
+                        sessionUpdated = true;
+                    } else {
+                        return res.status(404).json({
+                            success: false,
+                            message: 'Session not found'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error updating reservation record:", error);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error updating reservation record',
+                    error: error.message
+                });
+            }
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid session type'
+            });
+        }
+        
+        if (!sessionUpdated) {
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to update session'
+            });
+        }
+        
+        // Initialize points if it doesn't exist
+        if (!users[studentIndex].points) {
+            users[studentIndex].points = 0;
+        }
+        
+        // Add 1 point
+        users[studentIndex].points += 1;
+        
+        // Check if points reached 3
+        if (users[studentIndex].points >= 3) {
+            // Reset points
+            users[studentIndex].points = 0;
+            
+            // Add 1 session
+            if (!users[studentIndex].remainingSessions) {
+                users[studentIndex].remainingSessions = 0;
+            }
+            users[studentIndex].remainingSessions += 1;
+            
+            // Save the updated data
+            writeData(users);
+            
+            return res.json({
+                success: true,
+                message: 'Point added and converted to a session!',
+                newPoints: 0,
+                pointsConverted: true,
+                newRemainingSessions: users[studentIndex].remainingSessions
+            });
+        }
+        
+        // Save the updated data
+        writeData(users);
+        
+        return res.json({
+            success: true,
+            message: 'Point added successfully',
+            newPoints: users[studentIndex].points,
+            pointsConverted: false,
+            remainingSessions: users[studentIndex].remainingSessions
+        });
+        
+    } catch (error) {
+        console.error("Error adding points:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error adding points",
+            error: error.message
+        });
+    }
+});
+
+// Get student points
+app.get("/student-points/:idNumber", (req, res) => {
+    try {
+        const { idNumber } = req.params;
+        
+        if (!idNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student ID is required'
+            });
+        }
+        
+        // Read all users
+        const users = readData();
+        
+        // Find the specific student
+        const student = users.find(user => user.idNumber === idNumber);
+        
+        if (!student) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+        
+        return res.json({
+            success: true,
+            points: student.points || 0,
+            remainingSessions: student.remainingSessions || 0
+        });
+        
+    } catch (error) {
+        console.error("Error getting student points:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error getting student points",
+            error: error.message
+        });
+    }
+});
+
+// Check if student can receive points today
+app.get("/check-student-point", (req, res) => {
+    try {
+        const { idNumber } = req.query;
+        
+        if (!idNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student ID is required'
+            });
+        }
+        
+        // Get array of completed sessions that haven't received points yet
+        let availableSessions = [];
+        let alreadyAddedSessions = [];
+        
+        // Check completed walk-ins
+        try {
+            if (fs.existsSync("./sit-ins.json")) {
+                const sitInsData = fs.readFileSync("./sit-ins.json", "utf8");
+                const allSitIns = JSON.parse(sitInsData);
+                
+                // Find completed sessions for this student
+                const completedSitIns = allSitIns.filter(entry => 
+                    entry.idNumber === idNumber && 
+                    entry.status === 'completed'
+                );
+                
+                // Separate into sessions with and without points
+                completedSitIns.forEach(session => {
+                    if (session.pointAdded) {
+                        alreadyAddedSessions.push(session);
+                    } else {
+                        availableSessions.push({
+                            id: session.id,
+                            type: 'sit-in',
+                            date: session.date,
+                            timeIn: session.timeIn,
+                            timeOut: session.timeOut || 'N/A'
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Error checking sit-ins:", error);
+        }
+        
+        // Check completed reservations
+        try {
+            if (fs.existsSync("./reservations.json")) {
+                const reservationsData = fs.readFileSync("./reservations.json", "utf8");
+                const allReservations = JSON.parse(reservationsData);
+                
+                // Find completed reservations for this student
+                const completedReservations = allReservations.filter(entry => 
+                    entry.idNumber === idNumber && 
+                    entry.status === 'completed'
+                );
+                
+                // Separate into sessions with and without points
+                completedReservations.forEach(session => {
+                    if (session.pointAdded) {
+                        alreadyAddedSessions.push(session);
+                    } else {
+                        availableSessions.push({
+                            id: session.id,
+                            type: 'reservation',
+                            date: session.date,
+                            timeIn: session.timeIn,
+                            timeOut: session.timeOut || 'N/A'
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Error checking reservations:", error);
+        }
+        
+        return res.json({
+            success: true,
+            availableSessions,
+            alreadyAddedSessions,
+            hasAvailableSessions: availableSessions.length > 0
+        });
+        
+    } catch (error) {
+        console.error("Error checking student point eligibility:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error checking student point eligibility",
+            error: error.message
         });
     }
 });

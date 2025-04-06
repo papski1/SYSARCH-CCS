@@ -1,5 +1,647 @@
 [
   {
+    "id": 1743966104217,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743966095958",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "03:01"
+    },
+    "date": "2025-04-06T19:01:44.217Z"
+  },
+  {
+    "id": 1743966095963,
+    "userId": "54321",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-06",
+      "time": "03:01",
+      "labRoom": "524",
+      "programmingLanguage": "PHP",
+      "purpose": "Programming assistance (PHP)",
+      "remainingSessions": 11
+    },
+    "date": "2025-04-06T19:01:35.963Z"
+  },
+  {
+    "id": 1743964668112,
+    "userId": "2222",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743958686599",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "02:37"
+    },
+    "date": "2025-04-06T18:37:48.112Z"
+  },
+  {
+    "id": 1743958686605,
+    "userId": "2222",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-06",
+      "time": "00:58",
+      "labRoom": "524",
+      "programmingLanguage": "JavaScript",
+      "purpose": "Programming assistance (JavaScript)",
+      "remainingSessions": 11
+    },
+    "date": "2025-04-06T16:58:06.605Z"
+  },
+  {
+    "id": 1743699988480,
+    "userId": "22635452",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699235208",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:28.480Z"
+  },
+  {
+    "id": 1743699985050,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699215942",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:25.050Z"
+  },
+  {
+    "id": 1743699984116,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699215942",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:24.116Z"
+  },
+  {
+    "id": 1743699983521,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699215942",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:23.521Z"
+  },
+  {
+    "id": 1743699983429,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699215942",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:23.429Z"
+  },
+  {
+    "id": 1743699983410,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699215942",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:23.410Z"
+  },
+  {
+    "id": 1743699982865,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699215942",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:22.865Z"
+  },
+  {
+    "id": 1743699981496,
+    "userId": "5555",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699290697",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:21.496Z"
+  },
+  {
+    "id": 1743699980650,
+    "userId": "2222",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699265931",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:20.650Z"
+  },
+  {
+    "id": 1743699980215,
+    "userId": "242424",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699248295",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:20.215Z"
+  },
+  {
+    "id": 1743699979594,
+    "userId": "22633614",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699353192",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:19.594Z"
+  },
+  {
+    "id": 1743699978858,
+    "userId": "20216826",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699335435",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:18.858Z"
+  },
+  {
+    "id": 1743699978354,
+    "userId": "22631824",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699322458",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:18.354Z"
+  },
+  {
+    "id": 1743699977647,
+    "userId": "21578786",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699307014",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:17.647Z"
+  },
+  {
+    "id": 1743699977261,
+    "userId": "20951950",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699391257",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:17.261Z"
+  },
+  {
+    "id": 1743699976741,
+    "userId": "222222",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699377323",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:16.741Z"
+  },
+  {
+    "id": 1743699975592,
+    "userId": "66666",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743699364598",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "01:06"
+    },
+    "date": "2025-04-03T17:06:15.592Z"
+  },
+  {
+    "id": 1743699391259,
+    "userId": "20951950",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:56",
+      "labRoom": "530",
+      "programmingLanguage": "C++",
+      "purpose": "Programming assistance (C++)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:56:31.259Z"
+  },
+  {
+    "id": 1743699377328,
+    "userId": "222222",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:56",
+      "labRoom": "526",
+      "programmingLanguage": "Python",
+      "purpose": "Programming assistance (Python)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:56:17.328Z"
+  },
+  {
+    "id": 1743699364601,
+    "userId": "66666",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:56",
+      "labRoom": "530",
+      "programmingLanguage": "PHP",
+      "purpose": "Programming assistance (PHP)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:56:04.601Z"
+  },
+  {
+    "id": 1743699353196,
+    "userId": "22633614",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:55",
+      "labRoom": "544",
+      "programmingLanguage": "C Programming",
+      "purpose": "Programming assistance (C Programming)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:55:53.196Z"
+  },
+  {
+    "id": 1743699335438,
+    "userId": "20216826",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:55",
+      "labRoom": "542",
+      "programmingLanguage": "PHP",
+      "purpose": "Programming assistance (PHP)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:55:35.438Z"
+  },
+  {
+    "id": 1743699322461,
+    "userId": "22631824",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:55",
+      "labRoom": "526",
+      "programmingLanguage": "Python",
+      "purpose": "Programming assistance (Python)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:55:22.461Z"
+  },
+  {
+    "id": 1743699307021,
+    "userId": "21578786",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:55",
+      "labRoom": "526",
+      "programmingLanguage": "Java",
+      "purpose": "Programming assistance (Java)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:55:07.021Z"
+  },
+  {
+    "id": 1743699290939,
+    "userId": "5555",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:54",
+      "labRoom": "530",
+      "programmingLanguage": "C++",
+      "purpose": "Programming assistance (C++)",
+      "remainingSessions": 12
+    },
+    "date": "2025-04-03T16:54:50.939Z"
+  },
+  {
+    "id": 1743699265933,
+    "userId": "2222",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:54",
+      "labRoom": "542",
+      "programmingLanguage": "PHP",
+      "purpose": "Programming assistance (PHP)",
+      "remainingSessions": 12
+    },
+    "date": "2025-04-03T16:54:25.933Z"
+  },
+  {
+    "id": 1743699248298,
+    "userId": "242424",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:54",
+      "labRoom": "542",
+      "programmingLanguage": "C Programming",
+      "purpose": "Programming assistance (C Programming)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T16:54:08.298Z"
+  },
+  {
+    "id": 1743699235212,
+    "userId": "22635452",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:53",
+      "labRoom": "544",
+      "programmingLanguage": "JavaScript",
+      "purpose": "Programming assistance (JavaScript)",
+      "remainingSessions": 26
+    },
+    "date": "2025-04-03T16:53:55.212Z"
+  },
+  {
+    "id": 1743699215946,
+    "userId": "54321",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "00:53",
+      "labRoom": "524",
+      "programmingLanguage": "Python",
+      "purpose": "Programming assistance (Python)",
+      "remainingSessions": 12
+    },
+    "date": "2025-04-03T16:53:35.946Z"
+  },
+  {
+    "id": 1743695604447,
+    "userId": "22635452",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743695600930",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:24.447Z"
+  },
+  {
+    "id": 1743695600933,
+    "userId": "22635452",
+    "type": "Walk-in Created",
+    "details": {
+      "date": "2025-04-03",
+      "time": "23:53",
+      "labRoom": "544",
+      "programmingLanguage": "Python",
+      "purpose": "Programming assistance (Python)",
+      "remainingSessions": 27
+    },
+    "date": "2025-04-03T15:53:20.933Z"
+  },
+  {
+    "id": 1743695593084,
+    "userId": "2222",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569157290",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:13.084Z"
+  },
+  {
+    "id": 1743695592079,
+    "userId": "2222",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569157290",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:12.079Z"
+  },
+  {
+    "id": 1743695591953,
+    "userId": "242424",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569146549",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:11.953Z"
+  },
+  {
+    "id": 1743695591592,
+    "userId": "242424",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569146549",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:11.592Z"
+  },
+  {
+    "id": 1743695591078,
+    "userId": "54321",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569134922",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:11.078Z"
+  },
+  {
+    "id": 1743695590835,
+    "userId": "22635452",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569115222",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:10.835Z"
+  },
+  {
+    "id": 1743695590413,
+    "userId": "22635452",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569115222",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:10.413Z"
+  },
+  {
+    "id": 1743695589802,
+    "userId": "21578786",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569207010",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:09.802Z"
+  },
+  {
+    "id": 1743695589465,
+    "userId": "21578786",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569207010",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:09.465Z"
+  },
+  {
+    "id": 1743695588520,
+    "userId": "5555",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569189942",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:08.520Z"
+  },
+  {
+    "id": 1743695587166,
+    "userId": "222222",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569167821",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:07.166Z"
+  },
+  {
+    "id": 1743695586615,
+    "userId": "20951950",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569272445",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:06.615Z"
+  },
+  {
+    "id": 1743695586094,
+    "userId": "66666",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569256751",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:06.094Z"
+  },
+  {
+    "id": 1743695585456,
+    "userId": "20216826",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569241903",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:05.456Z"
+  },
+  {
+    "id": 1743695584832,
+    "userId": "22633614",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569229393",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:53"
+    },
+    "date": "2025-04-03T15:53:04.832Z"
+  },
+  {
+    "id": 1743695521468,
+    "userId": "22631824",
+    "type": "Sit-in Status Updated",
+    "details": {
+      "recordId": "1743569220281",
+      "newStatus": "completed",
+      "previousStatus": "completed",
+      "timeOut": "23:52"
+    },
+    "date": "2025-04-03T15:52:01.468Z"
+  },
+  {
     "id": 1743569272446,
     "userId": "20951950",
     "type": "Walk-in Created",
