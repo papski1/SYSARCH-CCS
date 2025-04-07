@@ -1,0 +1,15 @@
+<!-- Add this script at the beginning of the head section, before any other scripts -->
+<script src="./api-config.js"></script>
+<script>
+    // Override fetch to dynamically replace localhost URLs
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+        if (typeof url === 'string' && url.includes('http://localhost:3000')) {
+            const modifiedUrl = url.replace('http://localhost:3000', API_BASE_URL);
+            console.log(`Redirecting fetch from ${url} to ${modifiedUrl}`);
+            return originalFetch(modifiedUrl, options);
+        }
+        return originalFetch(url, options);
+    };
+</script>
+<!-- Keep the rest of the file unchanged --> 

@@ -8,6 +8,41 @@
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <script src="/public/student_new.js"></script>
+    <script src="../public/api-config.js"></script>
+    <!-- API fallback -->
+    <script>
+        // Fallback if API_BASE_URL is not defined
+        if (typeof API_BASE_URL === 'undefined') {
+            console.warn("API_BASE_URL not defined, using fallback...");
+            window.API_BASE_URL = 'http://' + window.location.hostname + ':3000';
+            
+            // Patch fetch to fix localhost URLs if ApiConfig didn't load
+            if (!window.ApiConfig) {
+                console.warn("ApiConfig not defined, creating fallback...");
+                window.ApiConfig = {
+                    getBaseUrl: function() {
+                        return API_BASE_URL;
+                    },
+                    buildUrl: function(endpoint) {
+                        if (endpoint.startsWith('/')) {
+                            endpoint = endpoint.substring(1);
+                        }
+                        return `${API_BASE_URL}/${endpoint}`;
+                    }
+                };
+                
+                // Override fetch for localhost URLs
+                const originalFetch = window.fetch;
+                window.fetch = function(url, options) {
+                    if (typeof url === 'string' && (url.includes('http://localhost:3000') || url.includes('http://127.0.0.1:3000'))) {
+                        url = url.replace(/(http:\/\/)(localhost|127\.0\.0\.1)(:\d+)/, API_BASE_URL);
+                        console.log(`[Fallback] Redirecting fetch to: ${url}`);
+                    }
+                    return originalFetch(url, options);
+                };
+            }
+        }
+    </script>
     <script>
         tailwind.config = {
             darkMode: 'class',

@@ -1,0 +1,117 @@
+# Patch for admin.js to replace alert() with ErrorToast component
+
+## 1. Make sure you've added the reference to error-toast.js in your admin.html file:
+```html
+<script src="../public/error-toast.js"></script>
+```
+
+## 2. Find the walk-in form submit handler in public/admin.js (around line 10623)
+Replace:
+```javascript
+// Validate required fields
+if (!idNumber || !programmingLanguage || !labRoom) {
+    alert('Please fill in all required fields');
+    return;
+}
+```
+
+With:
+```javascript
+// Validate required fields
+if (!idNumber || !programmingLanguage || !labRoom) {
+    ErrorToast.warning('Please fill in all required fields');
+    return;
+}
+```
+
+## 3. Find the success message in the same function (around line 10683)
+Replace:
+```javascript
+// Show success message with updated remaining sessions
+const remainingSessions = data.remainingSessions;
+alert(`Walk-in created successfully! The student now has ${remainingSessions} remaining sessions.`);
+```
+
+With:
+```javascript
+// Show success message with updated remaining sessions
+const remainingSessions = data.remainingSessions;
+ErrorToast.success(`Walk-in created successfully! The student now has ${remainingSessions} remaining sessions.`);
+```
+
+## 4. Find the error message in the same function (around line 10703)
+Replace:
+```javascript
+console.error('Error creating walk-in:', error);
+alert('Error creating walk-in: ' + error.message);
+```
+
+With:
+```javascript
+console.error('Error creating walk-in:', error);
+ErrorToast.error('Error creating walk-in: ' + error.message);
+```
+
+## 5. Find similar patterns in other parts of admin.js and replace them too:
+
+For announcement deletion success (around line 10933):
+```javascript
+alert('Announcement deleted successfully!');
+```
+Should be:
+```javascript
+ErrorToast.success('Announcement deleted successfully!');
+```
+
+For announcement deletion error (around line 10937):
+```javascript
+alert('Error: ' + error.message);
+```
+Should be: 
+```javascript
+ErrorToast.error('Error: ' + error.message);
+```
+
+For announcement validation (around line 10949):
+```javascript
+alert('Please enter an announcement title');
+```
+Should be:
+```javascript
+ErrorToast.warning('Please enter an announcement title');
+```
+
+For announcement content validation (around line 10954):
+```javascript
+alert('Please enter announcement content');
+```
+Should be:
+```javascript
+ErrorToast.warning('Please enter announcement content');
+```
+
+For announcement success (around line 11003):
+```javascript
+alert(`Announcement ${isEdit ? 'updated' : 'posted'} successfully!`);
+```
+Should be:
+```javascript
+ErrorToast.success(`Announcement ${isEdit ? 'updated' : 'posted'} successfully!`);
+```
+
+For announcement error (around line 11007):
+```javascript
+alert('Error: ' + error.message);
+```
+Should be:
+```javascript
+ErrorToast.error('Error: ' + error.message);
+```
+
+## 6. Continue replacing all alert() calls throughout the file with the appropriate ErrorToast method:
+- For validation errors: ErrorToast.warning()
+- For success messages: ErrorToast.success()
+- For errors: ErrorToast.error()
+- For info messages: ErrorToast.info()
+
+This will give your application a consistent and modern error handling UI that only shows each error once. 

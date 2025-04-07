@@ -21,6 +21,10 @@
             }
         }
     </script>
+    <!-- Add API config script -->
+    <script src="./public/api-config.js"></script>
+    <!-- Add reference to our error toast component -->
+    <script src="./public/error-toast.js"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
     <div class="max-w-4xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
@@ -70,7 +74,7 @@
                         <input type="checkbox" id="remember" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                         <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
                     </div>
-                    <a href="/forgot-password" class="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200">Forgot Password?</a>
+                    <a href="#" id="forgot-password-link" class="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200">Forgot Password?</a>
                 </div>
 
                 <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform transition-all duration-200 hover:scale-[1.02]">
@@ -79,10 +83,11 @@
 
                 <div class="text-center">
                     <span class="text-gray-600">Don't have an account?</span>
-                    <a href="/register" class="text-blue-600 hover:text-blue-800 hover:underline ml-1 transition-colors duration-200">Register now</a>
+                    <a href="#" id="register-link" class="text-blue-600 hover:text-blue-800 hover:underline ml-1 transition-colors duration-200">Register now</a>
                 </div>
             </form>
 
+            <!-- We keep this hidden element for backward compatibility but don't display it -->
             <p id="error-message" class="mt-4 text-red-500 text-sm text-center hidden"></p>
         </div>
 
@@ -143,15 +148,10 @@
         const errorMessage = document.getElementById("error-message");
         
         try {
-            const response = await fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifier, password })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
+            // Use the API utility for login
+            const result = await ApiConfig.login(identifier, password);
+            
+            if (result.success) { // Success response 
                 // Store userId in sessionStorage
                 sessionStorage.setItem("loggedInUserId", result.userId);
 
@@ -168,16 +168,36 @@
                     localStorage.removeItem("rememberedUser");
                 }
 
-                // Show success message before redirect
+                // Show success message using our toast component (with fallback)
+                if (window.ErrorToast && typeof ErrorToast.success === 'function') {
+                    ErrorToast.success("Login successful! Redirecting...");
+                } else {
+                    console.log("Login successful! Redirecting...");
+                }
+
+                // For backwards compatibility, still update the hidden error message element
                 errorMessage.textContent = "Login successful! Redirecting...";
                 errorMessage.classList.remove("hidden", "text-red-500");
                 errorMessage.classList.add("text-green-500");
 
                 // Redirect after a short delay
                 setTimeout(() => {
-                    window.location.href = result.redirect;
+                    // Fix the double slash issue by checking if result.redirect starts with a slash
+                    const redirectPath = result.redirect.startsWith('/') 
+                        ? result.redirect.substring(1) // Remove the leading slash
+                        : result.redirect;
+                    // Use the API utility to build the URL
+                    window.location.href = ApiConfig.buildUrl(redirectPath);
                 }, 1000);
             } else {
+                // Show error using our toast component (with fallback)
+                if (window.ErrorToast && typeof ErrorToast.error === 'function') {
+                    ErrorToast.error(result.message);
+                } else {
+                    console.error(result.message);
+                }
+                
+                // For backwards compatibility, still update the hidden error message element
                 errorMessage.textContent = result.message;
                 errorMessage.classList.remove("hidden");
                 errorMessage.classList.add("text-red-500");
@@ -189,18 +209,36 @@
             }
         } catch (error) {
             console.error("Login error:", error);
+            
+            // Show error using our toast component (with fallback)
+            if (window.ErrorToast && typeof ErrorToast.error === 'function') {
+                ErrorToast.error("An error occurred. Please try again.");
+            } else {
+                console.error("An error occurred. Please try again.");
+            }
+            
+            // For backwards compatibility, still update the hidden error message element
             errorMessage.textContent = "An error occurred. Please try again.";
             errorMessage.classList.remove("hidden");
         }
     });
 
-    // Check for remembered user
+    // Check for remembered user and set up dynamic links
     window.addEventListener("load", () => {
         const rememberedUser = localStorage.getItem("rememberedUser");
         if (rememberedUser) {
             document.getElementById("identifier").value = rememberedUser;
             document.getElementById("remember").checked = true;
         }
+        
+        // Reset the error tracking on page load
+        if (window.ErrorToast && typeof ErrorToast.reset === 'function') {
+            ErrorToast.reset();
+        }
+
+        // Set up dynamic links using the API_BASE_URL
+        document.getElementById("forgot-password-link").href = `${API_BASE_URL}/dist/views/forgotpassword.html`;
+        document.getElementById("register-link").href = `${API_BASE_URL}/dist/views/register.html`;
     });
 
     // Add keyframe animation for shake effect

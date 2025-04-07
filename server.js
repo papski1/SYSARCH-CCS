@@ -16,12 +16,43 @@ const DATA_FILE = path.join(__dirname, "data.json");
 // Middleware
 app.use(express.json()); // Parses JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parses form data
-app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5500', 'http://127.0.0.1:5500', 'https://95fx6617-3000.asse.devtunnels.ms'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true // Important for allowing cookies to be sent with requests
-})); 
+
+// Create a function to dynamically handle CORS
+function corsMiddleware(req, res, next) {
+    // Get the origin from the request
+    const origin = req.headers.origin;
+    
+    // Allow the specific origin that made the request
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        // If no origin is provided, use a wildcard (less secure but ensures functionality)
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    
+    // Set other CORS headers
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
+    next();
+}
+
+// Use the CORS middleware
+app.use(corsMiddleware);
+
+// Comment out the old CORS middleware
+// app.use(cors({
+//     origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://192.168.1.4:3000', 'http://192.168.1.4', 'http://localhost', 'http://127.0.0.1'],
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+//     credentials: true // Important for allowing cookies to be sent with requests
+// })); 
 
 // Session middleware - Place this before any routes
 app.use(session({
@@ -49,6 +80,7 @@ app.use((req, res, next) => {
 app.use(express.static(__dirname)); // Serve login.html
 app.use("/dist", express.static(path.join(__dirname, "dist")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/dist/views", express.static(path.join(__dirname, "dist", "views")));
 
 // Serve favicon explicitly to avoid 404 errors
 app.get('/favicon.ico', (req, res) => {
@@ -198,7 +230,7 @@ function saveSitIns(sitIns) {
         return true;
     } catch (error) {
         console.error("Error saving sit-ins:", error);
-        throw error;
+        return false;
     }
 }
 
@@ -503,140 +535,52 @@ app.post("/update-reservation", (req, res) => {
 // Route: Update sit-in status (legacy route - redirects to update-reservation)
 app.post("/update-sit-in-status", (req, res) => {
     try {
-        console.log("Updating sit-in status request received");
-        console.log("Request body:", JSON.stringify(req.body));
-        console.log("Headers:", JSON.stringify(req.headers));
+        const { sitInId, status, rating, feedback } = req.body;
         
-        // Check if the body is empty or malformed
-        if (!req.body || typeof req.body !== 'object') {
-            console.error("Invalid request body format:", req.body);
-            return res.status(400).json({ 
-                error: "Invalid request format" 
-            });
-        }
-        
-        const { sitInId, status, timeOut } = req.body;
-        
-        console.log("Extracted fields - sitInId:", sitInId, "type:", typeof sitInId);
-        console.log("Extracted fields - status:", status, "type:", typeof status);
-        console.log("Extracted fields - timeOut:", timeOut, "type:", typeof timeOut);
-        
-        if (!sitInId || !status) {
-            console.error("Required fields missing - sitInId:", sitInId, "status:", status);
-            return res.status(400).json({ 
-                error: "Sit-in ID and status are required" 
-            });
+        if (!sitInId) {
+            return res.status(400).json({ message: "Missing required fields" });
         }
 
-        console.log("Looking for sit-in with ID:", sitInId, "Type:", typeof sitInId);
+        // Read sit-ins
+        const sitIns = readSitIns(true);
         
-        // First try to find in reservations
-        let reservations = readReservations();
-        console.log("Total reservations to check:", reservations.length);
-        
-        // Debug: Log the IDs in reservations for comparison
-        const reservationIds = reservations.map(r => ({id: r.id, type: typeof r.id}));
-        console.log("Available reservation IDs:", reservationIds);
-        
-        const reservationIndex = reservations.findIndex(r => r.id.toString() === sitInId.toString());
-        console.log("Reservation found at index:", reservationIndex);
-        
-        if (reservationIndex !== -1) {
-            // Found in reservations, redirect to update-reservation endpoint
-            req.body = {
-                id: sitInId,
-                status: status,
-                timeout: timeOut || new Date().toTimeString().split(' ')[0]
-            };
-            
-            return app._router.handle(req, res);
-        }
-        
-        // Not found in reservations, check sit-ins.json
-        let sitIns = [];
-        try {
-            const sitInsData = fs.readFileSync("./sit-ins.json", "utf8");
-            sitIns = JSON.parse(sitInsData);
-            console.log("Total sit-ins to check:", sitIns.length);
-            
-            // Debug: Log the IDs in sit-ins for comparison
-            const sitInIds = sitIns.map(s => ({id: s.id, type: typeof s.id}));
-            console.log("Available sit-in IDs:", sitInIds);
-        } catch (error) {
-            console.log("Error reading sit-ins file:", error);
-            return res.status(500).json({ 
-                error: "Failed to read sit-ins data" 
-            });
-        }
-        
-        // Find the sit-in by id with extensive logging
-        console.log("Searching for sit-in ID:", sitInId, "Type:", typeof sitInId);
-        
-        // Try different matching approaches
-        const exactSitInIndex = sitIns.findIndex(s => s.id === sitInId);
-        const stringSitInIndex = sitIns.findIndex(s => s.id === sitInId.toString());
-        const numericSitInIndex = sitIns.findIndex(s => sitInId && s.id.toString() === sitInId.toString());
-        
-        console.log("Exact match index:", exactSitInIndex);
-        console.log("String match index:", stringSitInIndex);
-        console.log("Numeric/toString match index:", numericSitInIndex);
-        
-        const sitInIndex = numericSitInIndex;
+        // Find the sit-in to update
+        const sitInIndex = sitIns.findIndex(s => s.id === sitInId);
         
         if (sitInIndex === -1) {
-            return res.status(404).json({ 
-                error: "Sit-in not found" 
-            });
+            return res.status(404).json({ message: "Sit-in not found" });
         }
         
-        // Get user data to update their session counts
-        const users = readData();
-        const userIndex = users.findIndex(user => user.idNumber === sitIns[sitInIndex].idNumber);
-        
-        if (userIndex === -1) {
-            return res.status(404).json({ 
-                error: "Student not found in the system" 
-            });
-        }
-        
-        // Update the sit-in status
-        const previousStatus = sitIns[sitInIndex].status;
-        sitIns[sitInIndex].status = status;
-        
-        // If completing the sit-in, update the timeout
-        if (status === 'completed') {
-            sitIns[sitInIndex].timeout = timeOut || new Date().toTimeString().split(' ')[0];
-            sitIns[sitInIndex].timeOut = timeOut || new Date().toISOString();
+        // Update sit-in status
+        if (status) {
+            // Update the status directly
+            sitIns[sitInIndex].status = status;
             
-            // Log the completion
-            logUserActivity(sitIns[sitInIndex].idNumber, 'Session Completed', {
-                date: sitIns[sitInIndex].date,
-                time: sitIns[sitInIndex].timeIn || sitIns[sitInIndex].time,
-                timeout: sitIns[sitInIndex].timeout,
-                labRoom: sitIns[sitInIndex].labRoom,
-                remainingSessions: users[userIndex].remainingSessions
-            });
+            // If status is being changed to completed, add a timestamp
+            if (status === 'completed') {
+                sitIns[sitInIndex].completedAt = new Date().toISOString();
+                console.log(`Session ${sitInId} marked as completed with timestamp ${sitIns[sitInIndex].completedAt}`);
+            
+                sitIns[sitInIndex].status = status;
+            }
         }
         
-        // Save the updated sit-ins
-        fs.writeFileSync("./sit-ins.json", JSON.stringify(sitIns, null, 2));
+        // Update rating and feedback if provided
+        if (rating !== undefined) {
+            sitIns[sitInIndex].rating = rating;
+        }
         
-        res.json({ 
-            success: true, 
-            message: `Sit-in ${status} successfully`,
-            sitIn: sitIns[sitInIndex],
-            user: {
-                remainingSessions: users[userIndex].remainingSessions
-            }
-        });
+        if (feedback) {
+            sitIns[sitInIndex].feedback = feedback;
+        }
         
+        // Save sit-ins
+        saveSitIns(sitIns);
+        
+        res.status(200).json({ message: "Sit-in status updated successfully" });
     } catch (error) {
-        console.error("Error in sit-in status update:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Failed to update sit-in status",
-            error: error.message 
-        });
+        console.error("Error updating sit-in status:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 
@@ -2650,7 +2594,7 @@ app.get("/completed-sessions", (req, res) => {
             .map(enrichWithUserDetails);
         
         const completedSitIns = sitIns
-            .filter(s => s.status === 'completed')
+            .filter(s => s.status === 'completed') // Only include 'completed' status (not 'pending_review')
             .map(enrichWithUserDetails);
         
         // Combine and sort by date (newest first)
@@ -2704,7 +2648,7 @@ app.get("/student-completed-sessions/:idNumber", (req, res) => {
             }));
         
         const completedSitIns = sitIns
-            .filter(s => s.idNumber === idNumber && s.status === 'completed')
+            .filter(s => s.idNumber === idNumber && s.status === 'completed') // Only include 'completed' status (not 'pending_review')
             .map(s => ({
                 ...s,
                 type: 'Walk-in'
@@ -3217,3 +3161,5 @@ app.get("/check-student-point", (req, res) => {
         });
     }
 });
+
+// Removed session auto-processing as requested by client

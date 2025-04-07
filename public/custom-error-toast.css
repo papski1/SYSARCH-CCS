@@ -1,0 +1,88 @@
+/* Custom Error Toast Styling */
+
+/* Container styling */
+#error-toast-container {
+    /* Adjust position - could be top-right, top-center, etc. */
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+}
+
+/* Base toast styling */
+#error-toast-container > div {
+    margin-bottom: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    max-width: 24rem;
+    transition: all 0.3s ease;
+}
+
+/* Success toast */
+#error-toast-container > div.bg-green-600 {
+    background: linear-gradient(to right, #10b981, #059669);
+}
+
+/* Error toast */
+#error-toast-container > div.bg-red-600 {
+    background: linear-gradient(to right, #ef4444, #dc2626);
+}
+
+/* Warning toast */
+#error-toast-container > div.bg-yellow-500 {
+    background: linear-gradient(to right, #f59e0b, #d97706);
+}
+
+/* Info toast */
+#error-toast-container > div.bg-blue-600 {
+    background: linear-gradient(to right, #3b82f6, #2563eb);
+}
+
+/* Animation enhancements */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+#error-toast-container > div {
+    animation: slideIn 0.3s ease forwards;
+}
+
+#error-toast-container > div.opacity-0 {
+    animation: slideOut 0.3s ease forwards;
+}
+
+/* Enhancements for mobile view */
+@media (max-width: 640px) {
+    #error-toast-container {
+        left: 1rem;
+        right: 1rem;
+    }
+    
+    #error-toast-container > div {
+        max-width: none;
+        width: 100%;
+    }
+}
+
+/* Dark mode support (if your app supports it) */
+@media (prefers-color-scheme: dark) {
+    html.dark #error-toast-container > div {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    }
+} 

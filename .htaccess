@@ -1,0 +1,18 @@
+# Enable the proxy module
+<IfModule mod_proxy.c>
+    # Enable rewriting
+    RewriteEngine On
+    
+    # Don't proxy certain file types that should be served directly by Apache
+    RewriteRule \.(jpg|jpeg|png|gif|css|js|ico|svg)$ - [L]
+    
+    # Proxy all other requests to the Node.js server running on port 3000
+    RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P,L]
+    
+    # Set some proxy headers
+    ProxyPreserveHost On
+    ProxyRequests Off
+</IfModule>
+
+# Fallback for non-proxied requests
+ErrorDocument 500 "Sorry, there was an error with the proxy. Please make sure your Node.js server is running on port 3000." 

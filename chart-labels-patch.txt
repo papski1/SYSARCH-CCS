@@ -1,0 +1,128 @@
+# Chart Labels Patch for SYSARCH-CCS
+
+## What This Patch Does
+1. Extracts only programming language names from purpose fields (removes "Programming assistance")
+2. Sorts languages alphabetically in the charts
+
+## How to Apply This Patch
+
+### Step 1: Add the extractLanguageName function
+Add this function near the top of your admin.js file:
+
+```javascript
+/**
+ * Extract just the programming language name from purpose field
+ * @param {string} purpose - The purpose field (e.g., "Programming assistance (Java)")
+ * @returns {string} - Just the language name (e.g., "Java")
+ */
+function extractLanguageName(purpose) {
+    if (!purpose) return 'Not Specified';
+    
+    // Check if it matches the pattern "Programming assistance (LanguageName)"
+    const match = purpose.match(/Programming assistance \(([^)]+)\)/i);
+    if (match && match[1]) {
+        return match[1]; // Return just the language name
+    }
+    
+    return purpose; // Return the original if no match
+}
+```
+
+### Step 2: Find and modify all chart creation sections
+For each chart creation section in admin.js, make the following changes:
+
+1) Find code that looks like this:
+```javascript
+// Count programming languages
+const languageStats = {};
+todaysSitIns.forEach(record => {
+    const lang = record.purpose || 'Not Specified';
+    languageStats[lang] = (languageStats[lang] || 0) + 1;
+});
+```
+
+Replace with:
+```javascript
+// Count programming languages
+const languageStats = {};
+todaysSitIns.forEach(record => {
+    const lang = extractLanguageName(record.purpose || 'Not Specified');
+    languageStats[lang] = (languageStats[lang] || 0) + 1;
+});
+```
+
+2) Find code that looks like this:
+```javascript
+window.programmingLanguageChart = new Chart(programmingLanguageCanvas, {
+    type: 'pie',
+    data: {
+        labels: Object.keys(languageStats),
+        datasets: [{
+            data: Object.values(languageStats),
+            // rest of code...
+```
+
+Replace with:
+```javascript
+// Sort languages alphabetically
+const sortedLanguages = Object.keys(languageStats).sort();
+const sortedData = sortedLanguages.map(lang => languageStats[lang]);
+
+window.programmingLanguageChart = new Chart(programmingLanguageCanvas, {
+    type: 'pie',
+    data: {
+        labels: sortedLanguages,
+        datasets: [{
+            data: sortedData,
+            // rest of code...
+```
+
+3) Also apply this pattern to the updateDashboardChart function:
+```javascript
+function updateDashboardChart(sessions) {
+    // ...existing code...
+    
+    // Count programming language usage
+    const languageStats = {};
+    sessions.forEach(session => {
+        if (session.purpose) {
+            // Extract just the language name
+            const language = extractLanguageName(session.purpose.trim());
+            languageStats[language] = (languageStats[language] || 0) + 1;
+        }
+    });
+    
+    // Sort the languages alphabetically
+    const sortedLanguages = Object.keys(languageStats).sort();
+    const sortedData = sortedLanguages.map(lang => languageStats[lang]);
+    
+    // ...existing code...
+    
+    window.studentStatsChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: sortedLanguages,
+            datasets: [{
+                data: sortedData,
+                // ...rest of code...
+```
+
+### Step 3 (Optional): Modify Walk-in Creation
+If you want to simplify your purpose field in new records:
+
+Find:
+```javascript
+purpose: `Programming assistance (${programmingLanguage})`
+```
+
+Replace with:
+```javascript
+purpose: programmingLanguage
+```
+
+This modification is optional and only changes future records. You'll still need the extractLanguageName function for existing records.
+
+## Important Notes
+1. Make a backup of your admin.js file before making changes
+2. These changes need to be applied to all chart creation parts of the code
+3. There are multiple spots where these changes are needed (search for "programmingLanguageChart") 

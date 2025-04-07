@@ -1,5 +1,493 @@
 [
   {
+    "timestamp": "2025-04-07T12:56:08.423Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:56:02.738Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:56:01.843Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:56:01.499Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:56:01.115Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:56:00.747Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:56:00.299Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:59.867Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:59.467Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:59.067Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:58.643Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:58.179Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:57.787Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:57.403Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:57.043Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:56.675Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:56.323Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:55.947Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:55.547Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:55.163Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:54.772Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:54.387Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:54.027Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:53.651Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:52.890Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:52.346Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:51.330Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:50.770Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:49.403Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:48.995Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:48.475Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:47.907Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:46.955Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:45.811Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:45.227Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:44.723Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:35.763Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:35.227Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:34.219Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:31.979Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:31.403Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:30.779Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:29.603Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:29.085Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:28.531Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:28.083Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:27.643Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:27.307Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:26.867Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:26.179Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:25.379Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "timestamp": "2025-04-07T12:55:25.126Z",
+    "resetType": "semester",
+    "resetTarget": "Second Semester",
+    "action": "Reset semester Second Semester",
+    "adminId": "admin",
+    "adminEmail": "admin@example.com"
+  },
+  {
+    "id": 1744030523604,
+    "timestamp": "2025-04-07T12:55:23.604Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 13
+    }
+  },
+  {
+    "id": 1744030518556,
+    "timestamp": "2025-04-07T12:55:18.556Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 13
+    }
+  },
+  {
+    "id": 1744030513533,
+    "timestamp": "2025-04-07T12:55:13.533Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 13
+    }
+  },
+  {
+    "id": 1744030508121,
+    "timestamp": "2025-04-07T12:55:08.121Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 7,
+      "usersReset": 13
+    }
+  },
+  {
+    "id": 1744028494533,
+    "timestamp": "2025-04-07T12:21:34.533Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 0,
+      "sitInsRemoved": 0,
+      "usersReset": 13
+    }
+  },
+  {
+    "id": 1744028489366,
+    "timestamp": "2025-04-07T12:21:29.366Z",
+    "adminId": "admin",
+    "resetType": "semester",
+    "details": {
+      "semester": "Second Semester",
+      "reservationsRemoved": 1,
+      "sitInsRemoved": 0,
+      "usersReset": 13
+    }
+  },
+  {
     "timestamp": "2025-03-31T03:59:14.614Z",
     "resetType": "semester",
     "resetTarget": "Second Semester",

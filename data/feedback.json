@@ -94,5 +94,14 @@
     "message": "OK FINE!",
     "laboratory": "544",
     "date": "2025-03-31T03:58:16.937Z"
+  },
+  {
+    "id": "aae9691d-abd7-4267-a151-a84c38d80d41",
+    "userId": "33333",
+    "sitInId": "1744042227233",
+    "type": "Reservation",
+    "message": "Error inyong announcement",
+    "laboratory": "542",
+    "date": "2025-04-07T16:18:14.216Z"
   }
 ]

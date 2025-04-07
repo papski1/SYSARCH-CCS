@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ErrorToast Integration Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #0066cc;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #0066cc;
+            margin-top: 30px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .steps {
+            margin-left: 20px;
+        }
+        .highlight {
+            background-color: #fffbcc;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .file-path {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background-color: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .note {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 10px 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>ErrorToast Integration Guide</h1>
+    
+    <p>This guide explains how to replace the native browser alerts in the SYSARCH-CCS system with the custom ErrorToast component.</p>
+    
+    <div class="note">
+        <strong>Note:</strong> The ErrorToast component displays notifications in a more modern and user-friendly way. It also prevents duplicate error messages from appearing multiple times.
+    </div>
+    
+    <h2>Step 1: Ensure the ErrorToast component is included</h2>
+    <p>First, make sure the ErrorToast.js file is added to your admin.html file:</p>
+    <pre><code>&lt;!-- Add reference to our error toast component --&gt;
+&lt;script src="../public/error-toast.js"&gt;&lt;/script&gt;</code></pre>
+    
+    <h2>Step 2: Replace alerts in the Walk-In Form</h2>
+    <p>In <span class="file-path">public/admin.js</span>, find the walk-in form handler (around line 10623) and make these changes:</p>
+    
+    <h3>Example 1: Form Validation</h3>
+    <p>Find this code:</p>
+    <pre><code>// Validate required fields
+if (!idNumber || !programmingLanguage || !labRoom) {
+    alert('Please fill in all required fields');
+    return;
+}</code></pre>
+    
+    <p>Replace with:</p>
+    <pre><code>// Validate required fields
+if (!idNumber || !programmingLanguage || !labRoom) {
+    ErrorToast.warning('Please fill in all required fields');
+    return;
+}</code></pre>
+    
+    <h3>Example 2: Success Message</h3>
+    <p>Find this code:</p>
+    <pre><code>// Show success message with updated remaining sessions
+const remainingSessions = data.remainingSessions;
+alert(`Walk-in created successfully! The student now has ${remainingSessions} remaining sessions.`);</code></pre>
+    
+    <p>Replace with:</p>
+    <pre><code>// Show success message with updated remaining sessions
+const remainingSessions = data.remainingSessions;
+ErrorToast.success(`Walk-in created successfully! The student now has ${remainingSessions} remaining sessions.`);</code></pre>
+    
+    <h3>Example 3: Error Message</h3>
+    <p>Find this code:</p>
+    <pre><code>console.error('Error creating walk-in:', error);
+alert('Error creating walk-in: ' + error.message);</code></pre>
+    
+    <p>Replace with:</p>
+    <pre><code>console.error('Error creating walk-in:', error);
+ErrorToast.error('Error creating walk-in: ' + error.message);</code></pre>
+    
+    <h2>Step 3: Replace alerts in Announcement Handling</h2>
+    
+    <h3>Announcement deletion success (around line 10933):</h3>
+    <pre><code>alert('Announcement deleted successfully!');</code></pre>
+    <p>Replace with:</p>
+    <pre><code>ErrorToast.success('Announcement deleted successfully!');</code></pre>
+    
+    <h3>Announcement deletion error (around line 10937):</h3>
+    <pre><code>alert('Error: ' + error.message);</code></pre>
+    <p>Replace with:</p>
+    <pre><code>ErrorToast.error('Error: ' + error.message);</code></pre>
+    
+    <h3>Announcement validation (around line 10949):</h3>
+    <pre><code>alert('Please enter an announcement title');</code></pre>
+    <p>Replace with:</p>
+    <pre><code>ErrorToast.warning('Please enter an announcement title');</code></pre>
+    
+    <h3>Announcement content validation (around line 10954):</h3>
+    <pre><code>alert('Please enter announcement content');</code></pre>
+    <p>Replace with:</p>
+    <pre><code>ErrorToast.warning('Please enter announcement content');</code></pre>
+    
+    <h3>Announcement success (around line 11003):</h3>
+    <pre><code>alert(`Announcement ${isEdit ? 'updated' : 'posted'} successfully!`);</code></pre>
+    <p>Replace with:</p>
+    <pre><code>ErrorToast.success(`Announcement ${isEdit ? 'updated' : 'posted'} successfully!`);</code></pre>
+    
+    <h2>Step 4: Guidelines for Replacing Other Alerts</h2>
+    <p>Use these guidelines to replace all other alert() calls in the application:</p>
+    <ul class="steps">
+        <li>For validation errors: <code>ErrorToast.warning()</code></li>
+        <li>For success messages: <code>ErrorToast.success()</code></li>
+        <li>For error messages: <code>ErrorToast.error()</code></li>
+        <li>For information messages: <code>ErrorToast.info()</code></li>
+    </ul>
+    
+    <h2>Step 5: Reset Error Tracking on Page Load</h2>
+    <p>Add this code to your page initialization function to ensure the error tracking is reset when the page loads:</p>
+    <pre><code>// Reset error tracking on page load
+if (window.ErrorToast && typeof ErrorToast.reset === 'function') {
+    ErrorToast.reset();
+}</code></pre>
+    
+    <div class="note">
+        <strong>Important:</strong> After making these changes, test each form and function thoroughly to ensure that the error messages appear correctly and only once.
+    </div>
+</body>
+</html> 
