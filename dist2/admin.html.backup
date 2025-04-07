@@ -524,7 +524,7 @@
                         </div>
                         
                         <!-- Completed Sessions History Content -->
-                        <div id="content-completed-sessions" class="mt-6 hidden">
+                        <div id="content-completed-sessions" class="mt-6">
                             <div class="bg-white p-6 rounded-lg shadow mb-6">
                                 <!-- Filter Options with Export Dropdown on Right Side -->
                                 <div class="flex flex-wrap justify-between items-center mb-4">
@@ -540,6 +540,12 @@
                                                 <option value="JavaScript">JavaScript</option>
                                                 <option value="PHP">PHP</option>
                                                 <option value="C Programming">C Programming</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <label for="year-filter" class="mr-2 text-sm font-medium text-gray-600">Student Year:</label>
+                                            <select id="year-filter" class="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                <option value="all" selected>All Year Levels</option>
                                             </select>
                                         </div>
                                         <div class="flex items-center">
@@ -1170,7 +1176,5 @@
         }
     </script>
     <!-- Add your custom scripts here -->
-    <script src="/public/export-fix.js"></script>
-    <script src="/public/tabs-fix.js"></script>
 </body>
 </html>
