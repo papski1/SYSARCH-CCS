@@ -20,33 +20,46 @@ function hideAllSections() {
     });
 }
 
-// Function to show a specific section
+// Function to show a specific section and hide others
 async function showSection(sectionId) {
     hideAllSections();
+    
+    // Show the selected section
     const section = document.getElementById(sectionId);
     if (section) {
         section.classList.remove('hidden');
-        // Save the active section to localStorage
-        localStorage.setItem("activeSection", sectionId);
         
-        // Load data based on section
-        if (sectionId === 'reserve-session') {
-            initializeCalendar();
-        } else if (sectionId === 'dashboard') {
-            loadDashboardData();
-        } else if (sectionId === 'sit-in-history') {
-            // Update the section title to show "Reservation History" instead of "Sit-in History"
-            const sectionTitle = section.querySelector('h2');
-            if (sectionTitle) {
-                sectionTitle.textContent = 'Reservation History';
-            }
-            
-            // Call setupHistoryTabs to ensure the reservation tab is selected
-            setupHistoryTabs();
-        } else if (sectionId === 'profile') {
-            // When profile section is shown, update profile data
-            await updateProfileDisplay();
+        // Specifically for profile section, load profile data
+        if (sectionId === 'profile') {
+            await loadProfile();
+            console.log('Profile section shown, profile data loaded');
         }
+        
+        // Specifically for dashboard section, load dashboard data
+        if (sectionId === 'dashboard') {
+            await loadDashboardData();
+        }
+
+        // Specifically for history section, load history data
+        if (sectionId === 'sit-in-history') {
+            setupHistoryTabs();
+            await loadSitInHistory();
+            await loadReservationHistory();
+        }
+
+        // For lab resources section, load resources
+        if (sectionId === 'lab-resources') {
+            await loadLabResources();
+        }
+
+        // For reserve session section, setup form and calendar
+        if (sectionId === 'reserve-session') {
+            setupReservationForm();
+            initializeCalendar();
+        }
+        
+        // Update URL hash without triggering page reload
+        history.pushState(null, null, `#${sectionId}`);
     }
 }
 
@@ -782,11 +795,31 @@ async function loadProfile() {
             'oldIdNumber': profileData.idNumber || ''
         };
 
+        // Log key values for debugging
+        console.log(`Course from profile data: "${profileData.course}"`);
+
         // Update main form fields
         Object.entries(mainFormFields).forEach(([fieldId, value]) => {
             const element = document.getElementById(fieldId);
             if (element) {
+                // For select elements, ensure the option exists
+                if (element.tagName === 'SELECT') {
+                    // Check if value exists in options
+                    const optionExists = Array.from(element.options).some(option => option.value === value);
+                    
+                    if (!optionExists && fieldId === 'course') {
+                        // If course doesn't exist in options, log the mismatch and add it
+                        console.log(`Course "${value}" not found in dropdown options, adding it`);
+                        const newOption = document.createElement('option');
+                        newOption.value = value;
+                        newOption.text = value;
+                        element.add(newOption);
+                    }
+                }
                 element.value = value;
+                console.log(`Set ${fieldId} to "${value}"`);
+            } else {
+                console.warn(`Element with ID ${fieldId} not found`);
             }
         });
 
@@ -1725,8 +1758,8 @@ async function viewDetails(sitInId) {
                                 <p><strong>Date:</strong> ${new Date(sitIn.date).toLocaleDateString()}</p>
                                 <p><strong>Time In:</strong> ${sitIn.timeIn || 'N/A'}</p>
                                 <p><strong>Time Out:</strong> ${sitIn.timeOut || 'N/A'}</p>
-                                <p><strong>Purpose:</strong> ${sitIn.purpose || 'N/A'}</p>
-                                <p><strong>Programming Language:</strong> ${sitIn.programmingLanguage || 'N/A'}</p>
+                                <p><strong>Purpose:</strong> ${(sitIn.purpose || 'N/A').replace(/[()]/g, '').toUpperCase()}</p>
+                                <p><strong>Programming Language:</strong> ${(sitIn.programmingLanguage || 'N/A').replace(/[()]/g, '').toUpperCase()}</p>
                                 <p><strong>Status:</strong> ${sitIn.status || 'N/A'}</p>
                             </div>
                         </div>
@@ -1831,7 +1864,7 @@ async function loadSitInHistory() {
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.labRoom || 'N/A'}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${formattedDate} ${formattedTime}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.duration || '1 hour'}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${sitIn.programmingLanguage || 'N/A'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${(sitIn.programmingLanguage || 'N/A').replace(/[()]/g, '').toUpperCase()}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                         ${sitIn.status || 'N/A'}
@@ -2113,7 +2146,6 @@ async function reserveSession() {
         // Get form data
         const formData = new FormData(form);
         const time = formData.get('time');
-        const purpose = formData.get('purpose') || 'Programming Session'; // Provide default purpose if missing
         const labRoom = formData.get('labRoom');
         const programmingLanguage = formData.get('programmingLanguage');
         
@@ -2133,11 +2165,7 @@ async function reserveSession() {
         // Prepare reservation data
         const reservationData = {
             idNumber: userId,
-            email: profileData.email || '',
-            name: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim(),
-            course: profileData.course || '',
-            year: profileData.year || '',
-            purpose: purpose,
+            purpose: programmingLanguage.replace(/[()]/g, '').toUpperCase(), // Remove parentheses and convert to uppercase
             date: selectedDate,
             time: time,
             labRoom: labRoom,
@@ -2379,11 +2407,7 @@ async function quickReserveSession() {
         // Prepare reservation data
         const reservationData = {
             idNumber: userId,
-            email: profileData.email || '',
-            name: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim(),
-            course: profileData.course || '',
-            year: profileData.year || '',
-            purpose: purpose,
+            purpose: programmingLanguage.replace(/[()]/g, '').toUpperCase(), // Remove parentheses and convert to uppercase
             date: date,
             time: time,
             labRoom: labRoom,

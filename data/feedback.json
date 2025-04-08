@@ -103,5 +103,14 @@
     "message": "Error inyong announcement",
     "laboratory": "542",
     "date": "2025-04-07T16:18:14.216Z"
+  },
+  {
+    "id": "b394e27f-87a1-437b-8f35-469a66b43082",
+    "userId": "33333",
+    "sitInId": "1744042227233",
+    "type": "Reservation",
+    "message": "MIGOOOO",
+    "laboratory": "542",
+    "date": "2025-04-08T12:13:11.922Z"
   }
 ]

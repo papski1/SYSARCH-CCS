@@ -108,7 +108,14 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Sit-in History
+                                History
+                            </a>
+                            <!-- Add Lab Resources Link -->
+                            <a href="#lab-resources" class="flex items-center px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-100 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                Lab Resources
                             </a>
                         </nav>
                     </div>
@@ -406,12 +413,80 @@
                                     </button>
                                 </div>
                             </form>
+
+                            <!-- Lab Schedule Section -->
+                            <div class="mt-8 border-t pt-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Lab Schedule</h3>
+                                <div class="space-y-4">
+                                    <!-- Morning Schedule -->
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-700 mb-2">Morning Session</h4>
+                                        <div class="bg-gray-50 rounded-lg p-3">
+                                            <p class="text-sm text-gray-600">8:00 AM - 12:00 PM</p>
+                                            <div class="mt-2 text-xs text-gray-500">
+                                                Available for all programming courses
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Afternoon Schedule -->
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-700 mb-2">Afternoon Session</h4>
+                                        <div class="bg-gray-50 rounded-lg p-3">
+                                            <p class="text-sm text-gray-600">1:00 PM - 5:00 PM</p>
+                                            <div class="mt-2 text-xs text-gray-500">
+                                                Available for all programming courses
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Evening Schedule -->
+                                    <div>
+                                        <h4 class="text-sm font-medium text-gray-700 mb-2">Evening Session</h4>
+                                        <div class="bg-gray-50 rounded-lg p-3">
+                                            <p class="text-sm text-gray-600">6:00 PM - 8:00 PM</p>
+                                            <div class="mt-2 text-xs text-gray-500">
+                                                Limited availability, reservation required
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 <!-- Profile Section -->
                 <section id="profile" class="section hidden p-6">
+                    <script>
+                        // Initialize profile when this section is shown
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // Listen for section changes
+                            const observer = new MutationObserver(function(mutations) {
+                                mutations.forEach(function(mutation) {
+                                    if (mutation.target.id === 'profile' && 
+                                        !mutation.target.classList.contains('hidden')) {
+                                        // Profile section is now visible, load profile data
+                                        loadProfile();
+                                    }
+                                });
+                            });
+                            
+                            // Start observing the profile section
+                            const profileSection = document.getElementById('profile');
+                            if (profileSection) {
+                                observer.observe(profileSection, { 
+                                    attributes: true, 
+                                    attributeFilter: ['class'] 
+                                });
+                            }
+                            
+                            // Also check if profile is visible on page load
+                            if (profileSection && !profileSection.classList.contains('hidden')) {
+                                loadProfile();
+                            }
+                        });
+                    </script>
                     <h2 class="text-2xl font-bold mb-4">My Profile</h2>
                     
                     <div class="bg-white rounded-lg shadow-md overflow-hidden">
@@ -787,6 +862,66 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Add Lab Resources Section -->
+                <section id="lab-resources" class="hidden animate-fade-in">
+                    <div class="container mx-auto px-4 py-8">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">Lab Resources</h2>
+                            <div class="flex items-center space-x-2">
+                                <button id="refreshResourcesBtn" class="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <button id="gridViewBtn" class="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                    </svg>
+                                </button>
+                                <button id="listViewBtn" class="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Grid View -->
+                        <div id="gridView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Resources will be loaded here -->
+                        </div>
+
+                        <!-- List View -->
+                        <div id="listView" class="hidden space-y-4">
+                            <!-- List View Header -->
+                            <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+                                <div class="grid grid-cols-12 gap-4 text-sm font-medium text-gray-500">
+                                    <div class="col-span-2">Category</div>
+                                    <div class="col-span-3">Resource Name</div>
+                                    <div class="col-span-3">Description</div>
+                                    <div class="col-span-3">Date Added</div>
+                                    <div class="col-span-1 text-right">Action</div>
+                                </div>
+                            </div>
+                            <!-- Resources will be loaded here -->
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="loadingState" class="text-center py-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                            <p class="mt-4 text-gray-600">Loading resources...</p>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="emptyState" class="hidden text-center py-8">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-400 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="mt-4 text-gray-600">No resources available at the moment.</p>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -909,6 +1044,244 @@
             </div>
         </div>
     </div>
+
+    <script>
+    // Define this function to handle section switching
+    function showSection(sectionId) {
+        // Hide all sections
+        document.querySelectorAll('section').forEach(section => {
+            section.classList.add('hidden');
+        });
+        
+        // Show the selected section
+        const selectedSection = document.getElementById(sectionId);
+        if (selectedSection) {
+            selectedSection.classList.remove('hidden');
+            
+            // If it's the lab resources section, load resources
+            if (sectionId === 'lab-resources') {
+                // Set a flag to avoid multiple loads
+                if (!window.resourcesLoaded) {
+                loadResources();
+                    window.resourcesLoaded = true;
+                }
+            } else {
+                // Reset the flag when navigating away
+                window.resourcesLoaded = false;
+            }
+        }
+    }
+
+    // Completely rewrite the loadResources function
+    function loadResources() {
+        const gridView = document.getElementById('gridView');
+        const listView = document.getElementById('listView');
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
+        
+        // Show loading state
+        loadingState.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        
+        // Clear both views completely
+        gridView.innerHTML = '';
+        listView.innerHTML = '';
+        
+        // Fetch resources from API
+        fetch('/api/resources')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load resources');
+                }
+                return response.json();
+            })
+            .then(resources => {
+                // Filter for enabled resources only
+                const enabledResources = resources.filter(resource => resource.enabled);
+                
+                // Hide loading state
+                loadingState.classList.add('hidden');
+                
+                if (enabledResources.length === 0) {
+                    // Show empty state if no resources
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                // Create grid view items
+                enabledResources.forEach(resource => {
+                    const gridItem = createGridItem(resource);
+                    gridView.appendChild(gridItem);
+                });
+
+                // Create list view items with header first
+                // 1. Create and add header
+        const listViewHeader = document.createElement('div');
+        listViewHeader.className = 'bg-white rounded-xl shadow-sm p-4 mb-4';
+        listViewHeader.innerHTML = `
+            <div class="grid grid-cols-12 gap-4 text-sm font-medium text-gray-500">
+                <div class="col-span-2">Category</div>
+                <div class="col-span-3">Resource Name</div>
+                <div class="col-span-3">Description</div>
+                <div class="col-span-3">Date Added</div>
+                <div class="col-span-1 text-right">Action</div>
+            </div>
+        `;
+        listView.appendChild(listViewHeader);
+
+                // 2. Create and add container for items
+        const listItemsContainer = document.createElement('div');
+        listItemsContainer.className = 'space-y-4';
+                
+                // 3. Add items to container
+                enabledResources.forEach(resource => {
+                    const listItem = createListItem(resource);
+                    listItemsContainer.appendChild(listItem);
+                });
+                
+                // 4. Add container to list view
+                listView.appendChild(listItemsContainer);
+                
+                // Update view buttons based on current view
+                updateViewButtonStates();
+            })
+            .catch(error => {
+                console.error('Error loading resources:', error);
+                    loadingState.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                emptyState.querySelector('p').textContent = 'Error loading resources. Please try again later.';
+            });
+    }
+
+    // Helper function to update view button states
+    function updateViewButtonStates() {
+        const isListView = !document.getElementById('listView').classList.contains('hidden');
+        
+        if (isListView) {
+                    document.getElementById('listViewBtn').classList.replace('bg-gray-100', 'bg-blue-100');
+                    document.getElementById('listViewBtn').classList.replace('text-gray-600', 'text-blue-600');
+                    document.getElementById('gridViewBtn').classList.replace('bg-blue-100', 'bg-gray-100');
+                    document.getElementById('gridViewBtn').classList.replace('text-blue-600', 'text-gray-600');
+        } else {
+            document.getElementById('gridViewBtn').classList.replace('bg-gray-100', 'bg-blue-100');
+            document.getElementById('gridViewBtn').classList.replace('text-gray-600', 'text-blue-600');
+            document.getElementById('listViewBtn').classList.replace('bg-blue-100', 'bg-gray-100');
+            document.getElementById('listViewBtn').classList.replace('text-blue-600', 'text-gray-600');
+        }
+    }
+
+    function createGridItem(resource) {
+        // Split the name into name and description if it contains " - "
+        let name = resource.name;
+        let description = resource.description || '';
+        
+        if (resource.name.includes(' - ')) {
+            [name, description] = resource.name.split(' - ', 2);
+        }
+
+        const div = document.createElement('div');
+        div.className = 'bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6';
+        div.innerHTML = `
+            <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="px-3 py-1 text-sm font-medium rounded-full ${getCategoryColor(resource.category)}">
+                        ${resource.category}
+                    </span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">${name}</h3>
+                <p class="text-gray-600 mb-4 flex-grow">${description || 'No description available'}</p>
+                <a href="${resource.link}" target="_blank" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                    View Resource
+                </a>
+            </div>
+        `;
+        return div;
+    }
+
+    function createListItem(resource) {
+        // Split the name into name and description if it contains " - "
+        let name = resource.name;
+        let description = resource.description || '';
+        
+        if (resource.name.includes(' - ')) {
+            [name, description] = resource.name.split(' - ', 2);
+        }
+
+        const item = document.createElement('div');
+        item.className = 'bg-white rounded-xl shadow-sm p-4';
+        item.innerHTML = `
+            <div class="grid grid-cols-12 gap-4">
+                <div class="col-span-2">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        ${resource.category}
+                    </span>
+                </div>
+                <div class="col-span-3">
+                    <div class="text-sm font-medium text-gray-900">${name}</div>
+                </div>
+                <div class="col-span-3 text-sm text-gray-500">
+                    ${description}
+                </div>
+                <div class="col-span-3 text-sm text-gray-500">
+                    ${new Date(resource.createdAt).toLocaleDateString()}
+                </div>
+                <div class="col-span-1 text-right">
+                    <a href="${resource.link}" target="_blank" class="text-blue-600 hover:text-blue-800">View</a>
+                </div>
+            </div>
+        `;
+        return item;
+    }
+
+    function getCategoryColor(category) {
+        const colors = {
+            'Equipment': 'bg-green-100 text-green-800',
+            'Software': 'bg-blue-100 text-blue-800',
+            'Materials': 'bg-purple-100 text-purple-800',
+            'Tutorials': 'bg-yellow-100 text-yellow-800',
+            'Documents': 'bg-red-100 text-red-800'
+        };
+        return colors[category] || 'bg-gray-100 text-gray-800';
+    }
+
+    // Add event listeners for view switching
+    document.getElementById('gridViewBtn').addEventListener('click', () => {
+        document.getElementById('gridView').classList.remove('hidden');
+        document.getElementById('listView').classList.add('hidden');
+        updateViewButtonStates();
+    });
+
+    document.getElementById('listViewBtn').addEventListener('click', () => {
+        document.getElementById('listView').classList.remove('hidden');
+        document.getElementById('gridView').classList.add('hidden');
+        updateViewButtonStates();
+    });
+
+    // Add event listener for the Lab Resources link
+    document.querySelector('a[href="#lab-resources"]').addEventListener('click', (e) => {
+        e.preventDefault();
+        showSection('lab-resources');
+    });
+
+    // Initialize the resources section when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        // If we're on the resources page initially (via direct URL with hash)
+        if (window.location.hash === '#lab-resources') {
+            showSection('lab-resources');
+        }
+    });
+
+    // Add refresh button event listener
+    document.getElementById('refreshResourcesBtn').addEventListener('click', () => {
+        // Reset the flag to force a reload
+        window.resourcesLoaded = false;
+        loadResources();
+    });
+    </script>
 </body>
 
 </html>

@@ -13,8 +13,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Add reference to our error toast component -->
-    <script src="../public/error-toast.js"></script>
+    <!-- Add our custom components in the right order -->
+    <script src="/public/confirm-modal.js"></script>
+    <script src="/public/error-toast.js"></script>
+    <script src="/public/alert-debug.js"></script>
+    <script src="/public/admin-student.js"></script>
+    <script src="/public/admin.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -137,6 +141,12 @@
                             </svg>
                             Reports
                         </a>
+                        <a href="#lab-resources" class="flex items-center px-4 py-2 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            Lab Resources
+                        </a>
                         <a href="#reset-session" class="flex items-center px-4 py-2 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -255,6 +265,9 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                                     </svg>
                                 </div>
+                                <button onclick="showAddStudentModal()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                                    Add New Student
+                                </button>
                                 <button onclick="exportStudentData()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
                                     Export Data
                                 </button>
@@ -777,19 +790,89 @@
                     </div>
                 </section>
 
+                <!-- Lab Resources Section -->
+                <section id="lab-resources" class="hidden animate-fade-in">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-semibold text-gray-800">Lab Resources Management</h2>
+                            <button id="add-resource-btn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <span>Add Resource</span>
+                            </button>
+                        </div>
+
+                        <!-- Add/Edit Resource Form (Hidden by default) -->
+                        <div id="resource-form" class="hidden mb-6 bg-gray-50 p-6 rounded-lg">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Add New Resource</h3>
+                            <form id="resource-form-content" class="space-y-4">
+                                <input type="hidden" id="resource-id">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Resource Name</label>
+                                    <input type="text" id="resource-name" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Google Drive Link</label>
+                                    <input type="url" id="resource-link" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <select id="resource-category" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                        <option value="">Select a category</option>
+                                        <option value="Software">Software</option>
+                                        <option value="Materials">Materials</option>
+                                        <option value="Tutorials">Tutorials</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <textarea id="resource-description" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" rows="3"></textarea>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="resource-enabled" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label class="ml-2 block text-sm text-gray-700">Enable for students</label>
+                                </div>
+                                <div class="flex justify-end space-x-3">
+                                    <button type="button" id="cancel-resource" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">Save Resource</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Resources Table -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Name</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Added</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resourcesList" class="bg-white divide-y divide-gray-200">
+                                    <!-- Resources will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Reset Sessions Section -->
                 <section id="reset-session" class="hidden animate-fade-in">
                     <div class="bg-white rounded-xl shadow-sm p-6">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-xl font-semibold text-gray-800">Reset Sessions</h2>
-                            <div class="flex items-center space-x-4">
                                 <button id="refresh-logs" class="text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                     </svg>
                                     <span>Refresh</span>
                                 </button>
-                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -874,303 +957,78 @@
     <!-- Main Scripts -->
     <script src="/public/admin.js"></script>
     <script src="/public/filters.js"></script>
-    <script>
-        // Handle navigation and initialize sections
-        document.addEventListener('DOMContentLoaded', function() {
-            const navLinks = document.querySelectorAll('nav a');
-            const sections = document.querySelectorAll('main section');
-            
-            // Store original display property for each section
-            const sectionDisplayStyles = {};
-            sections.forEach(section => {
-                // Get computed style to determine if it should be block, flex, etc.
-                const computedStyle = window.getComputedStyle(section);
-                // Store the display style (but default to 'block' if it's 'none')
-                sectionDisplayStyles[section.id] = 
-                    (computedStyle.display === 'none') ? 'block' : computedStyle.display;
-            });
 
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href').substring(1);
-
-                    // Hide all sections
-                    sections.forEach(section => {
-                        section.classList.add('hidden');
-                    });
-
-                    // Show target section
-                    const targetSection = document.getElementById(targetId);
-                    if (targetSection) {
-                        // Remove hidden class
-                        targetSection.classList.remove('hidden');
-                        
-                        // Specific actions for sections
-                        if (targetId === 'dashboard') {
-                            // Refresh dashboard stats
-                        } else if (targetId === 'sit-in') {
-                            // Load sit-in table
-                        } else if (targetId === 'leaderboard') {
-                            // Initialize leaderboard
-                            if (typeof setupLeaderboard === 'function') {
-                                setupLeaderboard();
-                            }
-                        }
-                    }
-
-                    // Update active state in navigation
-                    navLinks.forEach(navLink => {
-                        if (navLink.getAttribute('href') === '#' + targetId) {
-                            navLink.classList.add('bg-blue-50', 'text-blue-600');
-                            navLink.classList.remove('text-gray-700');
-                        } else {
-                            navLink.classList.remove('bg-blue-50', 'text-blue-600');
-                            navLink.classList.add('text-gray-700');
-                        }
-                    });
-                });
-            });
-
-            // Show dashboard by default
-            document.querySelector('nav a[href="#dashboard"]').click();
-        });
-
-        // Function to add the points button
-        function addPointButtonsToStudentTable() {
-            // Get all View Details buttons
-            const viewDetailsButtons = document.querySelectorAll("button");
-            
-            viewDetailsButtons.forEach(btn => {
-                if (btn.textContent.trim() === "View Details") {
-                    // Get the student ID from the onclick attribute
-                    const onclickAttr = btn.getAttribute("onclick");
-                    const idMatch = onclickAttr.match(/'([^']+)'/);
-                    if (!idMatch) return;
-                    
-                    const studentId = idMatch[1];
-                    
-                    // Check if we've already processed this button
-                    if (btn.dataset.processed === "true") {
-                        return;
-                    }
-                    
-                    // Mark as processed
-                    btn.dataset.processed = "true";
-                    
-                    // Get the parent cell
-                    const cell = btn.closest("td");
-                    if (!cell) return;
-                    
-                    // Clear the cell's contents
-                    cell.innerHTML = "";
-                    
-                    // Create container for buttons (horizontal layout)
-                    const buttonContainer = document.createElement("div");
-                    buttonContainer.className = "flex items-center space-x-1 w-full";
-                    cell.appendChild(buttonContainer);
-                    
-                    // Recreate the View Details button
-                    const viewDetailsBtn = document.createElement("button");
-                    viewDetailsBtn.setAttribute("onclick", `viewStudentDetails('${studentId}')`);
-                    viewDetailsBtn.className = "bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600 transition-colors flex-grow";
-                    viewDetailsBtn.textContent = "View Details";
-                    buttonContainer.appendChild(viewDetailsBtn);
-                    
-                    // Create Add Point button
-                    const addPointBtn = document.createElement("button");
-                    addPointBtn.setAttribute("onclick", `addStudentPoint('${studentId}')`);
-                    addPointBtn.className = "add-point-btn bg-green-500 text-white px-2 py-1 rounded text-sm hover:bg-green-600 transition-colors flex-grow";
-                    addPointBtn.textContent = "+Point";
-                    buttonContainer.appendChild(addPointBtn);
-                    
-                    // Create dots menu button (as a small icon on the side)
-                    const dotsBtn = document.createElement("button");
-                    dotsBtn.className = "text-gray-600 px-1 flex flex-col items-center justify-center relative";
-                    dotsBtn.innerHTML = `
-                        <div class="flex flex-col items-center justify-center">
-                            <div class="w-1 h-1 bg-gray-600 rounded-full mb-0.5"></div>
-                            <div class="w-1 h-1 bg-gray-600 rounded-full mb-0.5"></div>
-                            <div class="w-1 h-1 bg-gray-600 rounded-full"></div>
-                        </div>
-                    `;
-                    buttonContainer.appendChild(dotsBtn);
-                    
-                    // Create dropdown menu for the three dots
-                    const dropdownMenu = document.createElement("div");
-                    dropdownMenu.className = "absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg hidden z-10";
-                    dropdownMenu.style.top = "100%";
-                    
-                    // Add Edit option
-                    const editOption = document.createElement("a");
-                    editOption.href = "#";
-                    editOption.className = "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100";
-                    editOption.textContent = "Edit";
-                    editOption.onclick = function(e) {
-                        e.preventDefault();
-                        editStudent(studentId);
-                    };
-                    
-                    // Add Delete option
-                    const deleteOption = document.createElement("a");
-                    deleteOption.href = "#";
-                    deleteOption.className = "block px-4 py-2 text-sm text-red-600 hover:bg-gray-100";
-                    deleteOption.textContent = "Delete";
-                    deleteOption.onclick = function(e) {
-                        e.preventDefault();
-                        deleteStudent(studentId);
-                    };
-                    
-                    // Add options to dropdown
-                    dropdownMenu.appendChild(editOption);
-                    dropdownMenu.appendChild(deleteOption);
-                    
-                    // Add dropdown to button container
-                    dotsBtn.appendChild(dropdownMenu);
-                    
-                    // Toggle dropdown on click
-                    dotsBtn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        dropdownMenu.classList.toggle('hidden');
-                    });
-                    
-                    // Close dropdown when clicking outside
-                    document.addEventListener('click', function() {
-                        dropdownMenu.classList.add('hidden');
-                    });
-                }
-            });
-        }
-
-        // Run it when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Call once on page load
-            setTimeout(addPointButtonsToStudentTable, 1000);
-            
-            // Set interval to check and add buttons periodically
-            setInterval(addPointButtonsToStudentTable, 3000);
-            
-            // Also add the addStudentPoint function if it doesn't exist
-            if (typeof window.addStudentPoint !== "function") {
-                window.addStudentPoint = async function(idNumber) {
-                    try {
-                        // Get the available sessions for this student
-                        const pointCheckResponse = await fetch(`http://localhost:3000/check-student-point?idNumber=${idNumber}`);
-                        const pointCheckResult = await pointCheckResponse.json();
-                        
-                        if (!pointCheckResponse.ok) {
-                            alert("Error checking student sessions: " + (pointCheckResult.message || "Unknown error"));
-                            return;
-                        }
-                        
-                        if (!pointCheckResult.hasAvailableSessions) {
-                            alert("This student has no completed sessions available to add points to.");
-                            return;
-                        }
-                        
-                        // If there's just one session, use it directly
-                        if (pointCheckResult.availableSessions.length === 1) {
-                            const session = pointCheckResult.availableSessions[0];
-                            await addPointToSession(idNumber, session.id, session.type);
-                            return;
-                        }
-                        
-                        // If multiple sessions, show a selection dialog
-                        const sessionHtml = pointCheckResult.availableSessions.map((session, index) => `
-                            <div class="p-2 border-b border-gray-200 hover:bg-gray-50 cursor-pointer session-option" 
-                                 data-session-id="${session.id}" 
-                                 data-session-type="${session.type}">
-                                <div class="font-medium">${session.type === 'sit-in' ? 'Walk-in' : 'Reservation'} - ${session.date}</div>
-                                <div class="text-sm text-gray-500">Time: ${session.timeIn} to ${session.timeOut}</div>
-                            </div>
-                        `).join('');
-                        
-                        // Create modal for session selection
-                        const modal = document.createElement('div');
-                        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-                        modal.innerHTML = `
-                            <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-                                <div class="flex justify-between items-center mb-4">
-                                    <h3 class="text-lg font-semibold text-gray-700">Select Session to Add Point</h3>
-                                    <button id="close-session-modal" class="text-gray-400 hover:text-gray-600">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    <!-- Add Student Modal -->
+    <div id="add-student-modal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
+        <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-700">Add New Student</h3>
+                <button id="close-add-student-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
                                 </div>
-                                <div class="mb-4">
-                                    <p class="text-sm text-gray-600 mb-2">Select a completed session to add points to:</p>
-                                    <div class="max-h-60 overflow-y-auto border border-gray-200 rounded">
-                                        ${sessionHtml}
+            
+            <form id="add-student-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
+                    <input type="text" id="new-id-number" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="new-email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                        <input type="text" id="new-first-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                        <input type="text" id="new-middle-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                        <input type="text" id="new-last-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                 </div>
                             </div>
-                        `;
-                        
-                        document.body.appendChild(modal);
-                        
-                        // Set up event listeners
-                        document.getElementById('close-session-modal').addEventListener('click', () => {
-                            document.body.removeChild(modal);
-                        });
-                        
-                        modal.querySelectorAll('.session-option').forEach(option => {
-                            option.addEventListener('click', async () => {
-                                const sessionId = option.getAttribute('data-session-id');
-                                const sessionType = option.getAttribute('data-session-type');
-                                document.body.removeChild(modal);
-                                await addPointToSession(idNumber, sessionId, sessionType);
-                            });
-                        });
-                        
-                    } catch (error) {
-                        console.error("Error checking student point eligibility:", error);
-                        alert("Error checking student sessions. Please try again.");
-                    }
-                };
-            }
-        });
-
-        // Helper function to add a point to a specific session
-        async function addPointToSession(idNumber, sessionId, sessionType) {
-            try {
-                const response = await fetch("http://localhost:3000/add-student-points", {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        idNumber,
-                        sessionId,
-                        sessionType
-                    })
-                });
                 
-                const result = await response.json();
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                        <select id="new-course" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="BS Computer Science">BS Computer Science</option>
+                            <option value="BS Information Technology">BS Information Technology</option>
+                            <option value="BS Information Systems">BS Information Systems</option>
+                            <option value="BS Software Engineering">BS Software Engineering</option>
+                            <option value="BS Computer Engineering">BS Computer Engineering</option>
+                            <option value="BS Electronics Engineering">BS Electronics Engineering</option>
+                            <option value="BS Electrical Engineering">BS Electrical Engineering</option>
+                            <option value="BS Mechanical Engineering">BS Mechanical Engineering</option>
+                            <option value="BS Civil Engineering">BS Civil Engineering</option>
+                            <option value="BS Business Administration">BS Business Administration</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Year Level</label>
+                        <select id="new-year" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                        </select>
+                    </div>
+                </div>
                 
-                if (!response.ok) {
-                    alert("Error: " + (result.message || "Failed to add point"));
-                    return;
-                }
-                
-                // Show a success message
-                const message = result.pointsConverted 
-                    ? `Point added! 3 points converted to 1 session. Student now has ${result.newRemainingSessions} remaining sessions.`
-                    : `Point added! Student now has ${result.newPoints}/3 points.`;
-                
-                alert(message);
-                
-                // Refresh the students list to update the display
-                fetchStudents();
-                
-            } catch (error) {
-                console.error("Error adding student point:", error);
-                alert("Error adding point. Please try again.");
-            }
-        }
-    </script>
-    <!-- Add your custom scripts here -->
-    <script src="/public/export-fix.js"></script>
-    <script src="/public/tabs-fix.js"></script>
+                <div class="mt-4 flex justify-end space-x-3">
+                    <button type="button" id="cancel-add-student" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">Create Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

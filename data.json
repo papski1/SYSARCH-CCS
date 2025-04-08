@@ -9,9 +9,9 @@
     "course": "BS Civil Engineering",
     "password": "$2b$10$qVQqprWxFiaAWPizb9YdEuPAsJcKiTRNOD3oRaAOWQ1c0.VV22UKS",
     "totalSessions": 10,
-    "completedSessions": 2,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 13,
+    "remainingSessions": 14,
     "points": 2
   },
   {
@@ -24,10 +24,11 @@
     "course": "BS Information Technology",
     "password": "$2b$10$Q0LgYdpN1QrE89dD3S88TOzY66jEzzfG3LEWEHJrby1veRWDueCwq",
     "totalSessions": 15,
-    "completedSessions": 2,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 28,
-    "profileImage": "/uploads/1742675119342-22.jpg"
+    "remainingSessions": 29,
+    "profileImage": "/uploads/1742675119342-22.jpg",
+    "points": 1
   },
   {
     "idNumber": "242424",
@@ -52,9 +53,9 @@
     "year": "4th Year",
     "course": "BS Business Administration",
     "password": "$2b$10$fjawJ56v3YCZ7CiO7.bMQOngXpQXGEWNr0qXSlLt4CduAcGip3x3O",
-    "completedSessions": 2,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 13
+    "remainingSessions": 14
   },
   {
     "idNumber": "2223",
@@ -65,9 +66,9 @@
     "year": "3rd Year",
     "course": "BS Computer Science",
     "password": "$2b$10$awRbFfmKiSS8bWbXwW5tP.N5u/dMa1JMUbOukuPsLxiCNN8SJSUKi",
-    "completedSessions": 2,
-    "pendingReservations": 1,
-    "remainingSessions": 27,
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29,
     "profileImage": "/uploads/1742312950299-22.jpg",
     "points": 0
   },
@@ -134,9 +135,9 @@
     "year": "3rd Year",
     "course": "BS Information Technology",
     "password": "$2b$10$CFSsOL89YRLtOH9e2hLVpeSCQ4bDJegkzACySCpa6lAY8nFnI4fVG",
-    "completedSessions": 2,
+    "completedSessions": 1,
     "pendingReservations": 0,
-    "remainingSessions": 28
+    "remainingSessions": 29
   },
   {
     "idNumber": "222222",
@@ -187,8 +188,34 @@
     "course": "BS Electronics Engineering",
     "password": "$2b$10$S/K7PqSz2tv8ZqbXY2YWc.IfZouwpzoResA2wQG7zSNdkhlDgV98e",
     "completedSessions": 1,
-    "pendingReservations": 3,
-    "remainingSessions": 11,
+    "pendingReservations": 0,
+    "remainingSessions": 14,
     "points": 1
+  },
+  {
+    "idNumber": "1212",
+    "firstName": "kikoy",
+    "middleName": "paps",
+    "lastName": "leroi",
+    "email": "kikoypaps@gmail.com",
+    "year": "4th Year",
+    "course": "BS Information Technology",
+    "password": "$2b$10$8OpQzCyL5EWXNzUmV4Vwj.ci2i5rqil5wYLm2iqVIRkmWNTisEoN.",
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 29
+  },
+  {
+    "idNumber": "2121",
+    "firstName": "leroi",
+    "middleName": "paps",
+    "lastName": "kikoy",
+    "email": "papskikoy@gmail.com",
+    "year": "1st Year",
+    "course": "BS Mechanical Engineering",
+    "password": "$2b$10$G6L1z.iebifzknnquRCRSO6SpaNMoYFvhZTmE6MUgN8YgNZNbyquG",
+    "completedSessions": 1,
+    "pendingReservations": 0,
+    "remainingSessions": 14
   }
 ]

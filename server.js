@@ -300,11 +300,11 @@ app.post("/reserve", (req, res) => {
             email,
             idNumber,
             name,
-            purpose,
+            purpose: programmingLanguage.replace(/[()]/g, '').toUpperCase(),
             date,
             time,
             labRoom,
-            programmingLanguage,
+            programmingLanguage: programmingLanguage.replace(/[()]/g, '').toUpperCase(),
             status: status || 'pending', // Use provided status or default to 'pending'
             createdAt: new Date().toISOString(),
             isWalkIn: isWalkIn,
@@ -1861,8 +1861,8 @@ app.post("/create-walkin", (req, res) => {
             timeIn: timeString, // Keep the timeIn for backwards compatibility
             timeOut: null,
             labRoom: labRoom || "Walk-in",
-            programmingLanguage: programmingLanguage === "Other" ? otherLanguage : programmingLanguage,
-            purpose: purpose === "Other" ? otherPurpose : purpose,
+            programmingLanguage: (programmingLanguage === "Other" ? otherLanguage : programmingLanguage).replace(/[()]/g, '').toUpperCase(),
+            purpose: (purpose === "Other" ? otherPurpose : purpose).replace(/[()]/g, '').toUpperCase(),
             status: 'active',
             autoLogoutTime: null,
             createdAt: today.toISOString(),
@@ -3163,3 +3163,181 @@ app.get("/check-student-point", (req, res) => {
 });
 
 // Removed session auto-processing as requested by client
+
+// Resources API Endpoints
+app.get('/api/resources', (req, res) => {
+    try {
+        const resources = JSON.parse(fs.readFileSync('resources.json', 'utf8'));
+        res.json(resources);
+    } catch (error) {
+        console.error('Error reading resources:', error);
+        res.status(500).json({ error: 'Failed to load resources' });
+    }
+});
+
+// Add GET endpoint for single resource
+app.get('/api/resources/:id', (req, res) => {
+    try {
+        const resources = JSON.parse(fs.readFileSync('resources.json', 'utf8'));
+        const resource = resources.find(r => r.id === req.params.id);
+        
+        if (!resource) {
+            return res.status(404).json({ error: 'Resource not found' });
+        }
+        
+        res.json(resource);
+    } catch (error) {
+        console.error('Error reading resource:', error);
+        res.status(500).json({ error: 'Failed to load resource' });
+    }
+});
+
+app.post('/api/resources', (req, res) => {
+    try {
+        const resources = JSON.parse(fs.readFileSync('resources.json', 'utf8'));
+        
+        // Check if resource with same name already exists
+        const existingResource = resources.find(r => r.name === req.body.name);
+        if (existingResource) {
+            return res.status(400).json({ error: 'Resource with this name already exists' });
+        }
+
+        const newResource = {
+            id: Date.now().toString(),
+            name: req.body.name,
+            link: req.body.link,
+            category: req.body.category,
+            description: req.body.description,
+            enabled: req.body.enabled || false,
+            createdAt: new Date().toISOString()
+        };
+        
+        resources.push(newResource);
+        fs.writeFileSync('resources.json', JSON.stringify(resources, null, 2));
+        res.json(newResource);
+    } catch (error) {
+        console.error('Error adding resource:', error);
+        res.status(500).json({ error: 'Failed to add resource' });
+    }
+});
+
+app.put('/api/resources/:id', (req, res) => {
+    try {
+        const resources = JSON.parse(fs.readFileSync('resources.json', 'utf8'));
+        const index = resources.findIndex(r => r.id === req.params.id);
+        
+        if (index === -1) {
+            return res.status(404).json({ error: 'Resource not found' });
+        }
+
+        // Check if another resource with the same name exists
+        const existingResource = resources.find(r => r.name === req.body.name && r.id !== req.params.id);
+        if (existingResource) {
+            return res.status(400).json({ error: 'Resource with this name already exists' });
+        }
+
+        resources[index] = {
+            ...resources[index],
+            name: req.body.name,
+            link: req.body.link,
+            category: req.body.category,
+            description: req.body.description,
+            enabled: req.body.enabled
+        };
+        
+        fs.writeFileSync('resources.json', JSON.stringify(resources, null, 2));
+        res.json(resources[index]);
+    } catch (error) {
+        console.error('Error updating resource:', error);
+        res.status(500).json({ error: 'Failed to update resource' });
+    }
+});
+
+app.delete('/api/resources/:id', (req, res) => {
+    try {
+        const resources = JSON.parse(fs.readFileSync('resources.json', 'utf8'));
+        const filteredResources = resources.filter(r => r.id !== req.params.id);
+        if (filteredResources.length === resources.length) {
+            return res.status(404).json({ error: 'Resource not found' });
+        }
+        fs.writeFileSync('resources.json', JSON.stringify(filteredResources, null, 2));
+        res.json({ message: 'Resource deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting resource:', error);
+        res.status(500).json({ error: 'Failed to delete resource' });
+    }
+});
+
+// Add toggle endpoint
+app.put('/api/resources/:id/toggle', (req, res) => {
+    try {
+        const resources = JSON.parse(fs.readFileSync('resources.json', 'utf8'));
+        const index = resources.findIndex(r => r.id === req.params.id);
+        
+        if (index === -1) {
+            return res.status(404).json({ error: 'Resource not found' });
+        }
+        
+        // Toggle the enabled status
+        resources[index].enabled = !resources[index].enabled;
+        
+        fs.writeFileSync('resources.json', JSON.stringify(resources, null, 2));
+        res.json(resources[index]);
+    } catch (error) {
+        console.error('Error toggling resource:', error);
+        res.status(500).json({ error: 'Failed to toggle resource' });
+    }
+});
+
+// Admin create student
+app.post("/admin/create-student", async (req, res) => {
+    const { idNumber, firstName, middleName, lastName, email, year, course, password } = req.body;
+
+    if (!idNumber || !firstName || !lastName || !email || !year || !course || !password) {
+        return res.status(400).json({ message: "All fields are required!" });
+    }
+
+    let users = readData();
+
+    if (users.some(user => user.idNumber === idNumber)) {
+        return res.status(400).json({ message: "Student ID already exists!" });
+    }
+
+    if (users.some(user => user.email === email)) {
+        return res.status(400).json({ message: "Email already exists!" });
+    }
+
+    try {
+        // Hash the password before storing
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Determine initial sessions based on course
+        const isComputerCourse = course.toLowerCase().includes('computer') || 
+                                course.toLowerCase().includes('information') || 
+                                course.toLowerCase().includes('software');
+        const initialSessions = isComputerCourse ? 30 : 15;
+
+        const newUser = { 
+            idNumber, 
+            firstName, 
+            middleName, 
+            lastName, 
+            email, 
+            year, 
+            course, 
+            password: hashedPassword,
+            completedSessions: 0,
+            pendingReservations: 0,
+            remainingSessions: initialSessions
+        };
+
+        users.push(newUser);
+        writeData(users);
+
+        res.status(201).json({ message: "Student created successfully!" });
+
+    } catch (error) {
+        console.error("Error creating student:", error);
+        res.status(500).json({ message: "Error creating student" });
+    }
+});

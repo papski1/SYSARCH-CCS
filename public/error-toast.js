@@ -212,4 +212,202 @@ window.ErrorToast = {
     info: showInfo,
     clear: clearAllToasts,
     reset: resetErrorTracking
+};
+
+// Define our toast notification component
+const ErrorToast = {
+    toasts: [],
+    container: null,
+    
+    init() {
+        // Create container if it doesn't exist
+        if (!this.container) {
+            this.container = document.createElement('div');
+            this.container.className = 'toast-container';
+            document.body.appendChild(this.container);
+            
+            // Add styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .toast-container {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 9999;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    max-width: 350px;
+                }
+                
+                .toast {
+                    padding: 15px 20px;
+                    border-radius: 4px;
+                    color: white;
+                    font-size: 14px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    animation: slideIn 0.3s ease;
+                    word-break: break-word;
+                }
+                
+                .toast-error {
+                    background-color: #f44336;
+                }
+                
+                .toast-warning {
+                    background-color: #ff9800;
+                }
+                
+                .toast-success {
+                    background-color: #4caf50;
+                }
+                
+                .toast-info {
+                    background-color: #2196f3;
+                }
+                
+                .toast-close {
+                    background: none;
+                    border: none;
+                    color: white;
+                    cursor: pointer;
+                    font-size: 16px;
+                    margin-left: 10px;
+                    opacity: 0.8;
+                    padding: 0;
+                }
+                
+                .toast-close:hover {
+                    opacity: 1;
+                }
+                
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes fadeOut {
+                    from {
+                        opacity: 1;
+                    }
+                    to {
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    },
+    
+    showToast(message, type = 'info', duration = 5000) {
+        this.init();
+        
+        // Check if a toast with the same message is already displayed
+        if (this.toasts.some(t => t.message === message)) {
+            return;
+        }
+        
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        // Create message span
+        const messageSpan = document.createElement('span');
+        messageSpan.textContent = message;
+        toast.appendChild(messageSpan);
+        
+        // Create close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'toast-close';
+        closeButton.innerHTML = '&times;';
+        closeButton.addEventListener('click', () => this.removeToast(toast));
+        toast.appendChild(closeButton);
+        
+        // Add toast to container
+        this.container.appendChild(toast);
+        
+        // Add to tracking array
+        const toastObj = { element: toast, message };
+        this.toasts.push(toastObj);
+        
+        // Set auto dismiss
+        if (duration) {
+            setTimeout(() => {
+                if (this.container.contains(toast)) {
+                    this.removeToast(toast);
+                }
+            }, duration);
+        }
+        
+        return toast;
+    },
+    
+    removeToast(toast) {
+        // Add fadeout animation
+        toast.style.animation = 'fadeOut 0.3s ease forwards';
+        
+        // Remove after animation
+        setTimeout(() => {
+            if (this.container.contains(toast)) {
+                this.container.removeChild(toast);
+                // Remove from tracking array
+                this.toasts = this.toasts.filter(t => t.element !== toast);
+            }
+        }, 300);
+    },
+    
+    // Convenience methods
+    error(message, duration = 8000) {
+        return this.showToast(message, 'error', duration);
+    },
+    
+    warning(message, duration = 5000) {
+        return this.showToast(message, 'warning', duration);
+    },
+    
+    success(message, duration = 5000) {
+        return this.showToast(message, 'success', duration);
+    },
+    
+    info(message, duration = 5000) {
+        return this.showToast(message, 'info', duration);
+    }
+};
+
+// Initialize on load
+window.addEventListener('DOMContentLoaded', () => {
+    ErrorToast.init();
+});
+
+// Store the original alert function
+const originalAlert = window.alert;
+
+// Override the default alert function
+window.alert = function(message) {
+    if (typeof ErrorToast !== 'undefined') {
+        // Try to determine the type of message for appropriate styling
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.includes('error') || lowerMessage.includes('fail') || lowerMessage.includes('invalid')) {
+            ErrorToast.error(message);
+        } else if (lowerMessage.includes('warning') || lowerMessage.includes('caution')) {
+            ErrorToast.warning(message);
+        } else if (lowerMessage.includes('success') || lowerMessage.includes('successfully')) {
+            ErrorToast.success(message);
+        } else {
+            ErrorToast.info(message);
+        }
+    } else {
+        // Fall back to original alert if ErrorToast is not available
+        originalAlert(message);
+    }
 }; 
